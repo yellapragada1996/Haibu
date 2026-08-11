@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "timezone_confirmed" boolean DEFAULT false NOT NULL;

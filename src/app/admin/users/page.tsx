@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { UsersTable } from "../UsersTable";
 import { AdminListControls } from "../AdminListControls";
 import { Pager } from "../Pager";
+import { EmptyState } from "../EmptyState";
 
 const PAGE_SIZE = 50;
 
@@ -97,8 +98,18 @@ export default async function AdminUsersPage({
           { label: "Fans", value: "fan" },
         ]}
       />
-      <UsersTable rows={rows} />
-      <Pager base="/admin/users" params={pagerParams} page={page} hasNext={appUsers.length === PAGE_SIZE} />
+      {appUsers.length === 0 ? (
+        <EmptyState
+          label="users"
+          q={q}
+          clearHref={role ? `/admin/users?role=${encodeURIComponent(role)}` : "/admin/users"}
+        />
+      ) : (
+        <>
+          <UsersTable rows={rows} />
+          <Pager base="/admin/users" params={pagerParams} page={page} hasNext={appUsers.length === PAGE_SIZE} />
+        </>
+      )}
     </div>
   );
 }

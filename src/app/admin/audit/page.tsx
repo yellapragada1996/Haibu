@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { Card } from "@/components/ui/Card";
 import { AdminListControls } from "../AdminListControls";
 import { Pager } from "../Pager";
+import { EmptyState } from "../EmptyState";
 import { formatDateTime } from "@/lib/format";
 
 const adminUser = alias(users, "adminUser");
@@ -88,7 +89,11 @@ export default async function AdminAuditPage({
       />
 
       {rows.length === 0 ? (
-        <p className="text-sm text-text-secondary">No admin actions yet.</p>
+        <EmptyState
+          label="admin actions"
+          q={q}
+          clearHref={action ? `/admin/audit?action=${encodeURIComponent(action)}` : "/admin/audit"}
+        />
       ) : (
         <Card padding={false} className="overflow-x-auto border border-border-subtle">
           <table className="w-full text-sm">
@@ -128,7 +133,9 @@ export default async function AdminAuditPage({
         </Card>
       )}
 
-      <Pager base="/admin/audit" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
+      {rows.length > 0 && (
+        <Pager base="/admin/audit" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
+      )}
     </div>
   );
 }

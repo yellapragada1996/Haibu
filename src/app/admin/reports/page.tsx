@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { ReportsTable } from "../ReportsTable";
 import { AdminListControls } from "../AdminListControls";
 import { Pager } from "../Pager";
+import { EmptyState } from "../EmptyState";
 
 const reportedUser = alias(users, "reportedUser");
 const STATUSES = ["open", "reviewed", "actioned", "dismissed"] as const;
@@ -91,8 +92,18 @@ export default async function AdminReportsPage({
           { label: "Dismissed", value: "dismissed" },
         ]}
       />
-      <ReportsTable rows={data} />
-      <Pager base="/admin/reports" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
+      {rows.length === 0 ? (
+        <EmptyState
+          label="reports"
+          q={q}
+          clearHref={filter ? `/admin/reports?status=${encodeURIComponent(filter)}` : "/admin/reports"}
+        />
+      ) : (
+        <>
+          <ReportsTable rows={data} />
+          <Pager base="/admin/reports" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
+        </>
+      )}
     </div>
   );
 }

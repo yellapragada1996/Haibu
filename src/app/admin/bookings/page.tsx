@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { BookingsTable } from "../BookingsTable";
 import { AdminListControls } from "../AdminListControls";
 import { Pager } from "../Pager";
+import { EmptyState } from "../EmptyState";
 
 const fanUser = alias(users, "fanUser");
 const creatorUser = alias(users, "creatorUser");
@@ -102,8 +103,18 @@ export default async function AdminBookingsPage({
           { label: "Cancelled", value: "cancelled" },
         ]}
       />
-      <BookingsTable rows={data} />
-      <Pager base="/admin/bookings" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
+      {rows.length === 0 ? (
+        <EmptyState
+          label="bookings"
+          q={q}
+          clearHref={status ? `/admin/bookings?status=${encodeURIComponent(status)}` : "/admin/bookings"}
+        />
+      ) : (
+        <>
+          <BookingsTable rows={data} />
+          <Pager base="/admin/bookings" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
+        </>
+      )}
     </div>
   );
 }

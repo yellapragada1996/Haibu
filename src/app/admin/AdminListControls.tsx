@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function AdminListControls({
@@ -20,48 +20,90 @@ export function AdminListControls({
 }) {
   const router = useRouter();
   const [search, setSearch] = useState(q);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The q value we've already pushed to the URL. Lets us tell "the user typed
+  // this" (don't re-sync) apart from "the URL changed externally" (do sync).
+  const appliedRef = useRef(q);
 
   useEffect(() => {
-    setSearch(q);
+    if (q !== appliedRef.current) {
+      setSearch(q);
+      appliedRef.current = q;
+    }
   }, [q]);
 
-  function navigate(newQ: string, newFilter: string) {
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function apply(newQ: string, newFilter: string) {
+    appliedRef.current = newQ;
     const params = new URLSearchParams();
     if (newQ) params.set("q", newQ);
     if (newFilter) params.set(param, newFilter);
     const s = params.toString();
-    router.push(s ? `${base}?${s}` : base);
+    // replace (not push) so typing doesn't fill the history stack.
+    router.replace(s ? `${base}?${s}` : base);
+  }
+
+  function handleChange(value: string) {
+    setSearch(value);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      // Clearing resets immediately — no debounce, no stuck empty list.
+      apply("", filter);
+    } else {
+      timerRef.current = setTimeout(() => apply(trimmed, filter), 300);
+    }
+  }
+
+  function clearSearch() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setSearch("");
+    apply("", filter);
+  }
+
+  function setFilter(value: string) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    apply(search.trim(), value);
   }
 
   return (
     <div className="mb-4 space-y-3">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate(search.trim(), filter);
-        }}
-        className="flex max-w-md gap-2"
-      >
+      <div className="relative max-w-md">
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              if (timerRef.current) clearTimeout(timerRef.current);
+              apply(search.trim(), filter);
+            }
+          }}
           placeholder={placeholder}
-          className="h-9 w-full rounded-pill border border-border-subtle bg-bg-base px-4 text-sm text-white placeholder-text-secondary outline-none focus:border-accent"
+          className="h-9 w-full rounded-pill border border-border-subtle bg-bg-base px-4 pr-9 text-sm text-white placeholder-text-secondary outline-none focus:border-accent"
         />
-        <button
-          type="submit"
-          className="h-9 shrink-0 rounded-pill border border-border-subtle bg-bg-card-hover px-4 text-sm font-semibold text-white hover:bg-border-subtle"
-        >
-          Search
-        </button>
-      </form>
+        {search && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-base leading-none text-text-tertiary hover:text-white"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => {
           const active = o.value === "" ? !filter : o.value === filter;
           return (
             <button
               key={o.value}
-              onClick={() => navigate(search, o.value)}
+              onClick={() => setFilter(o.value)}
               className={`rounded-pill px-3 py-1.5 text-sm font-medium transition-colors ${
                 active
                   ? "bg-accent text-white"

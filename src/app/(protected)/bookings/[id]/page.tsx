@@ -18,6 +18,7 @@ import { ReportSection } from "./ReportSection";
 import { BlockSection } from "./BlockSection";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
 import { Avatar } from "@/components/ui/Avatar";
 import { statusLabel } from "@/lib/status";
 
@@ -62,6 +63,7 @@ export default async function BookingPage({
       creator_avatar: users.avatar_url,
       offering_title: offerings.title,
       offering_duration: offerings.duration_minutes,
+      offering_category: offerings.category,
       fan_name: fanUser.display_name,
       fan_avatar: fanUser.avatar_url,
     })
@@ -82,12 +84,19 @@ export default async function BookingPage({
   const otherLabel = isFan ? "Creator" : "Guest";
   const otherUserId = isFan ? booking.creator_user_id : booking.fan_id;
 
-  // Review state: only the guest reviews, only once, only after completion.
+  // Review state: only the guest reviews, only once, only after completion,
+  // within the 7-day window.
   const [existingReview] = await db
     .select({ id: reviews.id })
     .from(reviews)
-    .where(eq(reviews.booking_id, id));
-  const showReview = isFan && booking.status === "completed" && !existingReview;
+    .where(and(eq(reviews.booking_id, id), eq(reviews.reviewer_role, "guest")));
+  const withinWindow =
+    booking.end_at != null &&
+    Date.now() <= new Date(booking.end_at).getTime() + REVIEW_WINDOW_MS;
+  const showReview =
+    isFan && booking.status === "completed" && !existingReview && withinWindow;
+  const reviewExpired =
+    isFan && booking.status === "completed" && !existingReview && !withinWindow;
 
   // Block state: has THIS user already blocked the other party?
   const [existingBlock] = await db
@@ -163,7 +172,23 @@ export default async function BookingPage({
         )}
       </Card>
 
-      {showReview && <ReviewSection bookingId={booking.id} />}
+      {showReview && (
+        <ReviewSection
+          bookingId={booking.id}
+          creatorName={booking.creator_name}
+          category={booking.offering_category}
+        />
+      )}
+      {existingReview && (
+        <Card className="mt-6">
+          <p className="text-sm font-medium text-live-green">Reviewed ✓</p>
+        </Card>
+      )}
+      {reviewExpired && (
+        <Card className="mt-6">
+          <p className="text-sm text-text-tertiary">Review period expired</p>
+        </Card>
+      )}
 
       <div className="mt-6">
         <p className="mb-2 text-xs font-medium text-text-tertiary">Safety</p>

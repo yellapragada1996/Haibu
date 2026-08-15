@@ -119,6 +119,13 @@ export function NavBar({
                       Dashboard
                     </Link>
                     <Link
+                      href="/bookings"
+                      onClick={() => setAvatarOpen(false)}
+                      className="block px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
+                    >
+                      My sessions
+                    </Link>
+                    <Link
                       href="/settings"
                       onClick={() => setAvatarOpen(false)}
                       className="block px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
@@ -197,6 +204,15 @@ export function NavBar({
               onClick={() => setMenuOpen(false)}
             >
               Dashboard
+            </Link>
+          )}
+          {isLoggedIn && (
+            <Link
+              href="/bookings"
+              className="block rounded-pill px-4 py-2 text-sm text-text-secondary text-center hover:text-white"
+              onClick={() => setMenuOpen(false)}
+            >
+              My sessions
             </Link>
           )}
           {isLoggedIn && isAdmin && (

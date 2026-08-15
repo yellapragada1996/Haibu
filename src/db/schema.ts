@@ -362,19 +362,29 @@ export const reviews = pgTable(
     id: uuid("id").primaryKey().defaultRandom().notNull(),
     booking_id: uuid("booking_id")
       .references(() => bookings.id, { onDelete: "restrict" })
-      .unique()
       .notNull(),
     creator_id: uuid("creator_id")
       .references(() => creatorProfiles.id, { onDelete: "restrict" })
       .notNull(),
-    rating: integer("rating").notNull(),
+    // NULL for creator reviews (thumbs, not stars).
+    rating: integer("rating"),
     text: text("text"),
+    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    is_public: boolean("is_public").default(false).notNull(),
+    published_at: timestamp("published_at", { withTimezone: true }),
+    reviewer_role: text("reviewer_role").default("guest").notNull(),
+    creator_sentiment: text("creator_sentiment"),
+    creator_private_note: text("creator_private_note"),
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
     check("chk_review_rating", sql`${table.rating} BETWEEN 1 AND 5`),
+    uniqueIndex("reviews_booking_role_unique").on(
+      table.booking_id,
+      table.reviewer_role,
+    ),
     index("idx_reviews_creator").on(table.creator_id, table.created_at),
   ],
 );

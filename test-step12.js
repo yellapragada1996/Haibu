@@ -67,26 +67,27 @@ async function main() {
     await fan.screenshot({ path: `${SHOTS}/step12-review-form.png` });
     console.log("[1] Review form rendered on completed booking (fan)");
 
-    // 2. Submit a 5-star review with text
+    // 2. Submit a 5-star review with text (double-blind: held, not public)
     await fan.getByRole("button", { name: "5 stars" }).click();
-    await fan.getByPlaceholder("Optional — anything you'd like to share?").fill("Lovely session, very relaxing.");
+    await fan.getByPlaceholder("How was the lesson? What would you tell someone considering booking?").fill("Lovely session, very relaxing.");
     await fan.getByRole("button", { name: "Submit review" }).click();
     await sleep(1500); // allow server action + router.refresh
 
     const review = await db.query(
-      "SELECT rating, text, creator_id FROM reviews WHERE booking_id = $1",
+      "SELECT rating, text, creator_id, is_public, reviewer_role FROM reviews WHERE booking_id = $1",
       [bookingId],
     );
     console.log("[2] reviews row:", JSON.stringify(review.rows[0]));
-    if (!(review.rows[0]?.rating === 5 && review.rows[0]?.text === "Lovely session, very relaxing.")) {
+    if (!(review.rows[0]?.rating === 5 && review.rows[0]?.text === "Lovely session, very relaxing." && review.rows[0]?.is_public === false && review.rows[0]?.reviewer_role === "guest")) {
       throw new Error("Review row did not match expected values");
     }
 
-    // 3. Review displays on the public creator profile
+    // 3. Double-blind: the freshly submitted review is held (not yet public).
     await fan.goto(`${BASE}/creators/${CREATOR_PROFILE_ID}`, { waitUntil: "networkidle" });
-    await fan.waitForSelector("text=Lovely session, very relaxing.", { timeout: 15000 });
-    await fan.screenshot({ path: `${SHOTS}/step12-profile-review.png` });
-    console.log("[3] Review visible on creator profile page");
+    await fan.waitForTimeout(1000);
+    const heldVisible = await fan.locator("text=Lovely session, very relaxing.").count();
+    console.log("[3] held review visible on profile (should be 0):", heldVisible);
+    if (heldVisible !== 0) throw new Error("Held review leaked to public profile");
 
     // 4. Report via booking detail page (fan → creator)
     await fan.goto(`${BASE}/bookings/${bookingId}`, { waitUntil: "networkidle" });

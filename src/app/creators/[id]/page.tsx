@@ -16,6 +16,19 @@ import {
 } from "@/db/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 
+function relativeTime(ts: Date): string {
+  const mins = Math.floor((Date.now() - ts.getTime()) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  return `${months} month${months === 1 ? "" : "s"} ago`;
+}
+
 export default async function CreatorProfilePage({
   params,
 }: {
@@ -61,27 +74,53 @@ export default async function CreatorProfilePage({
     new Set(offeringRows.map((o) => o.category)),
   );
 
-  // Reviews — join through bookings to get the fan's display_name
+  // Public guest reviews only — join through bookings to get the guest's name.
+  const publicFilter = and(
+    eq(reviews.creator_id, id),
+    eq(reviews.is_public, true),
+    eq(reviews.reviewer_role, "guest"),
+  );
+
   const reviewRows = await db
     .select({
       id: reviews.id,
       rating: reviews.rating,
       text: reviews.text,
+      tags: reviews.tags,
       created_at: reviews.created_at,
-      reviewer_name: users.display_name,
+      guest_name: users.display_name,
     })
     .from(reviews)
     .innerJoin(bookings, eq(bookings.id, reviews.booking_id))
     .innerJoin(users, eq(users.id, bookings.fan_id))
-    .where(eq(reviews.creator_id, id))
+    .where(publicFilter)
     .orderBy(sql`${reviews.created_at} DESC`)
     .limit(10);
 
-  // Aggregates
+  // Aggregates (public guest reviews only)
   const [ratingAgg] = await db
-    .select({ avg: sql<number>`COALESCE(AVG(${reviews.rating}), 0)` })
+    .select({
+      avg: sql<number>`COALESCE(AVG(${reviews.rating}), 0)`,
+      count: sql<number>`COUNT(*)`,
+    })
     .from(reviews)
-    .where(eq(reviews.creator_id, id));
+    .where(publicFilter);
+
+  // Reaction tag summary (top 5 by count)
+  const tagRows = await db
+    .select({ tags: reviews.tags })
+    .from(reviews)
+    .where(publicFilter);
+  const tagCounts = new Map<string, number>();
+  for (const r of tagRows) {
+    for (const t of r.tags ?? []) {
+      tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+    }
+  }
+  const tagSummary = Array.from(tagCounts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+    .slice(0, 5);
 
   const [sessionAgg] = await db
     .select({ count: sql<number>`COUNT(*)` })
@@ -93,6 +132,7 @@ export default async function CreatorProfilePage({
   // Postgres returns AVG()/COUNT() aggregates as numeric/bigint strings via
   // node-postgres — coerce to Number before using them (e.g. .toFixed()).
   const avgRating = Number(ratingAgg?.avg ?? 0);
+  const reviewCount = Number(ratingAgg?.count ?? 0);
   const sessionCount = Number(sessionAgg?.count ?? 0);
 
   return (
@@ -128,7 +168,11 @@ export default async function CreatorProfilePage({
         </div>
 
         <div className="flex gap-4 mt-2 text-sm text-text-secondary">
-          <span>★ {avgRating > 0 ? avgRating.toFixed(1) : "—"}</span>
+          <span>
+            {reviewCount >= 3
+              ? `★ ${avgRating.toFixed(1)} (${reviewCount} reviews)`
+              : "New creator"}
+          </span>
           <span>{sessionCount} sessions</span>
         </div>
 
@@ -167,30 +211,66 @@ export default async function CreatorProfilePage({
         {/* Reviews */}
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-white mb-4">Reviews</h2>
+
+          {tagSummary.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {tagSummary.map((t) => (
+                <span
+                  key={t.tag}
+                  className="rounded-pill bg-bg-card-hover px-3 py-1 text-xs text-text-secondary"
+                >
+                  {t.tag} ({t.count})
+                </span>
+              ))}
+            </div>
+          )}
+
           {reviewRows.length === 0 ? (
             <p className="text-text-secondary text-sm">
               No reviews yet — be the first to book a session.
             </p>
           ) : (
             <div className="space-y-3">
-              {reviewRows.map((r) => (
-                <Card key={r.id}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm text-white">
-                      ★ {r.rating}
-                    </span>
-                    <span className="text-xs text-text-tertiary">
-                      —{" "}
-                      {r.created_at
-                        ? new Date(r.created_at).toLocaleDateString()
-                        : ""}
-                    </span>
-                  </div>
-                  {r.text && (
-                    <p className="text-sm text-text-secondary">{r.text}</p>
-                  )}
-                </Card>
-              ))}
+              {reviewRows.map((r) => {
+                const firstName =
+                  (r.guest_name ?? "").split(" ")[0] || "Guest";
+                return (
+                  <Card key={r.id}>
+                    <div className="flex items-center gap-2">
+                      <Avatar name={firstName} size={28} />
+                      <span className="text-sm text-white">{firstName}</span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className="text-sm text-accent"
+                        aria-label={`${r.rating ?? 0} stars`}
+                      >
+                        {"★".repeat(r.rating ?? 0)}
+                      </span>
+                      <span className="text-xs text-text-tertiary">
+                        {r.created_at
+                          ? relativeTime(new Date(r.created_at))
+                          : ""}
+                      </span>
+                    </div>
+                    {r.text && (
+                      <p className="mt-2 text-sm text-text-secondary">{r.text}</p>
+                    )}
+                    {r.tags && r.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {r.tags.map((t) => (
+                          <span
+                            key={t}
+                            className="rounded-pill bg-bg-card-hover px-2 py-0.5 text-xs text-text-secondary"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </section>

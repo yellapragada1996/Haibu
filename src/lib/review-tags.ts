@@ -6,37 +6,6 @@ export const CATEGORY_PLACEHOLDERS: Record<string, string> = {
   music: "How was the lesson? What would you tell someone considering booking?",
 };
 
-export const CATEGORY_TAGS: Record<string, string[]> = {
-  asmr: [
-    "Incredibly relaxing",
-    "Great voice",
-    "Felt personal",
-    "Very creative",
-    "Perfect pacing",
-    "Helped me sleep",
-  ],
-  casual_talk: [
-    "Great conversationalist",
-    "Easy to talk to",
-    "Made me laugh",
-    "Very genuine",
-    "Interesting topics",
-    "Good listener",
-  ],
-  music: [
-    "Clear explanations",
-    "Patient teacher",
-    "Pushed me to improve",
-    "Good energy",
-    "Well prepared",
-    "Fun session",
-  ],
-};
-
-export function tagsForCategory(category: string): string[] {
-  return CATEGORY_TAGS[category] ?? [];
-}
-
 export function placeholderForCategory(category: string): string {
   return (
     CATEGORY_PLACEHOLDERS[category] ??

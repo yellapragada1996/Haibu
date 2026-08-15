@@ -56,15 +56,16 @@ async function pixelCheck(page, path, label) {
   const buf = await page.screenshot();
   await fs.promises.writeFile(path, buf);
   const { data } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
-  let accent = 0;
+  let golden = 0;
   let modalBg = 0;
   for (let i = 0; i < data.length; i += 4) {
-    const k = `${data[i]},${data[i + 1]},${data[i + 2]}`;
-    if (k === "168,17,32") accent++; // #A81120 accent
-    if (k === "26,26,26") modalBg++; // #1A1A1A bg-surface (modal panel)
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    // Golden/amber stars (~#fbbf24 = rgb 251,191,36), tolerant of anti-aliasing.
+    if (r > 200 && g > 150 && g < 220 && b < 100) golden++;
+    if (r === 26 && g === 26 && b === 26) modalBg++; // #1A1A1A modal panel
   }
-  console.log(`[pixels ${label}] accent(#A81120): ${accent} | modalBg(#1A1A1A): ${modalBg}`);
-  return { accent, modalBg };
+  console.log(`[pixels ${label}] golden: ${golden} | modalBg(#1A1A1A): ${modalBg}`);
+  return { golden, modalBg };
 }
 
 async function main() {
@@ -109,9 +110,8 @@ async function main() {
     await fan.waitForSelector("text=Leave a review", { timeout: 5000 });
     await fan.getByRole("button", { name: "5 stars" }).click();
     await fan.getByPlaceholder("How was the lesson? What would you tell someone considering booking?").fill("Great lesson, very helpful.");
-    await fan.getByRole("button", { name: "Clear explanations" }).click();
-    await fan.getByRole("button", { name: "Patient teacher" }).click();
-    await pixelCheck(fan, "/tmp/step14-review-modal.png", "review-form-modal");
+    const formPixels = await pixelCheck(fan, "/tmp/step14-review-modal.png", "review-form-modal");
+    if (formPixels.golden < 30) throw new Error("Golden stars not rendered in review modal");
 
     await fan.getByRole("button", { name: "Submit review" }).click();
     await sleep(1500);
@@ -143,10 +143,10 @@ async function main() {
     await reviewedCard.click();
     await fan.waitForSelector("text=Your review", { timeout: 5000 });
     const roText = await fan.locator("text=Great lesson, very helpful.").count();
-    const roTag = await fan.locator("text=Clear explanations").count();
-    await pixelCheck(fan, "/tmp/step14-readonly-modal.png", "read-only-modal");
-    console.log("[3] read-only modal shows text:", roText > 0, "| tag:", roTag > 0);
-    if (!(roText > 0 && roTag > 0)) throw new Error("Read-only modal missing review content");
+    const roPixels = await pixelCheck(fan, "/tmp/step14-readonly-modal.png", "read-only-modal");
+    console.log("[3] read-only modal shows text:", roText > 0);
+    if (roText === 0) throw new Error("Read-only modal missing review content");
+    if (roPixels.golden < 10) throw new Error("Read-only modal stars not golden");
 
     // ---------- 4. creator mutual publish ----------
     const creatorCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });

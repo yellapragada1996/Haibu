@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Textarea";
 import { submitReview } from "@/app/(protected)/actions/reviews";
-import { tagsForCategory, placeholderForCategory } from "@/lib/review-tags";
+import { placeholderForCategory } from "@/lib/review-tags";
 
 const MAX_TEXT = 500;
 
@@ -23,20 +23,12 @@ export function ReviewSection({
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [text, setText] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
   const active = hover || rating;
-  const allowedTags = tagsForCategory(category);
   const remaining = MAX_TEXT - text.length;
-
-  function toggleTag(tag: string) {
-    setTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  }
 
   async function handleSubmit() {
     if (rating === 0) {
@@ -45,7 +37,7 @@ export function ReviewSection({
     }
     setLoading(true);
     setError(null);
-    const result = await submitReview(bookingId, rating, text, tags);
+    const result = await submitReview(bookingId, rating, text);
     if ("error" in result) {
       setError(result.error);
       setLoading(false);
@@ -83,7 +75,7 @@ export function ReviewSection({
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}
             className={`text-2xl leading-none transition-transform ${
-              n <= active ? "text-accent" : "text-text-tertiary"
+              n <= active ? "text-amber-400" : "text-text-tertiary"
             } hover:scale-110`}
           >
             ★
@@ -102,33 +94,6 @@ export function ReviewSection({
         <p className="mt-1 text-xs text-text-tertiary">
           {remaining} characters remaining
         </p>
-      )}
-
-      {allowedTags.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs text-text-secondary">
-            What stood out? (optional)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {allowedTags.map((tag) => {
-              const selected = tags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`rounded-pill px-3 py-1.5 text-sm transition-colors ${
-                    selected
-                      ? "bg-accent text-white"
-                      : "bg-bg-card-hover text-text-secondary hover:text-white"
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       )}
 
       <Button className="mt-4" onClick={handleSubmit} disabled={loading}>

@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { submitReview } from "@/app/(protected)/actions/reviews";
-import { tagsForCategory, placeholderForCategory, REVIEW_WINDOW_MS } from "@/lib/review-tags";
+import { placeholderForCategory, REVIEW_WINDOW_MS } from "@/lib/review-tags";
 
 export type SessionItem = {
   id: string;
@@ -81,7 +81,6 @@ export function SessionList({
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [text, setText] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +89,6 @@ export function SessionList({
     setRating(0);
     setHover(0);
     setText("");
-    setTags([]);
     setError(null);
   }
 
@@ -102,7 +100,7 @@ export function SessionList({
     }
     setLoading(true);
     setError(null);
-    const result = await submitReview(reviewing.id, rating, text, tags);
+    const result = await submitReview(reviewing.id, rating, text);
     if ("error" in result) {
       setError(result.error);
       setLoading(false);
@@ -115,13 +113,6 @@ export function SessionList({
 
   const list = tab === "upcoming" ? upcoming : past;
   const activeStars = hover || rating;
-  const allowedTags = reviewing ? tagsForCategory(reviewing.category) : [];
-
-  function toggleTag(tag: string) {
-    setTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
-  }
 
   return (
     <div>
@@ -252,7 +243,7 @@ export function SessionList({
               onMouseEnter={() => setHover(n)}
               onMouseLeave={() => setHover(0)}
               className={`text-2xl leading-none transition-transform ${
-                n <= activeStars ? "text-accent" : "text-text-tertiary"
+                n <= activeStars ? "text-amber-400" : "text-text-tertiary"
               } hover:scale-110`}
             >
               ★
@@ -267,28 +258,6 @@ export function SessionList({
           onChange={(e) => setText(e.target.value)}
           maxLength={MAX_TEXT}
         />
-
-        {allowedTags.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {allowedTags.map((tag) => {
-              const selected = tags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`rounded-pill px-3 py-1.5 text-sm transition-colors ${
-                    selected
-                      ? "bg-accent text-white"
-                      : "bg-bg-card-hover text-text-secondary hover:text-white"
-                  }`}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-        )}
 
         {error && <p className="mt-2 text-sm text-error">{error}</p>}
 
@@ -312,7 +281,7 @@ export function SessionList({
           <div>
             <div className="flex items-center gap-2">
               <span
-                className="text-accent"
+                className="text-amber-400"
                 aria-label={`${viewing.review.rating} stars`}
               >
                 {"★".repeat(viewing.review.rating)}
@@ -322,24 +291,9 @@ export function SessionList({
               </span>
             </div>
 
-            {viewing.review.tags && viewing.review.tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {viewing.review.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-pill bg-bg-card-hover px-2 py-0.5 text-xs text-text-secondary"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {viewing.review.text && (
+            {viewing.review.text ? (
               <p className="mt-3 text-sm text-text-secondary">{viewing.review.text}</p>
-            )}
-
-            {!viewing.review.text && viewing.review.tags.length === 0 && (
+            ) : (
               <p className="mt-2 text-sm text-text-tertiary">
                 No written review — rating only.
               </p>

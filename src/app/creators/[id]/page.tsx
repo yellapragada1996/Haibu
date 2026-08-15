@@ -106,22 +106,6 @@ export default async function CreatorProfilePage({
     .from(reviews)
     .where(publicFilter);
 
-  // Reaction tag summary (top 5 by count)
-  const tagRows = await db
-    .select({ tags: reviews.tags })
-    .from(reviews)
-    .where(publicFilter);
-  const tagCounts = new Map<string, number>();
-  for (const r of tagRows) {
-    for (const t of r.tags ?? []) {
-      tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
-    }
-  }
-  const tagSummary = Array.from(tagCounts.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
-    .slice(0, 5);
-
   const [sessionAgg] = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(bookings)
@@ -212,19 +196,6 @@ export default async function CreatorProfilePage({
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-white mb-4">Reviews</h2>
 
-          {tagSummary.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {tagSummary.map((t) => (
-                <span
-                  key={t.tag}
-                  className="rounded-pill bg-bg-card-hover px-3 py-1 text-xs text-text-secondary"
-                >
-                  {t.tag} ({t.count})
-                </span>
-              ))}
-            </div>
-          )}
-
           {reviewRows.length === 0 ? (
             <p className="text-text-secondary text-sm">
               No reviews yet — be the first to book a session.
@@ -242,7 +213,7 @@ export default async function CreatorProfilePage({
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <span
-                        className="text-sm text-accent"
+                        className="text-sm text-amber-400"
                         aria-label={`${r.rating ?? 0} stars`}
                       >
                         {"★".repeat(r.rating ?? 0)}
@@ -255,18 +226,6 @@ export default async function CreatorProfilePage({
                     </div>
                     {r.text && (
                       <p className="mt-2 text-sm text-text-secondary">{r.text}</p>
-                    )}
-                    {r.tags && r.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {r.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="rounded-pill bg-bg-card-hover px-2 py-0.5 text-xs text-text-secondary"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
                     )}
                   </Card>
                 );

@@ -1,0 +1,1 @@
+ALTER TABLE "bookings" ADD COLUMN "payout_eligible_at" timestamp with time zone;

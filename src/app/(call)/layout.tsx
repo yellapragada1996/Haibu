@@ -1,0 +1,20 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+
+// Call-screen layout: deliberately MINIMAL — no site NavBar here. The call
+// screen gets only its own in-call header (title, countdown, Leave); the
+// global nav would be dead weight (and a distraction) during a paid session.
+// Auth still enforced — the token API gates identity per booking.
+export default async function CallLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  return <div className="min-h-dvh bg-bg-base">{children}</div>;
+}

@@ -6,6 +6,7 @@ import {
   integer,
   boolean,
   timestamp,
+  date,
   uniqueIndex,
   index,
   check,
@@ -135,6 +136,7 @@ export const offerings = pgTable(
     duration_minutes: integer("duration_minutes").notNull(),
     price_cents: integer("price_cents").notNull(),
     is_active: boolean("is_active").default(true).notNull(),
+    deleted_at: timestamp("deleted_at", { withTimezone: true }),
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -218,6 +220,36 @@ export const availabilityBlocks = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// 5b. availability_date_overrides
+// ---------------------------------------------------------------------------
+
+export const availabilityDateOverrides = pgTable(
+  "availability_date_overrides",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    creator_id: uuid("creator_id")
+      .references(() => creatorProfiles.id, { onDelete: "cascade" })
+      .notNull(),
+    date: date("date").notNull(),
+    start_minute: integer("start_minute").notNull(),
+    end_minute: integer("end_minute").notNull(),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "chk_date_override_times",
+      sql`${table.start_minute} < ${table.end_minute} AND ${table.start_minute} >= 0 AND ${table.end_minute} <= 1440`,
+    ),
+    index("idx_date_overrides_creator_date").on(
+      table.creator_id,
+      table.date,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // 6. bookings
 // ---------------------------------------------------------------------------
 
@@ -246,6 +278,9 @@ export const bookings = pgTable(
     fan_joined_at: timestamp("fan_joined_at", { withTimezone: true }),
     creator_joined_at: timestamp("creator_joined_at", { withTimezone: true }),
     reservation_expires_at: timestamp("reservation_expires_at", {
+      withTimezone: true,
+    }),
+    payout_eligible_at: timestamp("payout_eligible_at", {
       withTimezone: true,
     }),
     cancelled_by: cancelActorEnum("cancelled_by"),

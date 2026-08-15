@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg-base: #121212;
+  --color-bg-surface: #1A1A1A;
+  --color-bg-card: #1E1E1E;
+  --color-bg-card-hover: #232323;
+  --color-border-subtle: #2A2A2A;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #8A8A8A;
+  --color-text-tertiary: #5A5A5A;
+
+  --color-accent: #A81120;
+  --color-accent-hover: #C21329;
+  --color-accent-pressed: #8A0E1A;
+
+  --color-live-green: #3BD671;
+  --color-error: #EF4444;
+
+  --radius-card: 14px;
+  --radius-input: 12px;
+  --radius-pill: 999px;
+  --radius-modal: 20px;
+
+  --font-family-sans: "Inter", system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-sans);
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Smooth horizontal scroll on iOS */
+.horizontal-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.horizontal-scroll > * {
+  scroll-snap-align: start;
+}

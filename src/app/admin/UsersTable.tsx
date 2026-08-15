@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setUserSuspension } from "./actions";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 type UserRow = {
   id: string;
@@ -36,17 +38,17 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Users</h1>
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      <h1 className="mb-4 text-2xl font-bold text-white">Users</h1>
+      {error && <p className="mb-3 text-sm text-error">{error}</p>}
       {rows[0]?.sync_error && (
-        <p className="mb-3 text-sm text-amber-600">
+        <p className="mb-3 text-sm text-error">
           Could not load suspension state: {rows[0].sync_error}
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <Card padding={false} className="overflow-x-auto border border-border-subtle">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+          <thead className="border-b border-border-subtle text-left text-xs uppercase text-text-tertiary">
             <tr>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Email</th>
@@ -56,7 +58,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
               <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border-subtle">
             {rows.map((r) => {
               const suspended = !!r.banned_until;
               const roleLabel = r.role_admin
@@ -66,36 +68,31 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
                   : "fan";
               return (
                 <tr key={r.id}>
-                  <td className="px-3 py-2">{r.display_name || "—"}</td>
-                  <td className="px-3 py-2">{r.email}</td>
-                  <td className="px-3 py-2">{roleLabel}</td>
+                  <td className="px-3 py-2 text-white">{r.display_name || "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary">{r.email}</td>
+                  <td className="px-3 py-2 text-text-secondary">{roleLabel}</td>
                   <td className="px-3 py-2">
                     {suspended ? (
-                      <span className="text-red-600">suspended</span>
+                      <span className="text-error">suspended</span>
                     ) : (
-                      <span className="text-green-600">active</span>
+                      <span className="text-live-green">active</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-gray-500">
-                    {r.created_at
-                      ? new Date(r.created_at).toLocaleDateString()
-                      : ""}
+                  <td className="px-3 py-2 text-text-tertiary">
+                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}
                   </td>
                   <td className="px-3 py-2">
                     {r.role_admin ? (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-text-tertiary">—</span>
                     ) : (
-                      <button
-                        onClick={() => toggle(r)}
+                      <Button
+                        size="small"
+                        variant={suspended ? "secondary" : "danger"}
                         disabled={busyId === r.id}
-                        className={`rounded px-2 py-1 text-xs disabled:opacity-50 ${
-                          suspended
-                            ? "bg-green-100 text-green-700 hover:bg-green-200"
-                            : "bg-red-100 text-red-700 hover:bg-red-200"
-                        }`}
+                        onClick={() => toggle(r)}
                       >
                         {suspended ? "Unsuspend" : "Suspend"}
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -103,7 +100,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
             })}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }

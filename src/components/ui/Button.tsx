@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { type ButtonHTMLAttributes, type AnchorHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "default" | "small";
 
 const variantStyles: Record<Variant, string> = {
@@ -11,6 +11,8 @@ const variantStyles: Record<Variant, string> = {
     "bg-bg-card-hover text-white hover:bg-border-subtle",
   ghost:
     "bg-transparent text-text-secondary hover:text-white hover:bg-bg-card-hover",
+  danger:
+    "bg-error text-white hover:opacity-90 active:opacity-80",
 };
 
 const sizeStyles: Record<Size, string> = {

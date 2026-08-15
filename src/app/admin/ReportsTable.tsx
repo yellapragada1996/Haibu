@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setReportStatus } from "./actions";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 type ReportRow = {
   id: string;
@@ -16,18 +18,18 @@ type ReportRow = {
 
 const STATUSES = ["open", "reviewed", "actioned", "dismissed"] as const;
 
-function statusColor(s: string) {
+function statusClass(s: string) {
   switch (s) {
     case "open":
-      return "bg-red-100 text-red-700";
+      return "border border-accent text-accent";
     case "reviewed":
-      return "bg-yellow-100 text-yellow-700";
+      return "border border-live-green text-live-green";
     case "actioned":
-      return "bg-green-100 text-green-700";
+      return "bg-live-green text-black";
     case "dismissed":
-      return "bg-gray-200 text-gray-600";
+      return "border border-text-tertiary text-text-tertiary";
     default:
-      return "bg-gray-100 text-gray-600";
+      return "border border-text-tertiary text-text-tertiary";
   }
 }
 
@@ -51,15 +53,15 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Reports</h1>
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      <h1 className="mb-4 text-2xl font-bold text-white">Reports</h1>
+      {error && <p className="mb-3 text-sm text-error">{error}</p>}
 
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No reports yet.</p>
+        <p className="text-sm text-text-secondary">No reports yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <Card padding={false} className="overflow-x-auto border border-border-subtle">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+            <thead className="border-b border-border-subtle text-left text-xs uppercase text-text-tertiary">
               <tr>
                 <th className="px-3 py-2">Reason</th>
                 <th className="px-3 py-2">Reporter</th>
@@ -70,40 +72,35 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border-subtle">
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="max-w-xs px-3 py-2 align-top">{r.reason}</td>
-                  <td className="px-3 py-2 align-top">{r.reporter}</td>
-                  <td className="px-3 py-2 align-top">{r.reported}</td>
-                  <td className="px-3 py-2 align-top font-mono text-xs">
+                  <td className="max-w-xs px-3 py-2 align-top text-white">{r.reason}</td>
+                  <td className="px-3 py-2 align-top text-text-secondary">{r.reporter}</td>
+                  <td className="px-3 py-2 align-top text-text-secondary">{r.reported}</td>
+                  <td className="px-3 py-2 align-top font-mono text-xs text-text-tertiary">
                     {r.booking_id ? r.booking_id.slice(0, 8) : "—"}
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${statusColor(r.status)}`}>
+                    <span className={`rounded-pill px-2.5 py-0.5 text-xs ${statusClass(r.status)}`}>
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 align-top text-gray-500">
-                    {r.created_at
-                      ? new Date(r.created_at).toLocaleDateString()
-                      : ""}
+                  <td className="px-3 py-2 align-top text-text-tertiary">
+                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div className="flex flex-wrap gap-1">
                       {STATUSES.map((s) => (
-                        <button
+                        <Button
                           key={s}
+                          size="small"
+                          variant="secondary"
                           disabled={busyId === r.id || s === r.status}
                           onClick={() => update(r.id, s)}
-                          className={`rounded px-2 py-1 text-xs ${
-                            s === r.status
-                              ? "bg-gray-200 text-gray-500"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          } disabled:opacity-50`}
                         >
                           {s}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </td>
@@ -111,7 +108,7 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   );

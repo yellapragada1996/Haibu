@@ -78,6 +78,13 @@ export default function ComponentsShowcase() {
               <Button variant="ghost" size="small">Ghost small</Button>
             </div>
           </SubSection>
+          <SubSection title="Danger (destructive)">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="danger">Danger default</Button>
+              <Button variant="danger" disabled>Danger disabled</Button>
+              <Button variant="danger" size="small">Danger small</Button>
+            </div>
+          </SubSection>
           <SubSection title="ButtonLink (primary)">
             <ButtonLink href="/">Primary link</ButtonLink>
           </SubSection>

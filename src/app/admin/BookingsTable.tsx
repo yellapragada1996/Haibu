@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminForceCancel, noShowOverride } from "./actions";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { Textarea } from "@/components/ui/Textarea";
 
 type BookingRow = {
   id: string;
@@ -18,16 +22,16 @@ function shortId(id: string) {
   return id.slice(0, 8);
 }
 
-function statusColor(s: string) {
+function statusClass(s: string) {
   switch (s) {
     case "confirmed":
-      return "bg-green-100 text-green-700";
-    case "completed":
-      return "bg-blue-100 text-blue-700";
+      return "border border-live-green text-live-green";
     case "reserved":
-      return "bg-yellow-100 text-yellow-700";
+      return "border border-accent text-accent";
+    case "completed":
+      return "border border-white text-white";
     default:
-      return "bg-gray-200 text-gray-600";
+      return "border border-text-tertiary text-text-tertiary";
   }
 }
 
@@ -92,14 +96,14 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Bookings</h1>
+      <h1 className="mb-4 text-2xl font-bold text-white">Bookings</h1>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No bookings yet.</p>
+        <p className="text-sm text-text-secondary">No bookings yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <Card padding={false} className="overflow-x-auto border border-border-subtle">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+            <thead className="border-b border-border-subtle text-left text-xs uppercase text-text-tertiary">
               <tr>
                 <th className="px-3 py-2">ID</th>
                 <th className="px-3 py-2">Offering</th>
@@ -110,51 +114,55 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border-subtle">
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-3 py-2 font-mono text-xs">{shortId(r.id)}</td>
-                  <td className="px-3 py-2">{r.offering}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 font-mono text-xs text-text-tertiary">
+                    {shortId(r.id)}
+                  </td>
+                  <td className="px-3 py-2 text-white">{r.offering}</td>
+                  <td className="px-3 py-2 text-text-secondary">
                     {r.fan} → {r.creator}
                   </td>
-                  <td className="px-3 py-2 text-gray-500">
+                  <td className="px-3 py-2 text-text-tertiary">
                     {r.start_at ? new Date(r.start_at).toLocaleString() : ""}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-white">
                     ${((r.price_cents ?? 0) / 100).toFixed(2)}
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${statusColor(r.status)}`}>
+                    <span className={`rounded-pill px-2.5 py-0.5 text-xs ${statusClass(r.status)}`}>
                       {r.status}
                     </span>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
                       {r.status === "confirmed" && (
-                        <button
+                        <Button
+                          size="small"
+                          variant="secondary"
                           onClick={() => {
                             setTarget(r);
                             setReason("");
                             setError(null);
                           }}
-                          className="rounded bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200"
                         >
                           Force cancel
-                        </button>
+                        </Button>
                       )}
                       {r.status === "no_show_fan" && (
-                        <button
+                        <Button
+                          size="small"
+                          variant="secondary"
                           onClick={() => {
                             setOverrideTarget(r);
                             setOverrideChoice("completed");
                             setOverrideReason("");
                             setOverrideError(null);
                           }}
-                          className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
                         >
                           Override
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -162,113 +170,97 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
-      {target && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
-            <h2 className="mb-2 font-semibold">
-              Force cancel booking {shortId(target.id)}?
-            </h2>
-            <p className="mb-3 text-sm text-gray-600">
-              {target.offering} · {target.fan} → {target.creator}. This issues a
-              full refund to the fan and cannot be undone.
-            </p>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Required reason"
-              rows={3}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
-            />
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={confirm}
-                disabled={loading}
-                className="rounded bg-red-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-              >
-                {loading ? "Cancelling…" : "Confirm full refund + cancel"}
-              </button>
-              <button
-                onClick={() => {
-                  setTarget(null);
-                  setError(null);
-                }}
-                disabled={loading}
-                className="rounded bg-gray-200 px-3 py-1.5 text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={!!target}
+        onClose={() => !loading && setTarget(null)}
+        title={`Force cancel booking ${shortId(target?.id ?? "")}?`}
+      >
+        <p className="text-sm text-text-secondary">
+          {target?.offering} · {target?.fan} → {target?.creator}. This issues a
+          full refund to the fan and cannot be undone.
+        </p>
+        <Textarea
+          className="mt-3"
+          placeholder="Required reason"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+        />
+        {error && <p className="mt-2 text-sm text-error">{error}</p>}
+        <div className="mt-4 flex gap-2">
+          <Button variant="danger" onClick={confirm} disabled={loading}>
+            {loading ? "Cancelling…" : "Confirm full refund + cancel"}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setTarget(null)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
         </div>
-      )}
+      </Modal>
 
-      {overrideTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
-            <h2 className="mb-2 font-semibold">
-              Override no-show {shortId(overrideTarget.id)}?
-            </h2>
-            <p className="mb-3 text-sm text-gray-600">
-              {overrideTarget.offering} · {overrideTarget.fan} →{" "}
-              {overrideTarget.creator}. This booking is marked no_show_fan (fan
-              did not join).
-            </p>
-            <div className="mb-3 flex flex-col gap-2 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="overrideChoice"
-                  checked={overrideChoice === "completed"}
-                  onChange={() => setOverrideChoice("completed")}
-                />
-                Mark completed (creator keeps payout)
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="overrideChoice"
-                  checked={overrideChoice === "refund"}
-                  onChange={() => setOverrideChoice("refund")}
-                />
-                Refund fan (full)
-              </label>
-            </div>
-            <textarea
-              value={overrideReason}
-              onChange={(e) => setOverrideReason(e.target.value)}
-              placeholder="Required reason"
-              rows={3}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+      <Modal
+        open={!!overrideTarget}
+        onClose={() => !overrideLoading && setOverrideTarget(null)}
+        title={`Override no-show ${shortId(overrideTarget?.id ?? "")}?`}
+      >
+        <p className="text-sm text-text-secondary">
+          {overrideTarget?.offering} · {overrideTarget?.fan} →{" "}
+          {overrideTarget?.creator}. This booking is marked no_show_fan (fan did
+          not join).
+        </p>
+        <div className="mt-3 flex flex-col gap-2 text-sm text-white">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="overrideChoice"
+              checked={overrideChoice === "completed"}
+              onChange={() => setOverrideChoice("completed")}
             />
-            {overrideError && (
-              <p className="mt-2 text-sm text-red-600">{overrideError}</p>
-            )}
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={confirmOverride}
-                disabled={overrideLoading}
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-              >
-                {overrideLoading ? "Applying…" : "Confirm override"}
-              </button>
-              <button
-                onClick={() => {
-                  setOverrideTarget(null);
-                  setOverrideError(null);
-                }}
-                disabled={overrideLoading}
-                className="rounded bg-gray-200 px-3 py-1.5 text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+            Mark completed (creator keeps payout)
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="overrideChoice"
+              checked={overrideChoice === "refund"}
+              onChange={() => setOverrideChoice("refund")}
+            />
+            Refund fan (full)
+          </label>
         </div>
-      )}
+        <Textarea
+          className="mt-3"
+          placeholder="Required reason"
+          value={overrideReason}
+          onChange={(e) => setOverrideReason(e.target.value)}
+          rows={3}
+        />
+        {overrideError && (
+          <p className="mt-2 text-sm text-error">{overrideError}</p>
+        )}
+        <div className="mt-4 flex gap-2">
+          <Button
+            variant="primary"
+            onClick={confirmOverride}
+            disabled={overrideLoading}
+          >
+            {overrideLoading ? "Applying…" : "Confirm override"}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setOverrideTarget(null)}
+            disabled={overrideLoading}
+          >
+            Cancel
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,0 +1,41 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const items = [
+  { href: "/admin", label: "Reports" },
+  { href: "/admin/bookings", label: "Bookings" },
+  { href: "/admin/users", label: "Users" },
+];
+
+export function AdminNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex flex-wrap items-center gap-1 rounded-pill bg-bg-surface p-1">
+      {items.map((item) => {
+        const active = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`rounded-pill px-4 py-2 text-sm font-medium transition-colors ${
+              active
+                ? "bg-accent text-white"
+                : "text-text-secondary hover:text-white"
+            }`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+      <Link
+        href="/"
+        className="ml-auto rounded-pill px-4 py-2 text-sm text-text-tertiary hover:text-white"
+      >
+        ← site
+      </Link>
+    </nav>
+  );
+}

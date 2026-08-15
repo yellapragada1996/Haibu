@@ -434,3 +434,33 @@ export const blocks = pgTable(
     ),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// 11. admin_actions  (append-only audit log for admin writes)
+// ---------------------------------------------------------------------------
+
+export const adminActions = pgTable(
+  "admin_actions",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    admin_id: uuid("admin_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    action: text("action").notNull(),
+    booking_id: uuid("booking_id").references(() => bookings.id, {
+      onDelete: "set null",
+    }),
+    target_user_id: uuid("target_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reason: text("reason").notNull(),
+    details: text("details"),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_admin_actions_booking").on(table.booking_id),
+    index("idx_admin_actions_created").on(table.created_at),
+  ],
+);

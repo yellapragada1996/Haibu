@@ -6,6 +6,7 @@ import { setReportStatus } from "./actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Drawer } from "@/components/ui/Drawer";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 type ReportRow = {
   id: string;
@@ -116,7 +117,7 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
                     </span>
                   </td>
                   <td className="px-3 py-2 align-middle text-text-tertiary">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}
+                    {r.created_at ? formatDate(r.created_at) : ""}
                   </td>
                   <td className="px-3 py-2 text-right align-middle text-text-tertiary">
                     ›
@@ -156,7 +157,7 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
                 <dt className="text-text-tertiary">Created</dt>
                 <dd className="text-right text-white">
                   {selected.created_at
-                    ? `${new Date(selected.created_at).toLocaleString()} · ${ageLabel(selected.created_at)}`
+                    ? `${formatDateTime(selected.created_at)} · ${ageLabel(selected.created_at)}`
                     : "—"}
                 </dd>
               </div>

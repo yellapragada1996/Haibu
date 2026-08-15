@@ -8,7 +8,7 @@ const variantStyles: Record<Variant, string> = {
   primary:
     "bg-accent text-white hover:bg-accent-hover active:bg-accent-pressed",
   secondary:
-    "bg-bg-card-hover text-white hover:bg-border-subtle",
+    "border border-border-subtle bg-bg-card-hover text-white hover:bg-border-subtle",
   ghost:
     "bg-transparent text-text-secondary hover:text-white hover:bg-bg-card-hover",
   danger:

@@ -34,12 +34,11 @@ function ageLabel(ts: Date | null): string {
   return `${days}d ago`;
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Kpi({ label, value, title }: { label: string; value: string; title: string }) {
   return (
-    <Card>
+    <Card title={title}>
       <p className="text-xs uppercase tracking-wide text-text-tertiary">{label}</p>
       <p className="mt-2 text-2xl font-bold text-white">{value}</p>
-      {sub && <p className="mt-1 text-xs text-text-tertiary">{sub}</p>}
     </Card>
   );
 }
@@ -103,12 +102,36 @@ export default async function AdminOverviewPage() {
       <h1 className="mb-4 text-2xl font-bold text-white">Overview</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Kpi label="Open reports" value={String(Number(openReports?.n ?? 0))} />
-        <Kpi label="Users" value={String(Number(totalUsers?.n ?? 0))} />
-        <Kpi label="Creators" value={String(Number(totalCreators?.n ?? 0))} />
-        <Kpi label="Settled bookings" value={String(Number(settledBookings?.n ?? 0))} />
-        <Kpi label="GMV" value={money(Number(gmv?.n ?? 0))} />
-        <Kpi label="Refunds" value={money(Number(refunds?.n ?? 0))} />
+        <Kpi
+          label="Open reports"
+          title="Reports still awaiting review"
+          value={String(Number(openReports?.n ?? 0))}
+        />
+        <Kpi
+          label="Total users"
+          title="All registered users"
+          value={String(Number(totalUsers?.n ?? 0))}
+        />
+        <Kpi
+          label="Creators"
+          title="Users with a creator profile"
+          value={String(Number(totalCreators?.n ?? 0))}
+        />
+        <Kpi
+          label="Booked sessions"
+          title="Confirmed, completed, or fan no-show bookings"
+          value={String(Number(settledBookings?.n ?? 0))}
+        />
+        <Kpi
+          label="Gross sales"
+          title="Total charged across booked sessions"
+          value={money(Number(gmv?.n ?? 0))}
+        />
+        <Kpi
+          label="Refunds issued"
+          title="Total refunded to fans"
+          value={money(Number(refunds?.n ?? 0))}
+        />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -117,7 +140,7 @@ export default async function AdminOverviewPage() {
             Open reports
           </h2>
           {openRows.length === 0 ? (
-            <p className="text-sm text-text-secondary">No open reports 🎉</p>
+            <p className="text-sm text-text-secondary">No open reports</p>
           ) : (
             <Card padding={false} className="divide-y divide-border-subtle">
               {openRows.map((r) => (

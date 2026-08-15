@@ -3,10 +3,24 @@ import { reports, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { ReportsTable } from "../ReportsTable";
+import { FilterChips } from "../FilterChips";
 
 const reportedUser = alias(users, "reportedUser");
 
-export default async function AdminReportsPage() {
+const STATUSES = ["open", "reviewed", "actioned", "dismissed"] as const;
+
+export default async function AdminReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status } = await searchParams;
+  const filter = STATUSES.includes(status as (typeof STATUSES)[number])
+    ? (status as (typeof STATUSES)[number])
+    : undefined;
+
+  const cond = filter ? eq(reports.status, filter) : undefined;
+
   const rows = await db
     .select({
       id: reports.id,
@@ -22,6 +36,7 @@ export default async function AdminReportsPage() {
     .from(reports)
     .innerJoin(users, eq(users.id, reports.reporter_id))
     .innerJoin(reportedUser, eq(reportedUser.id, reports.reported_user_id))
+    .where(cond)
     .orderBy(desc(reports.created_at))
     .limit(200);
 
@@ -35,5 +50,22 @@ export default async function AdminReportsPage() {
     reported: r.reported_name || r.reported_email,
   }));
 
-  return <ReportsTable rows={data} />;
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold text-white">Reports</h1>
+      <FilterChips
+        base="/admin/reports"
+        param="status"
+        current={filter}
+        options={[
+          { label: "All", value: "" },
+          { label: "Open", value: "open" },
+          { label: "Reviewed", value: "reviewed" },
+          { label: "Actioned", value: "actioned" },
+          { label: "Dismissed", value: "dismissed" },
+        ]}
+      />
+      <ReportsTable rows={data} />
+    </div>
+  );
 }

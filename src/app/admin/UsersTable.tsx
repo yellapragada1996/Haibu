@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
+import { formatDate } from "@/lib/format";
 
 type UserRow = {
   id: string;
@@ -103,7 +104,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
                     )}
                   </td>
                   <td className="px-3 py-2 text-text-tertiary">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}
+                    {r.created_at ? formatDate(r.created_at) : ""}
                   </td>
                   <td className="px-3 py-2">
                     {r.role_admin ? (

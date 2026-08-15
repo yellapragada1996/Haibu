@@ -3,6 +3,8 @@ import { adminActions, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Card } from "@/components/ui/Card";
+import { FilterChips } from "../FilterChips";
+import { formatDateTime } from "@/lib/format";
 
 const adminUser = alias(users, "adminUser");
 const targetUser = alias(users, "targetUser");
@@ -11,7 +13,18 @@ function shortId(id: string | null) {
   return id ? id.slice(0, 8) : "—";
 }
 
-export default async function AdminAuditPage() {
+export default async function AdminAuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ action?: string }>;
+}) {
+  const { action } = await searchParams;
+
+  const cond =
+    action === "no_show_override" || action === "suspend" || action === "unsuspend"
+      ? eq(adminActions.action, action)
+      : undefined;
+
   const rows = await db
     .select({
       id: adminActions.id,
@@ -27,12 +40,24 @@ export default async function AdminAuditPage() {
     .from(adminActions)
     .leftJoin(adminUser, eq(adminUser.id, adminActions.admin_id))
     .leftJoin(targetUser, eq(targetUser.id, adminActions.target_user_id))
+    .where(cond)
     .orderBy(desc(adminActions.created_at))
     .limit(200);
 
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Audit log</h1>
+      <FilterChips
+        base="/admin/audit"
+        param="action"
+        current={action}
+        options={[
+          { label: "All", value: "" },
+          { label: "No-show override", value: "no_show_override" },
+          { label: "Suspend", value: "suspend" },
+          { label: "Unsuspend", value: "unsuspend" },
+        ]}
+      />
 
       {rows.length === 0 ? (
         <p className="text-sm text-text-secondary">No admin actions yet.</p>
@@ -54,7 +79,7 @@ export default async function AdminAuditPage() {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td className="px-3 py-2 align-top text-text-tertiary">
-                    {r.created_at ? new Date(r.created_at).toLocaleString() : ""}
+                    {r.created_at ? formatDateTime(r.created_at.toISOString()) : ""}
                   </td>
                   <td className="px-3 py-2 align-top text-white">{r.admin_name ?? "—"}</td>
                   <td className="px-3 py-2 align-top text-white">{r.action}</td>

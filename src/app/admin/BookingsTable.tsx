@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
+import { formatDateTime } from "@/lib/format";
 
 type BookingRow = {
   id: string;
@@ -125,7 +126,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
                     {r.fan} → {r.creator}
                   </td>
                   <td className="px-3 py-2 text-text-tertiary">
-                    {r.start_at ? new Date(r.start_at).toLocaleString() : ""}
+                    {r.start_at ? formatDateTime(r.start_at) : ""}
                   </td>
                   <td className="px-3 py-2 text-white">
                     ${((r.price_cents ?? 0) / 100).toFixed(2)}
@@ -140,7 +141,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
                       {r.status === "confirmed" && (
                         <Button
                           size="small"
-                          variant="secondary"
+                          variant="danger"
                           onClick={() => {
                             setTarget(r);
                             setReason("");

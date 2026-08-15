@@ -34,12 +34,6 @@ export function AdminNav() {
           </Link>
         );
       })}
-      <Link
-        href="/"
-        className="ml-auto rounded-pill px-4 py-2 text-sm text-text-tertiary hover:text-white"
-      >
-        ← site
-      </Link>
     </nav>
   );
 }

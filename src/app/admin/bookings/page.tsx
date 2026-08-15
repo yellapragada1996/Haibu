@@ -1,23 +1,29 @@
 import { db } from "@/db";
 import { bookings, offerings, creatorProfiles, users } from "@/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { BookingsTable } from "../BookingsTable";
-import { FilterChips } from "../FilterChips";
+import { AdminListControls } from "../AdminListControls";
+import { Pager } from "../Pager";
 
 const fanUser = alias(users, "fanUser");
 const creatorUser = alias(users, "creatorUser");
+const PAGE_SIZE = 50;
 
 const CANCELLED = sql`${bookings.status} IN ('expired', 'cancelled_fan', 'cancelled_creator', 'cancelled_admin', 'no_show_creator')`;
 
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { q: rawQ, status = "", page: rawPage } = await searchParams;
+  const q = rawQ?.trim() ?? "";
+  const page = Math.max(1, Number(rawPage) || 1);
 
-  const cond =
+  const like = q ? `%${q}%` : null;
+
+  const statusCond =
     status === "cancelled"
       ? CANCELLED
       : status === "confirmed"
@@ -29,6 +35,20 @@ export default async function AdminBookingsPage({
             : status === "no_show_fan"
               ? eq(bookings.status, "no_show_fan")
               : undefined;
+
+  const searchCond = like
+    ? or(
+        sql`${bookings.id}::text ILIKE ${like}`,
+        ilike(offerings.title, like),
+        ilike(fanUser.display_name, like),
+        ilike(creatorUser.display_name, like),
+      )
+    : undefined;
+
+  const conds: SQL[] = [];
+  if (statusCond) conds.push(statusCond);
+  if (searchCond) conds.push(searchCond);
+  const cond = conds.length ? and(...conds) : undefined;
 
   const rows = await db
     .select({
@@ -47,7 +67,8 @@ export default async function AdminBookingsPage({
     .innerJoin(creatorUser, eq(creatorUser.id, creatorProfiles.user_id))
     .where(cond)
     .orderBy(desc(bookings.created_at))
-    .limit(200);
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
 
   const data = rows.map((r) => ({
     id: r.id,
@@ -59,13 +80,19 @@ export default async function AdminBookingsPage({
     offering: r.offering_title,
   }));
 
+  const pagerParams: Record<string, string> = {};
+  if (q) pagerParams.q = q;
+  if (status) pagerParams.status = status;
+
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Bookings</h1>
-      <FilterChips
+      <AdminListControls
         base="/admin/bookings"
         param="status"
-        current={status}
+        placeholder="Search by ID, name, or offering"
+        q={q}
+        filter={status}
         options={[
           { label: "All", value: "" },
           { label: "Confirmed", value: "confirmed" },
@@ -76,6 +103,7 @@ export default async function AdminBookingsPage({
         ]}
       />
       <BookingsTable rows={data} />
+      <Pager base="/admin/bookings" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
     </div>
   );
 }

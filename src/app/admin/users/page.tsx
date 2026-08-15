@@ -1,18 +1,25 @@
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { createServiceClient } from "@/lib/supabase/server";
 import { UsersTable } from "../UsersTable";
-import { FilterChips } from "../FilterChips";
+import { AdminListControls } from "../AdminListControls";
+import { Pager } from "../Pager";
+
+const PAGE_SIZE = 50;
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; page?: string }>;
 }) {
-  const { role } = await searchParams;
+  const { q: rawQ, role = "", page: rawPage } = await searchParams;
+  const q = rawQ?.trim() ?? "";
+  const page = Math.max(1, Number(rawPage) || 1);
 
-  const cond =
+  const like = q ? `%${q}%` : null;
+
+  const roleCond =
     role === "admin"
       ? eq(users.role_admin, true)
       : role === "creator"
@@ -20,6 +27,19 @@ export default async function AdminUsersPage({
         : role === "fan"
           ? and(eq(users.is_creator, false), eq(users.role_admin, false))
           : undefined;
+
+  const searchCond = like
+    ? or(
+        ilike(users.email, like),
+        ilike(users.display_name, like),
+        sql`${users.id}::text ILIKE ${like}`,
+      )
+    : undefined;
+
+  const conds: SQL[] = [];
+  if (roleCond) conds.push(roleCond);
+  if (searchCond) conds.push(searchCond);
+  const cond = conds.length ? and(...conds) : undefined;
 
   const appUsers = await db
     .select({
@@ -32,7 +52,9 @@ export default async function AdminUsersPage({
     })
     .from(users)
     .where(cond)
-    .orderBy(desc(users.created_at));
+    .orderBy(desc(users.created_at))
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
 
   // Suspension state lives in Supabase auth.users (banned_until).
   const service = await createServiceClient();
@@ -55,13 +77,19 @@ export default async function AdminUsersPage({
     sync_error: error?.message ?? null,
   }));
 
+  const pagerParams: Record<string, string> = {};
+  if (q) pagerParams.q = q;
+  if (role) pagerParams.role = role;
+
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Users</h1>
-      <FilterChips
+      <AdminListControls
         base="/admin/users"
         param="role"
-        current={role}
+        placeholder="Search by email, name, or ID"
+        q={q}
+        filter={role}
         options={[
           { label: "All", value: "" },
           { label: "Admins", value: "admin" },
@@ -70,6 +98,7 @@ export default async function AdminUsersPage({
         ]}
       />
       <UsersTable rows={rows} />
+      <Pager base="/admin/users" params={pagerParams} page={page} hasNext={appUsers.length === PAGE_SIZE} />
     </div>
   );
 }

@@ -106,7 +106,7 @@ async function main() {
     await admin.waitForSelector("text=test admin report — please ignore", { timeout: 15000 });
     const reportRow = admin.locator("tr").filter({ hasText: "test admin report — please ignore" });
     await reportRow.click(); // opens the detail drawer
-    await admin.getByRole("button", { name: "actioned" }).click();
+    await admin.getByRole("button", { name: "actioned", exact: true }).click();
     await sleep(1500);
     const rep = await db.query("SELECT status FROM reports WHERE id = $1", [reportId]);
     console.log("[4] reports.status after drawer action:", rep.rows[0]?.status);

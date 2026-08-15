@@ -1,25 +1,44 @@
 import { db } from "@/db";
 import { reports, users } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { ReportsTable } from "../ReportsTable";
-import { FilterChips } from "../FilterChips";
+import { AdminListControls } from "../AdminListControls";
+import { Pager } from "../Pager";
 
 const reportedUser = alias(users, "reportedUser");
-
 const STATUSES = ["open", "reviewed", "actioned", "dismissed"] as const;
+const PAGE_SIZE = 50;
 
 export default async function AdminReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { q: rawQ, status = "", page: rawPage } = await searchParams;
+  const q = rawQ?.trim() ?? "";
+  const page = Math.max(1, Number(rawPage) || 1);
   const filter = STATUSES.includes(status as (typeof STATUSES)[number])
     ? (status as (typeof STATUSES)[number])
+    : "";
+
+  const like = q ? `%${q}%` : null;
+
+  const statusCond = filter ? eq(reports.status, filter) : undefined;
+  const searchCond = like
+    ? or(
+        ilike(reports.reason, like),
+        ilike(users.display_name, like),
+        ilike(reportedUser.display_name, like),
+        sql`${reports.id}::text ILIKE ${like}`,
+        sql`${reports.booking_id}::text ILIKE ${like}`,
+      )
     : undefined;
 
-  const cond = filter ? eq(reports.status, filter) : undefined;
+  const conds: SQL[] = [];
+  if (statusCond) conds.push(statusCond);
+  if (searchCond) conds.push(searchCond);
+  const cond = conds.length ? and(...conds) : undefined;
 
   const rows = await db
     .select({
@@ -38,7 +57,8 @@ export default async function AdminReportsPage({
     .innerJoin(reportedUser, eq(reportedUser.id, reports.reported_user_id))
     .where(cond)
     .orderBy(desc(reports.created_at))
-    .limit(200);
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
 
   const data = rows.map((r) => ({
     id: r.id,
@@ -50,13 +70,19 @@ export default async function AdminReportsPage({
     reported: r.reported_name || r.reported_email,
   }));
 
+  const pagerParams: Record<string, string> = {};
+  if (q) pagerParams.q = q;
+  if (filter) pagerParams.status = filter;
+
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Reports</h1>
-      <FilterChips
+      <AdminListControls
         base="/admin/reports"
         param="status"
-        current={filter}
+        placeholder="Search by reason, name, or ID"
+        q={q}
+        filter={filter}
         options={[
           { label: "All", value: "" },
           { label: "Open", value: "open" },
@@ -66,6 +92,7 @@ export default async function AdminReportsPage({
         ]}
       />
       <ReportsTable rows={data} />
+      <Pager base="/admin/reports" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
     </div>
   );
 }

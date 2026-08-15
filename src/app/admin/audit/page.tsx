@@ -1,13 +1,15 @@
 import { db } from "@/db";
 import { adminActions, users } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Card } from "@/components/ui/Card";
-import { FilterChips } from "../FilterChips";
+import { AdminListControls } from "../AdminListControls";
+import { Pager } from "../Pager";
 import { formatDateTime } from "@/lib/format";
 
 const adminUser = alias(users, "adminUser");
 const targetUser = alias(users, "targetUser");
+const PAGE_SIZE = 50;
 
 function shortId(id: string | null) {
   return id ? id.slice(0, 8) : "—";
@@ -16,14 +18,33 @@ function shortId(id: string | null) {
 export default async function AdminAuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ action?: string }>;
+  searchParams: Promise<{ q?: string; action?: string; page?: string }>;
 }) {
-  const { action } = await searchParams;
+  const { q: rawQ, action = "", page: rawPage } = await searchParams;
+  const q = rawQ?.trim() ?? "";
+  const page = Math.max(1, Number(rawPage) || 1);
 
-  const cond =
+  const like = q ? `%${q}%` : null;
+
+  const actionCond =
     action === "no_show_override" || action === "suspend" || action === "unsuspend"
       ? eq(adminActions.action, action)
       : undefined;
+
+  const searchCond = like
+    ? or(
+        ilike(adminActions.action, like),
+        ilike(adminActions.reason, like),
+        ilike(adminUser.display_name, like),
+        ilike(targetUser.display_name, like),
+        sql`${adminActions.booking_id}::text ILIKE ${like}`,
+      )
+    : undefined;
+
+  const conds: SQL[] = [];
+  if (actionCond) conds.push(actionCond);
+  if (searchCond) conds.push(searchCond);
+  const cond = conds.length ? and(...conds) : undefined;
 
   const rows = await db
     .select({
@@ -42,15 +63,22 @@ export default async function AdminAuditPage({
     .leftJoin(targetUser, eq(targetUser.id, adminActions.target_user_id))
     .where(cond)
     .orderBy(desc(adminActions.created_at))
-    .limit(200);
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
+
+  const pagerParams: Record<string, string> = {};
+  if (q) pagerParams.q = q;
+  if (action) pagerParams.action = action;
 
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Audit log</h1>
-      <FilterChips
+      <AdminListControls
         base="/admin/audit"
         param="action"
-        current={action}
+        placeholder="Search by action, reason, or name"
+        q={q}
+        filter={action}
         options={[
           { label: "All", value: "" },
           { label: "No-show override", value: "no_show_override" },
@@ -99,6 +127,8 @@ export default async function AdminAuditPage({
           </table>
         </Card>
       )}
+
+      <Pager base="/admin/audit" params={pagerParams} page={page} hasNext={rows.length === PAGE_SIZE} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button, ButtonLink } from "./Button";
 import { Avatar } from "./Avatar";
+import { Logo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -57,10 +58,7 @@ export function NavBar({
         </button>
 
         <Link href="/" className="flex-shrink-0">
-          <svg height="44" viewBox="0 0 220 60" className="w-auto">
-            <text x="0" y="41" fontFamily="Arial,Helvetica,sans-serif" fontSize="34" fontWeight="600" letterSpacing="-0.5" fill="white">haibu</text>
-            <circle cx="97" cy="35" r="5" fill="#A81120" />
-          </svg>
+          <Logo />
         </Link>
 
         <div className="hidden sm:flex flex-1 justify-center max-w-[560px] mx-auto">

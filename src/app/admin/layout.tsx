@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { Logo } from "@/components/ui/Logo";
 import { AdminNav } from "./AdminNav";
 
 // Admin shares the consumer dark design system (per Raghav's call to bring it
@@ -32,9 +34,14 @@ export default async function AdminLayout({
       <header className="border-b border-border-subtle bg-bg-surface">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-6 py-3">
           <div className="flex items-center gap-3">
-            <span className="font-semibold text-white">haibu admin</span>
-            <span className="text-xs text-text-tertiary">{row.email}</span>
+            <Link href="/" className="flex-shrink-0">
+              <Logo height={32} />
+            </Link>
+            <span className="rounded-pill border border-border-subtle px-2 py-0.5 text-xs font-medium text-text-secondary">
+              admin
+            </span>
           </div>
+          <span className="text-xs text-text-tertiary">{row.email}</span>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-8">

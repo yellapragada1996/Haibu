@@ -98,7 +98,7 @@ async function main() {
     console.log("[2] NavBar avatar dropdown shows Admin link");
 
     await admin.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
-    await admin.waitForSelector("text=haibu admin", { timeout: 15000 });
+    await admin.waitForSelector("text=Reports", { timeout: 15000 });
     console.log("[3] Admin panel loads for role_admin user");
 
     // ---------- 3. report status action ----------

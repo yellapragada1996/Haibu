@@ -128,12 +128,16 @@ export async function adminForceCancel(
 export async function setUserSuspension(
   userId: string,
   suspend: boolean,
+  reason?: string,
 ): Promise<{ success: true } | { error: string }> {
   const adminId = await requireAdmin();
   if (!adminId) return { error: "Unauthorized" };
   if (userId === adminId) {
     return { error: "You cannot suspend your own account" };
   }
+
+  const trimmed = (reason ?? "").trim();
+  if (suspend && !trimmed) return { error: "A reason is required" };
 
   // Supabase-native ban: '876000h' (~100 years) suspends, 'none' lifts it.
   const service = await createServiceClient();
@@ -142,7 +146,18 @@ export async function setUserSuspension(
   });
   if (error) return { error: error.message };
 
+  // Audit trail — suspend was previously unlogged; now consistent with
+  // force-cancel and no-show override.
+  await db.insert(adminActions).values({
+    admin_id: adminId,
+    action: suspend ? "suspend" : "unsuspend",
+    target_user_id: userId,
+    reason: suspend ? trimmed : trimmed || "unsuspend",
+  });
+
   revalidatePath("/admin/users");
+  revalidatePath("/admin");
+  revalidatePath("/admin/audit");
   return { success: true };
 }
 

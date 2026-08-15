@@ -1,7 +1,8 @@
 // Step 13 admin panel end-to-end verification (real app + real DB + real
 // Supabase, no mocks). Exercises: admin gate (non-admin 404 / admin 200),
-// NavBar admin link, report status action, admin force-cancel (status +
-// reason persistence), and suspend/unsuspend via Supabase native ban.
+// NavBar admin link, overview page, report status action (via row drawer),
+// admin force-cancel, suspend/unsuspend with audit-log reason, and the
+// audit-log page.
 //
 // NOTE: force-cancel's Stripe refund + ledger branch is exercised only in the
 // null-payment-intent case here (the dev DB has no confirmed booking with a
@@ -47,7 +48,6 @@ async function main() {
   );
 
   // --- setup ---
-  // Promote creator to admin (record original to restore).
   const origAdmin = await db.query(
     "SELECT role_admin FROM users WHERE id = $1",
     [CREATOR_USER_ID],
@@ -62,8 +62,7 @@ async function main() {
     [reportId, FAN_ID, CREATOR_USER_ID, "test admin report — please ignore"],
   );
 
-  // Test confirmed booking (no payment intent — mirrors the leftover manual
-  // test bookings that actually exist in this dev DB).
+  // Test confirmed booking (no payment intent).
   const bookingId = crypto.randomUUID();
   const start = new Date(Date.now() + 10 * 86400000);
   const end = new Date(start.getTime() + 30 * 60000);
@@ -92,25 +91,28 @@ async function main() {
     await login(admin, "creator@haibu.test");
 
     await admin.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
-    // The avatar is the only <img> in the nav (search button is an inline SVG).
     await admin.locator("nav img[alt]").first().click();
     await admin.getByRole("link", { name: "Admin", exact: true }).waitFor({ timeout: 5000 });
     console.log("[2] NavBar avatar dropdown shows Admin link");
 
+    // ---------- 3. overview page ----------
     await admin.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
-    await admin.waitForSelector("text=Reports", { timeout: 15000 });
-    console.log("[3] Admin panel loads for role_admin user");
+    await admin.waitForSelector("text=Overview", { timeout: 15000 });
+    await admin.waitForSelector("text=Open reports", { timeout: 15000 });
+    console.log("[3] Overview page loads with KPIs");
 
-    // ---------- 3. report status action ----------
-    await admin.waitForSelector(`text=test admin report — please ignore`, { timeout: 15000 });
+    // ---------- 4. report status action via row drawer ----------
+    await admin.goto(`${BASE}/admin/reports`, { waitUntil: "networkidle" });
+    await admin.waitForSelector("text=test admin report — please ignore", { timeout: 15000 });
     const reportRow = admin.locator("tr").filter({ hasText: "test admin report — please ignore" });
-    await reportRow.getByRole("button", { name: "actioned" }).click();
+    await reportRow.click(); // opens the detail drawer
+    await admin.getByRole("button", { name: "actioned" }).click();
     await sleep(1500);
     const rep = await db.query("SELECT status FROM reports WHERE id = $1", [reportId]);
-    console.log("[4] reports.status after action:", rep.rows[0]?.status);
+    console.log("[4] reports.status after drawer action:", rep.rows[0]?.status);
     if (rep.rows[0]?.status !== "actioned") throw new Error("Report status did not update");
 
-    // ---------- 4. force-cancel ----------
+    // ---------- 5. force-cancel ----------
     await admin.goto(`${BASE}/admin/bookings`, { waitUntil: "networkidle" });
     const bookingRow = admin.locator("tr").filter({ hasText: bookingId.slice(0, 8) });
     await bookingRow.getByRole("button", { name: "Force cancel" }).click();
@@ -126,15 +128,26 @@ async function main() {
       throw new Error("Force-cancel did not persist expected state");
     }
 
-    // ---------- 5. suspend / unsuspend ----------
+    // ---------- 6. suspend (with reason → audit) ----------
     await admin.goto(`${BASE}/admin/users`, { waitUntil: "networkidle" });
     const fanRow = admin.locator("tr").filter({ hasText: "fan@haibu.test" });
     await fanRow.getByRole("button", { name: "Suspend" }).click();
+    await admin.getByPlaceholder("Required reason").fill("test suspend reason");
+    await admin.getByRole("button", { name: "Confirm suspend" }).click();
     await sleep(1500);
     let ban = await db.query("SELECT banned_until FROM auth.users WHERE id = $1", [FAN_ID]);
+    const susAudit = await db.query(
+      "SELECT action, target_user_id, reason FROM admin_actions WHERE target_user_id = $1 AND action = 'suspend' ORDER BY created_at DESC LIMIT 1",
+      [FAN_ID],
+    );
     console.log("[6] banned_until after suspend:", ban.rows[0]?.banned_until);
+    console.log("[6] admin_actions suspend:", JSON.stringify(susAudit.rows[0]));
     if (!ban.rows[0]?.banned_until) throw new Error("Suspend did not set banned_until");
+    if (!(susAudit.rows[0]?.action === "suspend" && susAudit.rows[0]?.reason === "test suspend reason")) {
+      throw new Error("Suspend audit row missing or wrong");
+    }
 
+    // ---------- 7. unsuspend ----------
     const fanRow2 = admin.locator("tr").filter({ hasText: "fan@haibu.test" });
     await fanRow2.getByRole("button", { name: "Unsuspend" }).click();
     await sleep(1500);
@@ -142,11 +155,17 @@ async function main() {
     console.log("[7] banned_until after unsuspend:", ban.rows[0]?.banned_until);
     if (ban.rows[0]?.banned_until) throw new Error("Unsuspend did not clear banned_until");
 
+    // ---------- 8. audit log page ----------
+    await admin.goto(`${BASE}/admin/audit`, { waitUntil: "networkidle" });
+    await admin.waitForSelector("text=Audit log", { timeout: 15000 });
+    await admin.waitForSelector("text=test suspend reason", { timeout: 15000 });
+    console.log("[8] Audit log page shows suspend action with reason");
+
     await adminCtx.close();
     console.log("ALL CHECKS PASSED");
   } finally {
-    // Cleanup
     await adminAuth.auth.admin.updateUserById(FAN_ID, { ban_duration: "none" }).catch(() => {});
+    await db.query("DELETE FROM admin_actions WHERE target_user_id = $1 AND action IN ('suspend', 'unsuspend')", [FAN_ID]);
     await db.query("DELETE FROM reports WHERE id = $1", [reportId]);
     await db.query("DELETE FROM bookings WHERE id = $1", [bookingId]);
     await db.query(

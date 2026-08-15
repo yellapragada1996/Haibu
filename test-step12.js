@@ -1,6 +1,9 @@
 // Step 12 end-to-end verification (real app + real DB, no mocks).
 // Exercises: review submission → creator-profile display, report row,
-// block row (fan→creator), blocked reservation guard (both directions).
+// block row, and blocked reservation guard — from BOTH parties.
+// Fan side: review + report creator + block creator.
+// Creator side: report guest + block guest (role-aware "other party").
+// Enforcement: blocked reservation rejected in both directions.
 
 const { chromium } = require("playwright");
 const { Client } = require("pg");
@@ -21,6 +24,14 @@ for (const line of fs.readFileSync(".env.local", "utf8").split("\n")) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function login(page, email) {
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', "haibu123");
+  await page.click('button[type="submit"]');
+  await page.waitForTimeout(2500);
+}
 
 async function main() {
   const db = new Client({ connectionString: env.DATABASE_URL });
@@ -48,11 +59,7 @@ async function main() {
     // ---------- FAN session ----------
     const fanCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const fan = await fanCtx.newPage();
-    await fan.goto(`${BASE}/login`, { waitUntil: "networkidle" });
-    await fan.fill('input[type="email"]', "fan@haibu.test");
-    await fan.fill('input[type="password"]', "haibu123");
-    await fan.click('button[type="submit"]');
-    await fan.waitForTimeout(2500);
+    await login(fan, "fan@haibu.test");
 
     // 1. Review form visible on the completed booking detail page
     await fan.goto(`${BASE}/bookings/${bookingId}`, { waitUntil: "networkidle" });
@@ -81,19 +88,19 @@ async function main() {
     await fan.screenshot({ path: `${SHOTS}/step12-profile-review.png` });
     console.log("[3] Review visible on creator profile page");
 
-    // 4. Report via booking detail page
+    // 4. Report via booking detail page (fan → creator)
     await fan.goto(`${BASE}/bookings/${bookingId}`, { waitUntil: "networkidle" });
     await fan.getByRole("button", { name: "Report", exact: true }).click();
     await fan.getByPlaceholder("Describe the issue").fill("test report — please ignore");
     await fan.getByRole("button", { name: "Submit report" }).click();
     await sleep(1500);
     const report = await db.query(
-      "SELECT reporter_id, reported_user_id, booking_id, reason, status FROM reports WHERE booking_id = $1",
-      [bookingId],
+      "SELECT reporter_id, reported_user_id, booking_id, reason, status FROM reports WHERE booking_id = $1 AND reporter_id = $2",
+      [bookingId, FAN_ID],
     );
-    console.log("[4] reports row:", JSON.stringify(report.rows[0]));
+    console.log("[4] reports row (fan→creator):", JSON.stringify(report.rows[0]));
     if (!(report.rows[0]?.reported_user_id === CREATOR_USER_ID && report.rows[0]?.reason === "test report — please ignore")) {
-      throw new Error("Report row did not match expected values");
+      throw new Error("Report row (fan→creator) did not match expected values");
     }
 
     // 5. Block creator (fan → creator) via booking detail page
@@ -108,7 +115,7 @@ async function main() {
     if (!block.rows[0]) throw new Error("Block row (fan→creator) missing");
     await fan.waitForSelector("text=Queen is blocked.", { timeout: 15000 });
 
-    // 6. Blocked pair cannot complete a reservation (blocker side)
+    // 6. Blocked pair cannot complete a reservation (fan blocked creator)
     await fan.goto(`${BASE}/book/${CREATOR_PROFILE_ID}?offering=${OFFERING_ID}`, { waitUntil: "networkidle" });
     await fan.waitForSelector("div.grid.grid-cols-2 > button", { timeout: 20000 });
     await fan.locator("div.grid.grid-cols-2 > button").first().click();
@@ -116,24 +123,55 @@ async function main() {
     await fan.screenshot({ path: `${SHOTS}/step12-blocked-reservation.png` });
     console.log("[6] Blocked reservation rejected (fan blocked creator)");
 
-    // 7. Reverse direction: creator blocks fan, fan still cannot book
+    // Clear the fan→creator block so the creator-side block below is a clean
+    // insert, and so the reverse-direction check exercises creator→fan alone.
     await db.query("DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2", [FAN_ID, CREATOR_USER_ID]);
-    await db.query(
-      "INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)",
-      [CREATOR_USER_ID, FAN_ID],
+
+    // ---------- CREATOR session ----------
+    const creatorCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const creator = await creatorCtx.newPage();
+    await login(creator, "creator@haibu.test");
+
+    // 7. Creator sees the guest label + fan name (role-aware, never "fan")
+    await creator.goto(`${BASE}/bookings/${bookingId}`, { waitUntil: "networkidle" });
+    await creator.waitForSelector("text=Guest", { timeout: 15000 });
+    await creator.waitForSelector("text=Elizabeth", { timeout: 15000 });
+    console.log("[7] Creator sees guest label + fan name on booking detail");
+
+    // 8. Report via booking detail page (creator → fan)
+    await creator.getByRole("button", { name: "Report", exact: true }).click();
+    await creator.getByPlaceholder("Describe the issue").fill("test report from creator — please ignore");
+    await creator.getByRole("button", { name: "Submit report" }).click();
+    await sleep(1500);
+    const creatorReport = await db.query(
+      "SELECT reporter_id, reported_user_id, booking_id, reason, status FROM reports WHERE booking_id = $1 AND reporter_id = $2",
+      [bookingId, CREATOR_USER_ID],
     );
-    const reverse = await db.query(
+    console.log("[8] reports row (creator→fan):", JSON.stringify(creatorReport.rows[0]));
+    if (!(creatorReport.rows[0]?.reported_user_id === FAN_ID && creatorReport.rows[0]?.reason === "test report from creator — please ignore")) {
+      throw new Error("Report row (creator→fan) did not match expected values");
+    }
+
+    // 9. Block fan (creator → fan) via booking detail page
+    await creator.getByRole("button", { name: "Block Elizabeth", exact: true }).click();
+    await creator.getByRole("button", { name: "Block", exact: true }).click();
+    await sleep(1500);
+    const creatorBlock = await db.query(
       "SELECT blocker_id, blocked_id FROM blocks WHERE blocker_id = $1 AND blocked_id = $2",
       [CREATOR_USER_ID, FAN_ID],
     );
-    console.log("[7a] blocks row (creator→fan):", JSON.stringify(reverse.rows[0]));
+    console.log("[9] blocks row (creator→fan):", JSON.stringify(creatorBlock.rows[0]));
+    if (!creatorBlock.rows[0]) throw new Error("Block row (creator→fan) missing");
+    await creator.waitForSelector("text=Elizabeth is blocked.", { timeout: 15000 });
 
+    // 10. Reverse-direction enforcement: creator blocked fan → fan still cannot book
     await fan.goto(`${BASE}/book/${CREATOR_PROFILE_ID}?offering=${OFFERING_ID}`, { waitUntil: "networkidle" });
     await fan.waitForSelector("div.grid.grid-cols-2 > button", { timeout: 20000 });
     await fan.locator("div.grid.grid-cols-2 > button").first().click();
     await fan.waitForSelector("text=You can't book a session with this creator.", { timeout: 15000 });
-    console.log("[7b] Blocked reservation rejected (creator blocked fan)");
+    console.log("[10] Blocked reservation rejected (creator blocked fan)");
 
+    await creatorCtx.close();
     await fanCtx.close();
     console.log("ALL CHECKS PASSED");
   } finally {

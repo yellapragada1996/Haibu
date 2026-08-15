@@ -9,6 +9,7 @@ import { categoryLabel } from "@/lib/categories";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Input, Select } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Modal } from "@/components/ui/Modal";
 import { NavBar } from "@/components/ui/NavBar";
 import { ToastProvider, toast } from "@/components/ui/Toast";
@@ -161,6 +162,19 @@ export default function ComponentsShowcase() {
               <option>ASMR</option>
               <option>Music</option>
             </Select>
+          </SubSection>
+        </Section>
+
+        <Section title="Textarea">
+          <SubSection title="Default">
+            <Textarea placeholder="Tell us a little more…" className="max-w-sm" />
+          </SubSection>
+          <SubSection title="With error">
+            <Textarea
+              placeholder="Describe the issue"
+              error="This field is required"
+              className="max-w-sm"
+            />
           </SubSection>
         </Section>
 

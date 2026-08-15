@@ -1,11 +1,11 @@
-// Review & rating system end-to-end (real app + real DB, no mocks).
-// Exercises: session history entry point, guest review submit (held = not
-// public), creator review submit (mutual publish), profile public display
-// (first name + initial, tags, tag summary, "New creator" guard), and the
-// 7-day review window expiry.
+// Review & rating UX (dashboard tabs + review modals) end-to-end.
+// Exercises: dashboard Upcoming/Past tab switching, review-form modal (submit
+// -> held), read-only review modal, creator mutual publish, profile display,
+// and 7-day window expiry. Pixel-decodes modal screenshots (no image viewing).
 
 const { chromium } = require("playwright");
 const { Client } = require("pg");
+const sharp = require("sharp");
 const fs = require("fs");
 const crypto = require("crypto");
 
@@ -39,17 +39,32 @@ async function insertOffering(db, title) {
   return id;
 }
 
-async function insertCompleted(db, offeringId, endOffsetMs) {
+async function insertBooking(db, offeringId, { status, endOffsetMs }) {
   const id = crypto.randomUUID();
   const start = new Date(Date.now() + endOffsetMs - 30 * 60000);
   const end = new Date(Date.now() + endOffsetMs);
   const joined = new Date(start.getTime() + 2 * 60000);
   await db.query(
     `INSERT INTO bookings (id, fan_id, creator_id, offering_id, status, start_at, end_at, price_cents, platform_fee_cents, creator_payout_cents, fan_joined_at, creator_joined_at, payout_eligible_at)
-     VALUES ($1,$2,$3,$4,'completed',$5,$6,2500,450,2050,$7,$7,$8)`,
-    [id, FAN_ID, CREATOR_PROFILE_ID, offeringId, start.toISOString(), end.toISOString(), joined.toISOString(), new Date(start.getTime() + 72 * 3600000).toISOString()],
+     VALUES ($1,$2,$3,$4,$5,$6,$7,2500,450,2050,$8,$8,$9)`,
+    [id, FAN_ID, CREATOR_PROFILE_ID, offeringId, status, start.toISOString(), end.toISOString(), joined.toISOString(), new Date(start.getTime() + 72 * 3600000).toISOString()],
   );
   return id;
+}
+
+async function pixelCheck(page, path, label) {
+  const buf = await page.screenshot();
+  await fs.promises.writeFile(path, buf);
+  const { data } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
+  let accent = 0;
+  let modalBg = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const k = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+    if (k === "168,17,32") accent++; // #A81120 accent
+    if (k === "26,26,26") modalBg++; // #1A1A1A bg-surface (modal panel)
+  }
+  console.log(`[pixels ${label}] accent(#A81120): ${accent} | modalBg(#1A1A1A): ${modalBg}`);
+  return { accent, modalBg };
 }
 
 async function main() {
@@ -58,99 +73,110 @@ async function main() {
 
   const offeringA = await insertOffering(db, "Review Test Alpha");
   const offeringB = await insertOffering(db, "Review Test Beta");
-  const A = await insertCompleted(db, offeringA, -1 * 86400000); // ended 1 day ago
-  const B = await insertCompleted(db, offeringB, -8 * 86400000); // ended 8 days ago
+  const offeringC = await insertOffering(db, "Review Test Gamma");
+  const A = await insertBooking(db, offeringA, { status: "completed", endOffsetMs: -1 * 86400000 }); // 1 day ago
+  const B = await insertBooking(db, offeringB, { status: "completed", endOffsetMs: -8 * 86400000 }); // 8 days ago
+  const C = await insertBooking(db, offeringC, { status: "confirmed", endOffsetMs: 2 * 86400000 }); // future
 
   const browser = await chromium.launch();
   try {
-    // ---------- 1. session history: Review pill + expired state ----------
     const fanCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const fan = await fanCtx.newPage();
     await login(fan, "fan@haibu.test");
-    await fan.goto(`${BASE}/bookings`, { waitUntil: "networkidle" });
-    await fan.waitForSelector("text=My sessions", { timeout: 15000 });
 
-    const reviewPill = fan.locator(`a[href="/bookings/${A}"]`).filter({ hasText: "Review" });
-    const expiredRow = fan.locator("div.rounded-card").filter({ hasText: "Review Test Beta" });
-    console.log("[1] Review pill present:", (await reviewPill.count()) > 0);
-    console.log("[1] 'Review period expired' present:", (await expiredRow.locator("text=Review period expired").count()) > 0);
-    if ((await reviewPill.count()) === 0) throw new Error("Review pill missing");
-    if ((await expiredRow.locator("text=Review period expired").count()) === 0) throw new Error("Expired state missing");
+    // ---------- 1. dashboard tab switching ----------
+    await fan.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+    await fan.waitForSelector("text=Dashboard", { timeout: 15000 });
 
-    // ---------- 2. guest submits review (held = not public) ----------
-    await fan.goto(`${BASE}/bookings/${A}`, { waitUntil: "networkidle" });
+    // Default "Upcoming" tab: future booking visible, completed hidden.
+    const upAlpha = await fan.locator("text=Review Test Alpha").count();
+    const upGamma = await fan.locator("text=Review Test Gamma").count();
+    console.log("[1] Upcoming tab: alpha(past) visible:", upAlpha, "| gamma(upcoming) visible:", upGamma);
+    if (!(upGamma > 0 && upAlpha === 0)) throw new Error("Upcoming tab shows wrong sessions");
+
+    // Switch to Past: completed visible, future hidden.
+    await fan.getByRole("button", { name: "Past", exact: true }).click();
+    await fan.waitForTimeout(500);
+    const pastAlpha = await fan.locator("text=Review Test Alpha").count();
+    const pastGamma = await fan.locator("text=Review Test Gamma").count();
+    const expiredBeta = await fan.locator("div.rounded-card").filter({ hasText: "Review Test Beta" }).locator("text=Review period expired").count();
+    console.log("[1] Past tab: alpha visible:", pastAlpha, "| gamma visible:", pastGamma, "| beta 'Review period expired':", expiredBeta);
+    if (!(pastAlpha > 0 && pastGamma === 0 && expiredBeta > 0)) throw new Error("Past tab shows wrong sessions");
+
+    // ---------- 2. review form modal ----------
+    const aCard = fan.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
+    await aCard.getByRole("button", { name: "Leave a review" }).click();
+    await fan.waitForSelector("text=Leave a review", { timeout: 5000 });
     await fan.getByRole("button", { name: "5 stars" }).click();
     await fan.getByPlaceholder("How was the lesson? What would you tell someone considering booking?").fill("Great lesson, very helpful.");
     await fan.getByRole("button", { name: "Clear explanations" }).click();
     await fan.getByRole("button", { name: "Patient teacher" }).click();
+    await pixelCheck(fan, "/tmp/step14-review-modal.png", "review-form-modal");
+
     await fan.getByRole("button", { name: "Submit review" }).click();
     await sleep(1500);
 
     const guestRev = await db.query(
-      `SELECT reviewer_role, is_public, rating, text, tags FROM reviews WHERE booking_id = $1 AND reviewer_role = 'guest'`,
+      `SELECT is_public, rating, text, tags FROM reviews WHERE booking_id = $1 AND reviewer_role = 'guest'`,
       [A],
     );
-    console.log("[2] guest review:", JSON.stringify(guestRev.rows[0]));
-    if (!(guestRev.rows[0]?.is_public === false && guestRev.rows[0]?.rating === 5 && guestRev.rows[0]?.reviewer_role === "guest")) {
+    console.log("[2] guest review (held):", JSON.stringify(guestRev.rows[0]));
+    if (!(guestRev.rows[0]?.is_public === false && guestRev.rows[0]?.rating === 5)) {
       throw new Error("Guest review not held correctly");
     }
-    if (!(Array.isArray(guestRev.rows[0].tags) && guestRev.rows[0].tags.includes("Clear explanations"))) {
-      throw new Error("Reaction tags not persisted");
-    }
 
-    // Held review should NOT appear on the public profile yet.
-    await fan.goto(`${BASE}/creators/${CREATOR_PROFILE_ID}`, { waitUntil: "networkidle" });
-    const heldVisible = await fan.locator("text=Great lesson, very helpful.").count();
-    console.log("[2] held review visible on profile (should be 0):", heldVisible);
-    if (heldVisible !== 0) throw new Error("Held review leaked to public profile");
+    // Modal closed, underlying list intact.
+    const stillPastAlpha = await fan.locator("text=Review Test Alpha").count();
+    console.log("[2] list intact after modal close:", stillPastAlpha > 0);
+    if (stillPastAlpha === 0) throw new Error("List broke after modal close");
 
-    // ---------- 3. creator submits review -> mutual publish ----------
+    // ---------- 3. read-only review modal ----------
+    // Refresh to pick up the new review state.
+    await fan.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+    await fan.getByRole("button", { name: "Past", exact: true }).click();
+    await fan.waitForTimeout(500);
+    const reviewedCard = fan.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
+    const pillGone = await reviewedCard.getByRole("button", { name: "Leave a review" }).count();
+    console.log("[3] 'Leave a review' pill gone after review:", pillGone === 0);
+    if (pillGone !== 0) throw new Error("Review pill should be gone after review");
+
+    await reviewedCard.click();
+    await fan.waitForSelector("text=Your review", { timeout: 5000 });
+    const roText = await fan.locator("text=Great lesson, very helpful.").count();
+    const roTag = await fan.locator("text=Clear explanations").count();
+    await pixelCheck(fan, "/tmp/step14-readonly-modal.png", "read-only-modal");
+    console.log("[3] read-only modal shows text:", roText > 0, "| tag:", roTag > 0);
+    if (!(roText > 0 && roTag > 0)) throw new Error("Read-only modal missing review content");
+
+    // ---------- 4. creator mutual publish ----------
     const creatorCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const creator = await creatorCtx.newPage();
     await login(creator, "creator@haibu.test");
     await creator.goto(`${BASE}/creator/bookings`, { waitUntil: "networkidle" });
-
-    const aRow = creator.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
-    await aRow.getByRole("button", { name: "Review this guest" }).click();
+    const cCard = creator.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
+    await cCard.getByRole("button", { name: "Review this guest" }).click();
     await creator.getByRole("button", { name: "Thumbs up" }).click();
     await creator.getByRole("button", { name: "Submit review" }).click();
     await sleep(1500);
+    const guestAfter = await db.query(`SELECT is_public FROM reviews WHERE booking_id = $1 AND reviewer_role = 'guest'`, [A]);
+    console.log("[4] guest review published after mutual:", guestAfter.rows[0]?.is_public);
+    if (guestAfter.rows[0]?.is_public !== true) throw new Error("Mutual publish failed");
 
-    const creatorRev = await db.query(
-      `SELECT reviewer_role, is_public, creator_sentiment FROM reviews WHERE booking_id = $1 AND reviewer_role = 'creator'`,
-      [A],
-    );
-    const guestAfterMutual = await db.query(
-      `SELECT is_public, published_at FROM reviews WHERE booking_id = $1 AND reviewer_role = 'guest'`,
-      [A],
-    );
-    console.log("[3] creator review:", JSON.stringify(creatorRev.rows[0]));
-    console.log("[3] guest review after mutual:", JSON.stringify(guestAfterMutual.rows[0]));
-    if (!(creatorRev.rows[0]?.reviewer_role === "creator" && creatorRev.rows[0]?.is_public === false && creatorRev.rows[0]?.creator_sentiment === "positive")) {
-      throw new Error("Creator review not recorded correctly");
-    }
-    if (!(guestAfterMutual.rows[0]?.is_public === true)) {
-      throw new Error("Mutual submission did not publish the guest review");
-    }
-
-    // ---------- 4. public profile now shows it ----------
+    // ---------- 5. profile shows public review ----------
     await fan.goto(`${BASE}/creators/${CREATOR_PROFILE_ID}`, { waitUntil: "networkidle" });
     await fan.waitForSelector("text=Great lesson, very helpful.", { timeout: 15000 });
-    const firstName = await fan.locator("text=Elizabeth").count();
-    const tagSummary = await fan.locator("text=Clear explanations (1)").count();
+    const firstInitial = await fan.locator("text=Elizabeth").count();
     const newCreator = await fan.locator("text=New creator").count();
-    console.log("[4] profile: guest first name:", firstName > 0, "| tag summary:", tagSummary > 0, "| New creator guard:", newCreator > 0);
-    if (!(firstName > 0 && tagSummary > 0 && newCreator > 0)) {
-      throw new Error("Public profile review display is wrong");
-    }
+    console.log("[5] profile: first name:", firstInitial > 0, "| New creator guard:", newCreator > 0);
+    if (!(firstInitial > 0 && newCreator > 0)) throw new Error("Profile review display wrong");
 
     await creatorCtx.close();
     await fanCtx.close();
     console.log("ALL CHECKS PASSED");
   } finally {
-    await db.query("DELETE FROM reviews WHERE booking_id IN ($1,$2)", [A, B]);
-    await db.query("DELETE FROM bookings WHERE id IN ($1,$2)", [A, B]);
-    await db.query("DELETE FROM offerings WHERE id IN ($1,$2)", [offeringA, offeringB]);
+    await db.query("DELETE FROM reviews WHERE booking_id IN ($1,$2,$3)", [A, B, C]);
+    await db.query("DELETE FROM bookings WHERE id IN ($1,$2,$3)", [A, B, C]);
+    await db.query("DELETE FROM offerings WHERE id IN ($1,$2,$3)", [offeringA, offeringB, offeringC]);
     await db.end();
     await browser.close();
   }

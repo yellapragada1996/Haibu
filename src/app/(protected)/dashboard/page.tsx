@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
-import { bookings as bookingsTable, offerings, creatorProfiles, users } from "@/db/schema";
-import { eq, and, or, gte, inArray, desc, sql, gt } from "drizzle-orm";
+import {
+  bookings as bookingsTable,
+  offerings,
+  creatorProfiles,
+  users,
+  reviews,
+} from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { statusLabel } from "@/lib/status";
+import { SessionList, type SessionItem } from "./SessionList";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -21,47 +28,77 @@ export default async function DashboardPage() {
 
   const isCreator = profile?.is_creator ?? false;
 
-  // Upcoming sessions the logged-in user BOOKED AS A FAN (outgoing).
-  // Creator-incoming sessions live under Creator Studio → Bookings.
-  const upcoming = await db
+  // All guest bookings, newest first, with the guest's review (if any).
+  const rows = await db
     .select({
       id: bookingsTable.id,
       status: bookingsTable.status,
       start_at: bookingsTable.start_at,
       end_at: bookingsTable.end_at,
+      reservation_expires_at: bookingsTable.reservation_expires_at,
       price_cents: bookingsTable.price_cents,
-      role: sql<"fan">`'fan'`,
-      other_name: users.display_name,
+      creator_profile_id: creatorProfiles.id,
+      creator_name: users.display_name,
+      creator_avatar: users.avatar_url,
       offering_title: offerings.title,
+      duration_minutes: offerings.duration_minutes,
+      category: offerings.category,
+      review_id: reviews.id,
+      review_rating: reviews.rating,
+      review_text: reviews.text,
+      review_tags: reviews.tags,
     })
     .from(bookingsTable)
     .innerJoin(offerings, eq(offerings.id, bookingsTable.offering_id))
     .innerJoin(creatorProfiles, eq(creatorProfiles.id, bookingsTable.creator_id))
     .innerJoin(users, eq(users.id, creatorProfiles.user_id))
-    .where(
+    .leftJoin(
+      reviews,
       and(
-        eq(bookingsTable.fan_id, user.id),
-        // Live, in-progress sessions stay visible until they END — not just
-        // until they START (a start_at cutoff made them vanish mid-session).
-        gte(bookingsTable.end_at, new Date()),
-        or(
-          eq(bookingsTable.status, "confirmed"),
-          and(
-            eq(bookingsTable.status, "reserved"),
-            gt(bookingsTable.reservation_expires_at, sql`NOW()`),
-          ),
-        ),
+        eq(reviews.booking_id, bookingsTable.id),
+        eq(reviews.reviewer_role, "guest"),
       ),
     )
+    .where(eq(bookingsTable.fan_id, user.id))
     .orderBy(desc(bookingsTable.start_at))
-    .limit(20);
+    .limit(200);
 
-  function statusBadge(status: string) {
-    const variant =
-      status === "confirmed" ? "confirmed" as const :
-      status === "reserved" ? "pending" as const :
-      "cancelled" as const;
-    return <Badge variant={variant} label={statusLabel(status)} />;
+  const now = new Date();
+  const upcoming: SessionItem[] = [];
+  const past: SessionItem[] = [];
+
+  for (const r of rows) {
+    const isActiveUpcoming =
+      r.end_at != null &&
+      r.end_at >= now &&
+      (r.status === "confirmed" ||
+        (r.status === "reserved" &&
+          r.reservation_expires_at != null &&
+          r.reservation_expires_at > now));
+
+    const item: SessionItem = {
+      id: r.id,
+      status: r.status,
+      start_at: r.start_at ? r.start_at.toISOString() : "",
+      end_at: r.end_at ? r.end_at.toISOString() : "",
+      price_cents: r.price_cents,
+      creator_profile_id: r.creator_profile_id,
+      creator_name: r.creator_name,
+      creator_avatar: r.creator_avatar,
+      offering_title: r.offering_title,
+      duration_minutes: r.duration_minutes,
+      category: r.category,
+      review: r.review_id
+        ? {
+            rating: r.review_rating ?? 0,
+            text: r.review_text ?? null,
+            tags: r.review_tags ?? [],
+          }
+        : null,
+    };
+
+    if (isActiveUpcoming) upcoming.push(item);
+    else past.push(item);
   }
 
   return (
@@ -99,54 +136,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* Upcoming sessions */}
-      <h2 className="text-lg font-semibold text-white mb-4">
-        Upcoming sessions
-      </h2>
-
-      {upcoming.length === 0 ? (
-        <p className="text-text-secondary text-sm">
-          No upcoming sessions —{" "}
-          <Link href="/" className="text-accent hover:text-accent-hover underline">
-            browse creators
-          </Link>
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {upcoming.map((s) => (
-            <Link key={s.id} href={`/bookings/${s.id}`}>
-              <Card hover className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-secondary">
-                      With
-                    </span>
-                    <span className="text-white font-medium">
-                      {s.other_name}
-                    </span>
-                    {statusBadge(s.status)}
-                  </div>
-                  <p className="text-xs text-text-secondary mt-1">
-                    {s.offering_title} ·{" "}
-                    {s.start_at
-                      ? new Date(s.start_at).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : ""}
-                  </p>
-                </div>
-                <span className="text-sm text-text-secondary">
-                  ${((s.price_cents ?? 0) / 100).toFixed(2)}
-                </span>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+      <SessionList upcoming={upcoming} past={past} />
     </div>
   );
 }

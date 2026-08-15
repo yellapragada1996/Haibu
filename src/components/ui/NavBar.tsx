@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 type NavBarProps = {
   isLoggedIn?: boolean;
   isCreator?: boolean;
+  isAdmin?: boolean;
   userName?: string;
   avatarUrl?: string | null;
 };
@@ -17,6 +18,7 @@ type NavBarProps = {
 export function NavBar({
   isLoggedIn = false,
   isCreator = false,
+  isAdmin = false,
   userName = "",
   avatarUrl = null,
 }: NavBarProps) {
@@ -134,6 +136,15 @@ export function NavBar({
                         Creator Studio
                       </Link>
                     )}
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setAvatarOpen(false)}
+                        className="block px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
+                      >
+                        Admin
+                      </Link>
+                    )}
                     <button
                       onClick={async () => {
                         setAvatarOpen(false);
@@ -188,6 +199,15 @@ export function NavBar({
               onClick={() => setMenuOpen(false)}
             >
               Dashboard
+            </Link>
+          )}
+          {isLoggedIn && isAdmin && (
+            <Link
+              href="/admin"
+              className="block rounded-pill px-4 py-2 text-sm text-text-secondary text-center hover:text-white"
+              onClick={() => setMenuOpen(false)}
+            >
+              Admin
             </Link>
           )}
         </div>

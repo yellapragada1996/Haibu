@@ -13,6 +13,7 @@ export async function PublicLayout({ children }: { children: ReactNode }) {
 
   const isLoggedIn = !!user;
   let isCreator = false;
+  let isAdmin = false;
   let displayName = "";
   let avatarUrl: string | null = null;
 
@@ -21,12 +22,14 @@ export async function PublicLayout({ children }: { children: ReactNode }) {
       .select({
         display_name: users.display_name,
         avatar_url: users.avatar_url,
+        role_admin: users.role_admin,
         profile_id: creatorProfiles.id,
       })
       .from(users)
       .leftJoin(creatorProfiles, eq(creatorProfiles.user_id, users.id))
       .where(eq(users.id, user.id));
     isCreator = !!profile?.profile_id;
+    isAdmin = !!profile?.role_admin;
     displayName = profile?.display_name ?? user.email ?? "";
     avatarUrl = profile?.avatar_url ?? null;
   }
@@ -36,6 +39,7 @@ export async function PublicLayout({ children }: { children: ReactNode }) {
       <NavBar
         isLoggedIn={isLoggedIn}
         isCreator={isCreator}
+        isAdmin={isAdmin}
         userName={displayName}
         avatarUrl={avatarUrl}
       />

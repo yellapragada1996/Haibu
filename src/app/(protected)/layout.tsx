@@ -19,6 +19,7 @@ export default async function ProtectedLayout({
     .select({
       display_name: users.display_name,
       avatar_url: users.avatar_url,
+      role_admin: users.role_admin,
       profile_id: creatorProfiles.id,
     })
     .from(users)
@@ -30,6 +31,7 @@ export default async function ProtectedLayout({
       <NavBar
         isLoggedIn
         isCreator={!!profile?.profile_id}
+        isAdmin={!!profile?.role_admin}
         userName={profile?.display_name ?? user.email ?? ""}
         avatarUrl={profile?.avatar_url ?? null}
       />

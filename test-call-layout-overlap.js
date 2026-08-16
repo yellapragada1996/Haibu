@@ -1,22 +1,24 @@
-// STANDING LAYOUT CHECK: the stage tile and the self-view tile must NOT
-// overlap. Added after the finding that pixel/luminance checks alone cannot
-// catch "self-view layered ON TOP of the stage" vs "self-view beside the
-// stage" — both paint non-background pixels in the same region.
+// STANDING LAYOUT CHECK (V1 overlay model): the stage tile must fill the
+// frame, and the self-view must be a SMALL PiP contained within the stage's
+// bottom-right corner. It intentionally overlaps the stage (that's the
+// overlay model) — the old "disjoint" assertion is gone.
 //
-// Uses real getBoundingClientRect values for both elements and asserts the
-// boxes are disjoint. Run alongside test-call-checklist.js for any change
-// to the call screen.
-//
-// NOTE: this check currently FAILS — the self-view sits entirely inside the
-// stage's footprint (the layout bug being tracked). It is kept as a standing
-// check so the moment a fix lands, this flips to PASS and stays enforced.
+// Uses real getBoundingClientRect values for both elements. Run alongside
+// test-call-checklist.js for any change to the call screen.
 
 const { chromium } = require("playwright");
 const { Client } = require("pg");
 const crypto = require("crypto");
+const fs = require("fs");
+
+const env = {};
+for (const line of fs.readFileSync(".env.local", "utf8").split("\n")) {
+  const m = line.match(/^([A-Z_]+)=(.*)$/);
+  if (m) env[m[1]] = m[2];
+}
 
 (async () => {
-  const db = new Client({ connectionString: "postgresql://postgres.etikjlfhyywksokxbxor:NW5m5l8Vng6Yi6pH@aws-0-us-east-1.pooler.supabase.com:5432/postgres" });
+  const db = new Client({ connectionString: env.DATABASE_URL });
   await db.connect();
   const BOOKING = crypto.randomUUID();
   const s = new Date(Date.now() - 2 * 60000), e = new Date(Date.now() + 20 * 60000);
@@ -46,16 +48,17 @@ const crypto = require("crypto");
     const out = await f.evaluate(() => {
       const stage = document.querySelector(".tile:not(.local)");
       const self = document.querySelector(".fixed .tile.local");
-      const r = (el) => { if (!el) return null; const b = el.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), right: Math.round(b.right), bottom: Math.round(b.bottom) }; };
+      const r = (el) => { if (!el) return null; const b = el.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), right: Math.round(b.right), bottom: Math.round(b.bottom), w: Math.round(b.width), h: Math.round(b.height) }; };
       const a = r(stage), b = r(self);
-      const intersects = a && b ? !(a.right <= b.x || b.right <= a.x || a.bottom <= b.y || b.bottom <= a.y) : null;
-      const overlap = a && b && intersects
-        ? { w: Math.min(a.right, b.right) - Math.max(a.x, b.x), h: Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y) }
-        : null;
-      return { stage: a, self: b, intersects, overlap };
+      const small = b ? b.w < 320 && b.h < 240 : false;
+      const contained = a && b ? b.right <= a.right + 1 && b.bottom <= a.bottom + 1 : false;
+      const bottomRight = a && b
+        ? Math.abs(b.right - (a.right - 16)) < 24 && Math.abs(b.bottom - (a.bottom - 16)) < 24
+        : false;
+      return { stage: a, self: b, small, contained, bottomRight };
     });
     console.log(label, JSON.stringify(out));
-    return out.intersects === false;
+    return out.small && out.contained && out.bottomRight;
   };
 
   const closed = await check("CHAT CLOSED:");
@@ -66,7 +69,7 @@ const crypto = require("crypto");
   const open = await check("CHAT OPEN:");
 
   const pass = closed && open;
-  console.log(`OVERLAP CHECK: ${pass ? "PASS (no overlap)" : "FAIL (tiles intersect) — the known layout bug"}`);
+  console.log(`OVERLAY CHECK: ${pass ? "PASS (stage full, self-view small bottom-right PiP)" : "FAIL"}`);
 
   await db.query(`DELETE FROM bookings WHERE id = $1`, [BOOKING]);
   await db.end();

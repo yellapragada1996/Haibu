@@ -13,7 +13,7 @@ declare global {
 }
 
 interface DailyCall {
-  on: (event: string, cb: () => void) => void;
+  on: (event: string, cb: (data?: unknown) => void) => void;
   join: () => Promise<void>;
   leave: () => void;
   destroy: () => void;
@@ -627,6 +627,7 @@ export default function CallPage() {
   const [controlsHidden, setControlsHidden] = useState(false);
   const [selfViewHidden, setSelfViewHidden] = useState(false);
   const [hasRemote, setHasRemote] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [error, setError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<DailyCall | null>(null);
@@ -899,6 +900,20 @@ export default function CallPage() {
     });
   };
 
+  // Track the chat panel's open/close state via Daily's "sidebar-view-changed"
+  // postMessage (view === "chat" means open). The self-view PiP shifts left
+  // when the chat narrows the stage, so the toggle needs to follow it.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const data = e.data as { action?: string; view?: string } | null;
+      if (data && data.action === "sidebar-view-changed") {
+        setChatOpen(data.view === "chat");
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
   const handleLeave = () => {
     frameRef.current?.leave();
   };
@@ -998,7 +1013,9 @@ export default function CallPage() {
             onClick={toggleSelfView}
             aria-label={selfViewHidden ? "Show self-view" : "Hide self-view"}
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
-            className="absolute right-[168px] bottom-[143px] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-opacity duration-300 hover:bg-bg-card-hover"
+            className={`absolute bottom-[143px] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-all duration-300 hover:bg-bg-card-hover ${
+              chatOpen ? "right-[474px]" : "right-[168px]"
+            }`}
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>

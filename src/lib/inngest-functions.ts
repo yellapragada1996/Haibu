@@ -2,7 +2,7 @@ import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { bookings, creatorProfiles, ledgerEntries, reviews } from "@/db/schema";
 import { eq, and, lt, lte, sql, count } from "drizzle-orm";
-import { createRoom, getRoom } from "@/lib/daily";
+import { createOrGetRoom } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
 
 // ---------------------------------------------------------------------------
@@ -31,18 +31,7 @@ export const handleBookingConfirmed = inngest.createFunction(
     if (booking.daily_room_name) return { message: "room already exists" };
 
     const roomName = `booking-${bookingId.slice(0, 8)}`;
-
-    let room: { name: string; url: string };
-    try {
-      room = await createRoom(roomName);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes("already exists") || msg.includes("duplicate") || msg.includes("name-not-available")) {
-        room = await getRoom(roomName);
-      } else {
-        throw e;
-      }
-    }
+    const room = await createOrGetRoom(roomName);
 
     await db
       .update(bookings)

@@ -52,6 +52,24 @@ export async function getRoom(name: string) {
   };
 }
 
+// Idempotent create-or-get: Daily rejects a duplicate room name with a
+// "name already exists"-style error; fall back to fetching the existing room.
+export async function createOrGetRoom(name: string) {
+  try {
+    return await createRoom(name);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (
+      msg.includes("already exists") ||
+      msg.includes("duplicate") ||
+      msg.includes("name-not-available")
+    ) {
+      return await getRoom(name);
+    }
+    throw e;
+  }
+}
+
 export async function createMeetingToken(params: {
   roomName: string;
   userId: string;

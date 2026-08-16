@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
 import { bookings, creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { createMeetingToken } from "@/lib/daily";
+import { createMeetingToken, createOrGetRoom } from "@/lib/daily";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -71,15 +71,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "too late" }, { status: 403 });
   }
 
-  // The Daily room is created asynchronously after confirmation (Inngest
-  // job) — locally that job never runs, so a confirmed booking may not have
-  // a room yet. Fail cleanly instead of throwing a 500 that the client
-  // would misread as a malformed frame config.
-  if (!booking.daily_room_name || !booking.daily_room_url) {
-    return NextResponse.json(
-      { error: "room not ready" },
-      { status: 409 },
-    );
+  // The Daily room is normally created asynchronously after confirmation
+  // (Inngest job). To make joins robust — local dev, direct inserts, or a
+  // missed Inngest event — lazily create the room here if it's missing.
+  let roomName = booking.daily_room_name;
+  let roomUrl = booking.daily_room_url;
+
+  if (!roomName || !roomUrl) {
+    const room = await createOrGetRoom(`booking-${bookingId.slice(0, 8)}`);
+    await db
+      .update(bookings)
+      .set({ daily_room_name: room.name, daily_room_url: room.url })
+      .where(eq(bookings.id, bookingId));
+    roomName = room.name;
+    roomUrl = room.url;
   }
 
   // Load display name for this user
@@ -90,7 +95,7 @@ export async function GET(request: NextRequest) {
 
   const role = isFan ? "fan" : "creator";
   const token = await createMeetingToken({
-    roomName: booking.daily_room_name,
+    roomName,
     userId: `${role}:${user.id}`,
     userName: profile?.display_name ?? user.email ?? "User",
     expUnix: Math.floor(joinEnd / 1000),
@@ -98,7 +103,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     token: token.token,
-    room_url: booking.daily_room_url,
+    room_url: roomUrl,
     role,
     session_title: booking.offering_title,
     session_end_at: booking.end_at?.toISOString() ?? null,

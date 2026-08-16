@@ -112,6 +112,17 @@ const DAILY_CSS = `
   transform: none !important;
   pointer-events: auto !important;
   z-index: 20 !important;
+  /* Daily's PiP wrapper has a dark square background with sharp corners that
+     peeks out around/under the rounded tile — clear + clip it. */
+  background: transparent !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+
+/* Tile hover menu (three dots → pin/remove participant): 1:1 calls don't
+   need it. */
+.tile-actions {
+  display: none !important;
 }
 
 /* Small breathing gap between the chat drawer and the stage when chat is
@@ -127,16 +138,16 @@ body.hide-self-view .fixed {
   display: none !important;
 }
 
-/* Fullscreen (state 3): self-view hidden AND its reserved column released,
-   so the stage reclaims 100% width with no dead gap. NOTE: fullscreen +
-   chat-open (state 4) is intentionally NOT handled here — see the separate
-   investigation; if the chat panel lives inside .sidebar this rule would
-   hide chat too. */
-html:fullscreen .fixed {
+/* Fullscreen (media-first): remove the self-view entirely — the creator's
+   video is the product, no PiP, no self-view toggle. Chat stays available
+   as a side drawer (.main > .sidebar). The fullscreen state is applied as a
+   body class from JS (fullscreenchange) — Daily fullscreens a wrapper, so
+   html:fullscreen never matches inside the iframe. */
+body.fullscreen .fixed {
   display: none !important;
 }
 
-html:fullscreen .sidebar {
+body.fullscreen .speaker > .sidebar {
   display: none !important;
 }
 
@@ -211,6 +222,8 @@ html:fullscreen .sidebar {
   position: static !important;
   width: auto !important;
   height: auto !important;
+  background: transparent !important;
+  border-radius: 0 !important;
 }
 
 .tile-info .mic {
@@ -289,8 +302,25 @@ body.idle .tray {
 
 [class*="robots-btn-"] {
   border-radius: 999px !important;
-  /* Neutral dark fill for regular controls; accent reserved for Leave */
-  background: #232323 !important;
+  /* Transparent controls — icons sit directly on the tray, no dark squares;
+     accent reserved for Leave. */
+  background: transparent !important;
+}
+
+/* Daily's own glyph backgrounds (a red rounded square on cam/mic "off" and a
+   filled chat bubble) would otherwise show behind our mask-drawn icons. */
+.tray button svg {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Daily's control wrappers (.av-controls holds cam/mic, .secondary-controls
+   holds leave/screenshare) carry a dark square background — clear it so the
+   icons sit directly on the tray pill. */
+.av-controls,
+.secondary-controls {
+  background: transparent !important;
+  border-radius: 0 !important;
 }
 
 /* Daily's device-selector corner buttons overlap the main cam/mic buttons
@@ -416,6 +446,7 @@ body.idle .tray {
 .robots-btn-mic-unmute svg,
 .robots-btn-people-show svg,
 .robots-btn-chat-show svg,
+.robots-btn-chat-hide svg,
 .robots-btn-screenshare-start svg,
 .robots-btn-leave svg,
 .tray button[class*="visible"]:not([class*="robots-btn-"]) svg {
@@ -428,6 +459,7 @@ body.idle .tray {
 .robots-btn-mic-unmute::before,
 .robots-btn-people-show::before,
 .robots-btn-chat-show::before,
+.robots-btn-chat-hide::before,
 .robots-btn-screenshare-start::before,
 .robots-btn-leave::before,
 .tray button[class*="visible"]:not([class*="robots-btn-"])::before {
@@ -477,8 +509,9 @@ body.idle .tray {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M22 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
 }
 
-/* Chat */
-.robots-btn-chat-show::before {
+/* Chat (show and hide/active states both use our outline glyph) */
+.robots-btn-chat-show::before,
+.robots-btn-chat-hide::before {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E");
 }
@@ -686,6 +719,7 @@ export default function CallPage() {
   const [sessionEndAt, setSessionEndAt] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState("");
   const [controlsHidden, setControlsHidden] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [selfViewHidden, setSelfViewHidden] = useState(false);
   const [hasRemote, setHasRemote] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -768,7 +802,7 @@ export default function CallPage() {
         url: data.room_url,
         token: data.token,
         showLeaveButton: true,
-        showFullscreenButton: true,
+        showFullscreenButton: false,
         theme: DAILY_THEME,
         bodyClass: "haibu-call-theme",
         cssText,
@@ -892,6 +926,7 @@ export default function CallPage() {
   // tray stays visible whenever the user is actually present. UI-only —
   // loadCss swaps CSS and never touches join/connection state.
   const hiddenRef = useRef(false);
+  const fullscreenRef = useRef(false);
   const selfViewHiddenRef = useRef(false);
   const wakeRef = useRef<() => void>(() => {});
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -902,7 +937,8 @@ export default function CallPage() {
     const bodyClass = (idle: boolean) =>
       "haibu-call-theme" +
       (idle ? " idle" : "") +
-      (selfViewHiddenRef.current ? " hide-self-view" : "");
+      (selfViewHiddenRef.current ? " hide-self-view" : "") +
+      (fullscreenRef.current ? " fullscreen" : "");
 
     const show = () => {
       clearTimeout(idleTimerRef.current);
@@ -911,6 +947,7 @@ export default function CallPage() {
         setControlsHidden(false);
         frameRef.current?.loadCss({ bodyClass: bodyClass(false), cssText: cssTextRef.current });
       }
+      armTimer();
     };
     const hide = () => {
       clearTimeout(idleTimerRef.current);
@@ -928,13 +965,11 @@ export default function CallPage() {
 
     window.addEventListener("mousemove", show);
     window.addEventListener("blur", hide);
-    document.addEventListener("mouseleave", armTimer);
 
     return () => {
       clearTimeout(idleTimerRef.current);
       window.removeEventListener("mousemove", show);
       window.removeEventListener("blur", hide);
-      document.removeEventListener("mouseleave", armTimer);
       if (hiddenRef.current) {
         hiddenRef.current = false;
         setControlsHidden(false);
@@ -947,6 +982,36 @@ export default function CallPage() {
       }
     };
   }, [phase]);
+
+  // Track browser fullscreen state so the injected Daily CSS can hide the
+  // self-view in fullscreen (applied as a body class, not html:fullscreen).
+  useEffect(() => {
+    if (phase !== "in_call") return;
+    const onFullscreenChange = () => {
+      fullscreenRef.current = document.fullscreenElement != null;
+      setIsFullscreen(fullscreenRef.current);
+      frameRef.current?.loadCss({
+        bodyClass:
+          "haibu-call-theme" +
+          (hiddenRef.current ? " idle" : "") +
+          (selfViewHiddenRef.current ? " hide-self-view" : "") +
+          (fullscreenRef.current ? " fullscreen" : ""),
+        cssText: cssTextRef.current,
+      });
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, [phase]);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else if (containerRef.current?.parentElement) {
+      // Fullscreen the wrapper (not just the iframe) so the wake layer stays
+      // in fullscreen and can detect pointer movement to wake the controls.
+      void containerRef.current.parentElement.requestFullscreen();
+    }
+  };
 
   const toggleSelfView = () => {
     const next = !selfViewHiddenRef.current;
@@ -1068,7 +1133,7 @@ export default function CallPage() {
             onTouchStart={() => wakeRef.current()}
           />
         )}
-        {phase === "in_call" && hasRemote && (
+        {phase === "in_call" && hasRemote && !isFullscreen && (
           <button
             type="button"
             onClick={toggleSelfView}
@@ -1079,6 +1144,25 @@ export default function CallPage() {
             } max-sm:bottom-auto max-sm:top-[17px] max-sm:right-[93px]`}
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
+          </button>
+        )}
+        {phase === "in_call" && (!isFullscreen || !controlsHidden) && (
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            className="absolute top-4 left-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-colors hover:bg-bg-card-hover"
+          >
+            {isFullscreen ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+            )}
           </button>
         )}
       </div>

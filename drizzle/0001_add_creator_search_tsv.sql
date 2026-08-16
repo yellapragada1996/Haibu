@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION refresh_creator_search_tsv(p_creator_profile_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = 'public, pg_temp'
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   UPDATE creator_profiles cp
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION creator_profiles_search_tsv_trigger_fn()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = 'public, pg_temp'
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   PERFORM refresh_creator_search_tsv(NEW.id);
@@ -67,7 +67,7 @@ CREATE OR REPLACE FUNCTION users_search_tsv_trigger_fn()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = 'public, pg_temp'
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   PERFORM refresh_creator_search_tsv(
@@ -81,7 +81,7 @@ CREATE OR REPLACE FUNCTION offerings_search_tsv_trigger_fn()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = 'public, pg_temp'
+SET search_path = public, pg_temp
 AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN

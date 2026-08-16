@@ -4,7 +4,7 @@ import { CreatorCard } from "@/components/ui/CreatorCard";
 import { Pill } from "@/components/ui/Pill";
 import { db } from "@/db";
 import { creatorProfiles, users, offerings } from "@/db/schema";
-import { eq, and, or, ilike, asc, isNull } from "drizzle-orm";
+import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
 import { CATEGORIES } from "@/lib/categories";
 
@@ -15,7 +15,9 @@ export default async function SearchPage({
 }) {
   const { q = "" } = await searchParams;
 
-  const rows = q
+  const normalizedQuery = q.trim().replace(/\s+/g, " ");
+
+  const rows = normalizedQuery
     ? await db
         .select({
           id: creatorProfiles.id,
@@ -31,15 +33,15 @@ export default async function SearchPage({
         .where(
           and(
             eq(creatorProfiles.is_published, true),
+            sql`${creatorProfiles.search_tsv} @@ plainto_tsquery('english', ${normalizedQuery})`,
             eq(offerings.is_active, true),
             isNull(offerings.deleted_at),
-            or(
-              ilike(users.display_name, `%${q}%`),
-              ilike(creatorProfiles.bio, `%${q}%`),
-            ),
           ),
         )
-        .orderBy(asc(offerings.price_cents))
+        .orderBy(
+          sql`ts_rank(${creatorProfiles.search_tsv}, plainto_tsquery('english', ${normalizedQuery})) DESC`,
+          asc(offerings.price_cents),
+        )
     : [];
 
   const map = new Map<string, (typeof rows)[0] & { categories: string[] }>();

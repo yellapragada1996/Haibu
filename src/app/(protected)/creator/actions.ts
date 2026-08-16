@@ -3,7 +3,7 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { db } from "@/db";
 import { creatorProfiles, offerings, availabilityWindows, availabilityBlocks, availabilityDateOverrides, users, bookings } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { stripe } from "@/lib/stripe";
@@ -405,6 +405,28 @@ export async function setPublishedStatus(shouldPublish: boolean) {
     }
     if (!profile.identity_verified) {
       return { error: "Complete identity verification before going live" };
+    }
+
+    const [activeOfferingCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(offerings)
+      .where(
+        and(
+          eq(offerings.creator_id, profile.id),
+          eq(offerings.is_active, true),
+          isNull(offerings.deleted_at),
+        ),
+      );
+    if (Number(activeOfferingCount?.count ?? 0) === 0) {
+      return { error: "Create at least one active offering before going live" };
+    }
+
+    const [availabilityCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(availabilityWindows)
+      .where(eq(availabilityWindows.creator_id, profile.id));
+    if (Number(availabilityCount?.count ?? 0) === 0) {
+      return { error: "Set at least one availability window before going live" };
     }
   }
 

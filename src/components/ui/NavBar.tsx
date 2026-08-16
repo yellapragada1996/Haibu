@@ -28,6 +28,13 @@ export function NavBar({
   const avatarRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const supabase = createClient();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  function goSearch(queryOverride?: string) {
+    const raw = (queryOverride ?? searchQuery).trim();
+    if (!raw) return;
+    router.push(`/search?q=${encodeURIComponent(raw)}`);
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -66,9 +73,19 @@ export function NavBar({
             <input
               type="text"
               placeholder="Search creators"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") goSearch();
+              }}
               className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-white placeholder-text-secondary outline-none focus:border-accent"
             />
-            <button className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-bg-card-hover flex items-center justify-center text-text-secondary">
+            <button
+              type="button"
+              aria-label="Search"
+              onClick={() => goSearch()}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-bg-card-hover flex items-center justify-center text-text-secondary"
+            >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
                 <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="2" />
                 <path d="M13 13l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -171,6 +188,14 @@ export function NavBar({
           <input
             type="text"
             placeholder="Search creators"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                goSearch();
+                setMenuOpen(false);
+              }
+            }}
             className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 text-sm text-white placeholder-text-secondary outline-none"
           />
           {isCreator ? (

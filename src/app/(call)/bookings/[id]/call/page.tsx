@@ -567,20 +567,12 @@ function initialsFor(name: string) {
 // Initials-on-accent avatar data URL for the camera-off state, matching the
 // Avatar component's fallback look. Photo URLs (users.avatar_url) win.
 function initialsAvatarDataUrl(name: string) {
-  const size = 200;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
-  ctx.fillStyle = "#A81120";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "600 80px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(initialsFor(name) || "H", size / 2, size / 2);
-  return canvas.toDataURL("image/png");
+  // A tiny SVG data URL instead of a canvas-rendered PNG: Daily caps the
+  // `userData` payload at 4096 chars, and a 200x200 PNG (with anti-aliased
+  // text) was ~4KB. The SVG is ~300 bytes and renders identically.
+  const initials = initialsFor(name) || "H";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#A81120"/><text x="100" y="100" fill="#FFFFFF" font-size="80" font-weight="600" text-anchor="middle" dominant-baseline="middle" font-family="Inter, system-ui, sans-serif">${initials}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 function fmtCountdown(targetMs: number) {

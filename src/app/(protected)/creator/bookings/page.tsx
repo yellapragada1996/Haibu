@@ -23,16 +23,15 @@ function badgeFor(status: string): "live" | "confirmed" | "pending" | "cancelled
   }
 }
 
-function fmtDate(d: Date) {
-  return d.toLocaleDateString("en-US", {
-    timeZone: "UTC",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+function fmtDate(d: Date, timezone?: string | null) {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
+  if (timezone) opts.timeZone = timezone;
+  return d.toLocaleDateString("en-US", opts);
 }
-function fmtTime(d: Date) {
-  return d.toLocaleTimeString("en-US", { timeZone: "UTC", hour: "numeric", minute: "2-digit" });
+function fmtTime(d: Date, timezone?: string | null) {
+  const opts: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
+  if (timezone) opts.timeZone = timezone;
+  return d.toLocaleTimeString("en-US", opts);
 }
 
 export default async function CreatorBookingsPage() {
@@ -43,8 +42,9 @@ export default async function CreatorBookingsPage() {
   if (!user) redirect("/login");
 
   const [profile] = await db
-    .select({ id: creatorProfiles.id })
+    .select({ id: creatorProfiles.id, timezone: users.timezone })
     .from(creatorProfiles)
+    .innerJoin(users, eq(users.id, creatorProfiles.user_id))
     .where(eq(creatorProfiles.user_id, user.id));
   if (!profile) {
     return (
@@ -134,7 +134,7 @@ export default async function CreatorBookingsPage() {
                     <p className="mt-1 text-xs text-text-secondary">
                       {b.offering_title} ·{" "}
                       {b.start_at
-                        ? `${fmtDate(new Date(b.start_at))} · ${fmtTime(new Date(b.start_at))}`
+                        ? `${fmtDate(new Date(b.start_at), profile.timezone)} · ${fmtTime(new Date(b.start_at), profile.timezone)}`
                         : ""}
                     </p>
                   </div>
@@ -168,7 +168,7 @@ export default async function CreatorBookingsPage() {
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">
                       {b.offering_title} ·{" "}
-                      {b.start_at ? `${fmtDate(new Date(b.start_at))} · ${fmtTime(new Date(b.start_at))}` : ""}
+                      {b.start_at ? `${fmtDate(new Date(b.start_at), profile.timezone)} · ${fmtTime(new Date(b.start_at), profile.timezone)}` : ""}
                     </p>
                   </div>
                   <CreatorReviewButton

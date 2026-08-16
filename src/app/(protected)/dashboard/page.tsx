@@ -22,11 +22,12 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("is_creator")
+    .select("is_creator, timezone")
     .eq("id", user.id)
     .single();
 
   const isCreator = profile?.is_creator ?? false;
+  const timezone = profile?.timezone ?? null;
 
   // All guest bookings, newest first, with the guest's review (if any).
   const rows = await db
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <SessionList upcoming={upcoming} past={past} />
+      <SessionList upcoming={upcoming} past={past} timezone={timezone} />
     </div>
   );
 }

@@ -44,33 +44,35 @@ function sessionBadge(status: string): { label: string; className: string } {
   }
 }
 
-function sessionTime(start: string, end: string): string {
+function sessionTime(start: string, end: string, timezone?: string | null): string {
   if (!start || !end) return "—";
-  const date = new Date(start).toLocaleDateString("en-US", {
-    timeZone: "UTC",
+  const dateOpts: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
-  const s = new Date(start).toLocaleTimeString("en-US", {
-    timeZone: "UTC",
+  };
+  const timeOpts: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
-  });
-  const e = new Date(end).toLocaleTimeString("en-US", {
-    timeZone: "UTC",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  };
+  if (timezone) {
+    dateOpts.timeZone = timezone;
+    timeOpts.timeZone = timezone;
+  }
+  const date = new Date(start).toLocaleDateString("en-US", dateOpts);
+  const s = new Date(start).toLocaleTimeString("en-US", timeOpts);
+  const e = new Date(end).toLocaleTimeString("en-US", timeOpts);
   return `${date} · ${s} – ${e}`;
 }
 
 export function SessionList({
   upcoming,
   past,
+  timezone,
 }: {
   upcoming: SessionItem[];
   past: SessionItem[];
+  timezone?: string | null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
@@ -171,7 +173,7 @@ export function SessionList({
                         </span>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-text-secondary">
-                        {s.offering_title} · {sessionTime(s.start_at, s.end_at)}
+                        {s.offering_title} · {sessionTime(s.start_at, s.end_at, timezone)}
                       </p>
                     </div>
                     <span className="shrink-0 text-sm text-text-secondary">
@@ -213,7 +215,7 @@ export function SessionList({
                     {s.offering_title} · {s.duration_minutes} min
                   </p>
                   <p className="mt-0.5 text-xs text-text-tertiary">
-                    {sessionTime(s.start_at, s.end_at)}
+                    {sessionTime(s.start_at, s.end_at, timezone)}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">

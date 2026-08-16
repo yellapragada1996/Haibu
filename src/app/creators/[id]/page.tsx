@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import { categoryLabel } from "@/lib/categories";
+import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { Avatar } from "@/components/ui/Avatar";
 import { ButtonLink } from "@/components/ui/Button";
 import { db } from "@/db";
@@ -35,6 +35,9 @@ export default async function CreatorProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const categoryList = await getCategories();
+  const categoryLabels = categoriesToLabelMap(categoryList);
 
   const [creator] = await db
     .select({
@@ -147,7 +150,7 @@ export default async function CreatorProfilePage({
             </svg>
           )}
           {distinctCategories.map((cat) => (
-            <Pill key={cat} variant="inactive">{categoryLabel(cat)}</Pill>
+            <Pill key={cat} variant="inactive">{categoryLabels[cat] ?? cat}</Pill>
           ))}
         </div>
 

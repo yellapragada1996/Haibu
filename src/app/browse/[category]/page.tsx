@@ -8,9 +8,7 @@ import { db } from "@/db";
 import { creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, asc, isNull } from "drizzle-orm";
 
-import { CATEGORIES, categoryLabel } from "@/lib/categories";
-
-const validCategories = ["casual_talk", "asmr", "music"];
+import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 
 export default async function CategoryPage({
   params,
@@ -18,9 +16,12 @@ export default async function CategoryPage({
   params: Promise<{ category: string }>;
 }) {
   const { category } = await params;
-  if (!validCategories.includes(category)) notFound();
+  const categories = await getCategories();
+  const categoryLabels = categoriesToLabelMap(categories);
+  const current = categories.find((c) => c.slug === category);
+  if (!current) notFound();
 
-  const label = categoryLabel(category);
+  const label = current.display_label;
 
   // Category membership is determined by active OFFERINGS in that category,
   // not the creator_profiles.category field — a creator with an active
@@ -40,7 +41,7 @@ export default async function CategoryPage({
     .where(
       and(
         eq(creatorProfiles.is_published, true),
-        eq(offerings.category, category as "casual_talk" | "asmr" | "music"),
+        eq(offerings.category, category),
         eq(offerings.is_active, true),
         isNull(offerings.deleted_at),
       ),
@@ -65,10 +66,10 @@ export default async function CategoryPage({
     <PublicLayout>
       <main className="max-w-[1400px] mx-auto px-4 py-8">
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map((c) => (
-            <Link key={c.key} href={c.key === "all" ? "/" : `/browse/${c.key}`}>
-              <Pill variant={c.key === category ? "active" : "inactive"}>
-                {c.label}
+          {[{ slug: "all", display_label: "All" }, ...categories].map((c) => (
+            <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>
+              <Pill variant={c.slug === category ? "active" : "inactive"}>
+                {c.display_label}
               </Pill>
             </Link>
           ))}
@@ -83,6 +84,7 @@ export default async function CategoryPage({
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}
+                  categoryLabels={categoryLabels}
                   priceCents={c.offering_price}
                   durationMinutes={c.offering_duration}
                   thumbnailUrl={c.avatar_url}

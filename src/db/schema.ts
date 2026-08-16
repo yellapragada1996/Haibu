@@ -18,12 +18,6 @@ import { sql } from "drizzle-orm";
 // Enums
 // ---------------------------------------------------------------------------
 
-export const categoryEnum = pgEnum("category", [
-  "casual_talk",
-  "asmr",
-  "music",
-]);
-
 export const bookingStatusEnum = pgEnum("booking_status", [
   "reserved",
   "confirmed",
@@ -59,6 +53,38 @@ export const reportStatusEnum = pgEnum("report_status", [
   "actioned",
   "dismissed",
 ]);
+
+// ---------------------------------------------------------------------------
+// 0b. categories  (reference table — a category is a data row, not an enum)
+// ---------------------------------------------------------------------------
+
+export const categories = pgTable("categories", {
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  slug: text("slug").unique().notNull(),
+  display_label: text("display_label").notNull(),
+  sort_order: integer("sort_order").notNull(),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const categoryTags = pgTable(
+  "category_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    category_slug: text("category_slug")
+      .notNull()
+      .references(() => categories.slug, { onDelete: "cascade" }),
+    tag_label: text("tag_label").notNull(),
+    sort_order: integer("sort_order").notNull(),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_category_tags_slug").on(table.category_slug, table.sort_order),
+  ],
+);
 
 // ---------------------------------------------------------------------------
 // 1. users
@@ -99,7 +125,9 @@ export const creatorProfiles = pgTable(
       .unique()
       .notNull(),
     bio: text("bio"),
-    category: categoryEnum("category").notNull(),
+    category: text("category")
+      .notNull()
+      .references(() => categories.slug, { onDelete: "restrict" }),
     intro_video_url: text("intro_video_url"),
     banner_url: text("banner_url"),
     stripe_account_id: text("stripe_account_id"),
@@ -132,7 +160,9 @@ export const offerings = pgTable(
       .references(() => creatorProfiles.id, { onDelete: "restrict" })
       .notNull(),
     title: text("title").notNull(),
-    category: categoryEnum("category").notNull(),
+    category: text("category")
+      .notNull()
+      .references(() => categories.slug, { onDelete: "restrict" }),
     duration_minutes: integer("duration_minutes").notNull(),
     price_cents: integer("price_cents").notNull(),
     is_active: boolean("is_active").default(true).notNull(),

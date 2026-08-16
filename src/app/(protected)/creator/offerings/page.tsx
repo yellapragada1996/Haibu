@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { offerings, creatorProfiles, bookings } from "@/db/schema";
 import { eq, and, count, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+import { getCategories } from "@/lib/categories";
 import { OfferingsList } from "./OfferingsList";
 
 export default async function CreatorOfferingsPage() {
@@ -47,6 +48,8 @@ export default async function CreatorOfferingsPage() {
     .groupBy(offerings.id)
     .orderBy(offerings.created_at);
 
+  const categories = await getCategories();
+
   return (
     <OfferingsList
       offerings={list.map((o) => ({
@@ -55,6 +58,10 @@ export default async function CreatorOfferingsPage() {
       }))}
       profileId={profile.id}
       profileCategory={profile.category}
+      categories={categories.map((c) => ({
+        value: c.slug,
+        label: c.display_label,
+      }))}
     />
   );
 }

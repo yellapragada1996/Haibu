@@ -1,5 +1,4 @@
 import { Card } from "./Card";
-import { categoryLabel } from "@/lib/categories";
 
 type CreatorCardProps = {
   name: string;
@@ -10,6 +9,7 @@ type CreatorCardProps = {
   sessionCount: number;
   thumbnailUrl?: string | null;
   availableToday?: boolean;
+  categoryLabels?: Record<string, string>;
 };
 
 const MAX_CATEGORY_PILLS = 3;
@@ -23,6 +23,7 @@ export function CreatorCard({
   sessionCount,
   thumbnailUrl,
   availableToday,
+  categoryLabels,
 }: CreatorCardProps) {
   // Distinct categories, capped display with +N overflow indicator.
   const distinct = Array.from(new Set(categories));
@@ -62,7 +63,7 @@ export function CreatorCard({
               key={cat}
               className="inline-flex items-center rounded-pill bg-accent px-2 py-0.5 text-[10px] font-medium text-white"
             >
-              {categoryLabel(cat)}
+              {categoryLabels?.[cat] ?? cat}
             </span>
           ))}
           {overflow > 0 && (

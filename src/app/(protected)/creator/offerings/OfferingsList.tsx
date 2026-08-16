@@ -17,11 +17,8 @@ import { Pill } from "@/components/ui/Pill";
 import { useActionState } from "react";
 
 const durations = [15, 30, 45, 60];
-const categories = [
-  { value: "casual_talk", label: "Casual Talk" },
-  { value: "asmr", label: "ASMR" },
-  { value: "music", label: "Music" },
-];
+
+type CategoryOption = { value: string; label: string };
 
 type Offering = {
   id: string;
@@ -37,10 +34,12 @@ export function OfferingsList({
   offerings,
   profileId,
   profileCategory,
+  categories,
 }: {
   offerings: Offering[];
   profileId: string;
   profileCategory: string;
+  categories: CategoryOption[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -118,7 +117,12 @@ export function OfferingsList({
         </Card>
       ))}
 
-      {!editingId && <CreateOfferingForm defaultCategory={profileCategory} />}
+      {!editingId && (
+        <CreateOfferingForm
+          defaultCategory={profileCategory}
+          categories={categories}
+        />
+      )}
 
       {pendingDelete && (
         <DeleteConfirmModal
@@ -131,7 +135,13 @@ export function OfferingsList({
   );
 }
 
-function CreateOfferingForm({ defaultCategory }: { defaultCategory: string }) {
+function CreateOfferingForm({
+  defaultCategory,
+  categories,
+}: {
+  defaultCategory: string;
+  categories: CategoryOption[];
+}) {
   const [state, action, pending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       return createOffering(formData);

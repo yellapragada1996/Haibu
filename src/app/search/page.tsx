@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
-import { CATEGORIES } from "@/lib/categories";
+import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 
 export default async function SearchPage({
   searchParams,
@@ -16,6 +16,10 @@ export default async function SearchPage({
   const { q = "" } = await searchParams;
 
   const normalizedQuery = q.trim().replace(/\s+/g, " ");
+
+  const categories = await getCategories();
+  const categoryLabels = categoriesToLabelMap(categories);
+  const pills = [{ slug: "all", display_label: "All" }, ...categories];
 
   const rows = normalizedQuery
     ? await db
@@ -61,9 +65,9 @@ export default async function SearchPage({
     <PublicLayout>
       <main className="max-w-[1400px] mx-auto px-4 py-8">
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map((c) => (
-            <Link key={c.key} href={c.key === "all" ? "/" : `/browse/${c.key}`}>
-              <Pill variant="inactive">{c.label}</Pill>
+          {pills.map((c) => (
+            <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>
+              <Pill variant="inactive">{c.display_label}</Pill>
             </Link>
           ))}
         </div>
@@ -87,6 +91,7 @@ export default async function SearchPage({
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}
+                  categoryLabels={categoryLabels}
                   priceCents={c.offering_price}
                   durationMinutes={c.offering_duration}
                   thumbnailUrl={c.avatar_url}

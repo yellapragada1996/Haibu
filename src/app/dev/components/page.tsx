@@ -5,7 +5,6 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { Pill } from "@/components/ui/Pill";
-import { categoryLabel } from "@/lib/categories";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Input, Select } from "@/components/ui/Input";
@@ -13,6 +12,13 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Modal } from "@/components/ui/Modal";
 import { NavBar } from "@/components/ui/NavBar";
 import { ToastProvider, toast } from "@/components/ui/Toast";
+
+// Dev-only preview — labels hardcoded here (not a source of truth).
+const DEV_CATEGORY_LABELS: Record<string, string> = {
+  casual_talk: "Casual Talk",
+  asmr: "ASMR",
+  music: "Music",
+};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -107,9 +113,9 @@ export default function ComponentsShowcase() {
 
         <Section title="CreatorCard">
           <div className="flex gap-4 flex-wrap">
-            <CreatorCard name="Sarah Music" categories={["music", "asmr", "casual_talk", "music"]} priceCents={2500} durationMinutes={30} rating={4.8} sessionCount={42} availableToday />
-            <CreatorCard name="Alex Talk" categories={["casual_talk"]} priceCents={1500} durationMinutes={15} rating={0} sessionCount={3} />
-            <CreatorCard name="Calm Vibes ASMR" categories={["asmr"]} priceCents={3500} durationMinutes={60} rating={4.9} sessionCount={127} availableToday />
+            <CreatorCard name="Sarah Music" categories={["music", "asmr", "casual_talk", "music"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={2500} durationMinutes={30} rating={4.8} sessionCount={42} availableToday />
+            <CreatorCard name="Alex Talk" categories={["casual_talk"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={1500} durationMinutes={15} rating={0} sessionCount={3} />
+            <CreatorCard name="Calm Vibes ASMR" categories={["asmr"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={3500} durationMinutes={60} rating={4.9} sessionCount={127} availableToday />
           </div>
         </Section>
 

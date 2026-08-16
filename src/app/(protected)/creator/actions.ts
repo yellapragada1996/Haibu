@@ -6,6 +6,7 @@ import { creatorProfiles, offerings, availabilityWindows, availabilityBlocks, av
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getCategories } from "@/lib/categories";
 import { stripe } from "@/lib/stripe";
 import { fromZonedTime } from "date-fns-tz";
 import Stripe from "stripe";
@@ -74,7 +75,8 @@ export async function createOffering(formData: FormData) {
   const priceDollars = parseFloat(formData.get("price_dollars") as string);
 
   if (!title || title.trim().length === 0) return { error: "Title required" };
-  if (!["casual_talk", "asmr", "music"].includes(category)) return { error: "Invalid category" };
+  const categorySlugs = (await getCategories()).map((c) => c.slug);
+  if (!categorySlugs.includes(category)) return { error: "Invalid category" };
   if (![15, 30, 45, 60].includes(durationMinutes)) return { error: "Invalid duration" };
   if (isNaN(priceDollars) || priceDollars < 5 || priceDollars > 500) {
     return { error: "Price must be between $5.00 and $500.00" };
@@ -85,7 +87,7 @@ export async function createOffering(formData: FormData) {
   await db.insert(offerings).values({
     creator_id: profile.id,
     title: title.trim(),
-    category: category as "casual_talk" | "asmr" | "music",
+    category,
     duration_minutes: durationMinutes,
     price_cents: priceCents,
   });

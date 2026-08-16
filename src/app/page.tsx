@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { creatorProfiles, users, offerings, bookings } from "@/db/schema";
 import { eq, and, sql, gte, desc, asc, isNull } from "drizzle-orm";
 
-import { CATEGORIES } from "@/lib/categories";
+import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 
 // For shelves that show one card per creator (not per category), dedupe by id.
 function dedupeCreators<T extends { id: string }>(list: T[]): T[] {
@@ -94,15 +94,18 @@ function SectionHeading({
 
 export default async function HomePage() {
   const creators = await getCreatorsWithOfferings();
+  const categories = await getCategories();
+  const categoryLabels = categoriesToLabelMap(categories);
+  const pills = [{ slug: "all", display_label: "All" }, ...categories];
 
   if (creators.length < 3) {
     return (
       <PublicLayout>
         <main className="max-w-[1400px] mx-auto px-4 py-8">
           <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-            {CATEGORIES.map((c) => (
-              <Pill key={c.key} variant={c.key === "all" ? "active" : "inactive"}>
-                {c.label}
+            {pills.map((c) => (
+              <Pill key={c.slug} variant={c.slug === "all" ? "active" : "inactive"}>
+                {c.display_label}
               </Pill>
             ))}
           </div>
@@ -117,6 +120,7 @@ export default async function HomePage() {
                   <CreatorCard
                     name={c.display_name}
                     categories={c.categories}
+                    categoryLabels={categoryLabels}
                     priceCents={c.offering_price}
                     durationMinutes={c.offering_duration}
                     thumbnailUrl={c.avatar_url}
@@ -172,10 +176,10 @@ export default async function HomePage() {
       <main className="max-w-[1400px] mx-auto px-4 py-8">
         {/* Category pills */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {CATEGORIES.map((c) => (
-            <Link key={c.key} href={c.key === "all" ? "/" : `/browse/${c.key}`}>
-              <Pill variant={c.key === "all" ? "active" : "inactive"}>
-                {c.label}
+          {pills.map((c) => (
+            <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>
+              <Pill variant={c.slug === "all" ? "active" : "inactive"}>
+                {c.display_label}
               </Pill>
             </Link>
           ))}
@@ -190,6 +194,7 @@ export default async function HomePage() {
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}
+                  categoryLabels={categoryLabels}
                   priceCents={c.offering_price}
                   durationMinutes={c.offering_duration}
                   thumbnailUrl={c.avatar_url}
@@ -211,6 +216,7 @@ export default async function HomePage() {
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}
+                  categoryLabels={categoryLabels}
                   priceCents={c.offering_price}
                   durationMinutes={c.offering_duration}
                   thumbnailUrl={c.avatar_url}
@@ -223,15 +229,14 @@ export default async function HomePage() {
         </section>
 
         {/* Category shelves */}
-        {["casual_talk", "asmr", "music"].map((cat) => {
-          const catCreators = creators.filter((c) => c.categories.includes(cat));
+        {categories.map((cat) => {
+          const catCreators = creators.filter((c) => c.categories.includes(cat.slug));
           if (catCreators.length < 3) return null;
-          const label = CATEGORIES.find((c) => c.key === cat)?.label ?? cat;
           return (
-            <section key={cat} className="mb-10">
+            <section key={cat.slug} className="mb-10">
               <SectionHeading
-                title={label}
-                action={{ label: "See all", href: `/browse/${cat}` }}
+                title={cat.display_label}
+                action={{ label: "See all", href: `/browse/${cat.slug}` }}
               />
           <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll horizontal-scroll">
                 {catCreators.slice(0, 12).map((c) => (
@@ -239,6 +244,7 @@ export default async function HomePage() {
                     <CreatorCard
                       name={c.display_name}
                       categories={c.categories}
+                      categoryLabels={categoryLabels}
                       priceCents={c.offering_price}
                       durationMinutes={c.offering_duration}
                       thumbnailUrl={c.avatar_url}

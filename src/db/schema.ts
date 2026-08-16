@@ -119,10 +119,9 @@ export const creatorProfiles = pgTable(
   (table) => [
     index("idx_creator_profiles_published").on(table.is_published),
     index("idx_creator_profiles_category").on(table.category),
-    index("idx_creator_profiles_search_tsv").using(
-      "gin",
-      table.search_tsv,
-    ),
+    index("idx_creator_profiles_search_tsv")
+      .on(table.search_tsv)
+      .using("gin"),
   ],
 );
 

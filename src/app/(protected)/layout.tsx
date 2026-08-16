@@ -14,6 +14,7 @@ export default async function ProtectedLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (!user.email_confirmed_at) redirect("/verify-email");
 
   const [profile] = await db
     .select({

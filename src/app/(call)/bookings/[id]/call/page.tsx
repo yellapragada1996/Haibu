@@ -598,6 +598,25 @@ function fmtCountdown(targetMs: number) {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
+function SelfViewOnIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function SelfViewOffIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="3" y1="3" x2="21" y2="21" />
+    </svg>
+  );
+}
+
 export default function CallPage() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [countdown, setCountdown] = useState("");
@@ -932,11 +951,6 @@ export default function CallPage() {
             <span className="font-mono text-sm text-text-secondary">{timeLeft}</span>
           )}
           {phase === "in_call" && (
-            <Button size="small" variant="secondary" onClick={toggleSelfView}>
-              {selfViewHidden ? "Show self-view" : "Hide self-view"}
-            </Button>
-          )}
-          {phase === "in_call" && (
             <Button size="small" onClick={handleLeave}>
               Leave
             </Button>
@@ -965,6 +979,21 @@ export default function CallPage() {
             onMouseDown={() => wakeRef.current()}
             onTouchStart={() => wakeRef.current()}
           />
+        )}
+        {phase === "in_call" && (
+          <button
+            type="button"
+            onClick={toggleSelfView}
+            aria-label={selfViewHidden ? "Show self-view" : "Hide self-view"}
+            title={selfViewHidden ? "Show self-view" : "Hide self-view"}
+            className={`absolute right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-opacity duration-300 hover:bg-bg-card-hover ${
+              selfViewHidden ? "bottom-4" : "bottom-[140px]"
+            } ${
+              controlsHidden ? "pointer-events-none opacity-0" : "opacity-100"
+            }`}
+          >
+            {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
+          </button>
         )}
       </div>
     </div>

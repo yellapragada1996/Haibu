@@ -5,7 +5,6 @@ import {
   text,
   integer,
   boolean,
-  tsvector,
   timestamp,
   date,
   uniqueIndex,
@@ -111,7 +110,6 @@ export const creatorProfiles = pgTable(
       .default(false)
       .notNull(),
     is_published: boolean("is_published").default(false).notNull(),
-    search_tsv: tsvector("search_tsv"),
     created_at: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -119,9 +117,6 @@ export const creatorProfiles = pgTable(
   (table) => [
     index("idx_creator_profiles_published").on(table.is_published),
     index("idx_creator_profiles_category").on(table.category),
-    index("idx_creator_profiles_search_tsv")
-      .on(table.search_tsv)
-      .using("gin"),
   ],
 );
 

@@ -33,13 +33,13 @@ export default async function SearchPage({
         .where(
           and(
             eq(creatorProfiles.is_published, true),
-            sql`${creatorProfiles.search_tsv} @@ plainto_tsquery('english', ${normalizedQuery})`,
+            sql`"creator_profiles"."search_tsv" @@ plainto_tsquery('english', ${normalizedQuery})`,
             eq(offerings.is_active, true),
             isNull(offerings.deleted_at),
           ),
         )
         .orderBy(
-          sql`ts_rank(${creatorProfiles.search_tsv}, plainto_tsquery('english', ${normalizedQuery})) DESC`,
+          sql`ts_rank("creator_profiles"."search_tsv", plainto_tsquery('english', ${normalizedQuery})) DESC`,
           asc(offerings.price_cents),
         )
     : [];

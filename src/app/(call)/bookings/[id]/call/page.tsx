@@ -19,6 +19,7 @@ interface DailyCall {
   destroy: () => void;
   setActiveSpeakerMode: (enabled: boolean) => void;
   loadCss: (opts: { bodyClass?: string; cssText?: string }) => void;
+  participantCounts: () => { present: number };
 }
 
 function loadDailyScript(): Promise<void> {
@@ -625,6 +626,7 @@ export default function CallPage() {
   const [timeLeft, setTimeLeft] = useState("");
   const [controlsHidden, setControlsHidden] = useState(false);
   const [selfViewHidden, setSelfViewHidden] = useState(false);
+  const [hasRemote, setHasRemote] = useState(false);
   const [error, setError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<DailyCall | null>(null);
@@ -738,6 +740,16 @@ export default function CallPage() {
       // smaller self-view. No forced CSS tile sizing.
       frame.setActiveSpeakerMode(true);
       setPhase("in_call");
+
+      // Self-view only exists when there's a remote participant (with just
+      // the local user, the single tile is the stage). Track the count so
+      // the self-view toggle is only shown when there's a PiP to hide.
+      const updateParticipants = () => {
+        setHasRemote((frame.participantCounts?.()?.present ?? 0) >= 2);
+      };
+      frame.on("participant-joined", updateParticipants);
+      frame.on("participant-left", updateParticipants);
+      updateParticipants();
 
       const now = Date.now();
       const joinEnd = now + 3600000;
@@ -980,17 +992,13 @@ export default function CallPage() {
             onTouchStart={() => wakeRef.current()}
           />
         )}
-        {phase === "in_call" && (
+        {phase === "in_call" && hasRemote && (
           <button
             type="button"
             onClick={toggleSelfView}
             aria-label={selfViewHidden ? "Show self-view" : "Hide self-view"}
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
-            className={`absolute right-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-opacity duration-300 hover:bg-bg-card-hover ${
-              selfViewHidden ? "bottom-4" : "bottom-[140px]"
-            } ${
-              controlsHidden ? "pointer-events-none opacity-0" : "opacity-100"
-            }`}
+            className="absolute left-4 bottom-20 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-opacity duration-300 hover:bg-bg-card-hover"
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>

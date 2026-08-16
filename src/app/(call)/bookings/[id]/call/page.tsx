@@ -580,6 +580,14 @@ body.haibu-call-theme {
 /* --- Mobile (≤640px): full-screen portrait stage, small top-right PiP,
    chat as a bottom sheet --- */
 @media (max-width: 640px) {
+  /* Hide Daily's native topbar (an empty 25-33px strip); the React header
+     already shows the session title. This also makes the speaker start at
+     y=0 so the self-view PiP's top is a stable 16px from the top in both
+     narrow-desktop and mobile-UA rendering. */
+  .topbar {
+    display: none !important;
+  }
+
   /* Keep the stage full width even while chat is open (Daily narrows it to
      88px to make room for a side panel; we overlay chat as a bottom sheet). */
   .speaker {
@@ -1068,7 +1076,7 @@ export default function CallPage() {
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
             className={`absolute bottom-[150px] z-20 flex h-8 w-8 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-colors hover:bg-bg-card-hover ${
               chatOpen ? "right-[481px]" : "right-[175px]"
-            } max-sm:bottom-auto max-sm:top-[50px] max-sm:right-[93px]`}
+            } max-sm:bottom-auto max-sm:top-[17px] max-sm:right-[93px]`}
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>

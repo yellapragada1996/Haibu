@@ -998,7 +998,7 @@ export default function CallPage() {
             onClick={toggleSelfView}
             aria-label={selfViewHidden ? "Show self-view" : "Hide self-view"}
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
-            className="absolute left-4 bottom-20 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-opacity duration-300 hover:bg-bg-card-hover"
+            className="absolute right-[212px] bottom-[187px] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-opacity duration-300 hover:bg-bg-card-hover"
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>

@@ -593,6 +593,16 @@ body.haibu-call-theme {
     right: 16px !important;
     width: 110px !important;
     height: 62px !important;
+    overflow: hidden !important;
+  }
+
+  /* The tile (and its video) inside .fixed stays 192x108 otherwise — shrink
+     it too so nothing overflows the smaller PiP and gets clipped at the edge. */
+  .fixed .tile {
+    width: 110px !important;
+    height: 62px !important;
+    max-width: 110px !important;
+    max-height: 62px !important;
   }
 
   /* Chat: overlay bottom sheet instead of a full-width side panel that
@@ -1058,7 +1068,7 @@ export default function CallPage() {
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
             className={`absolute bottom-[150px] z-20 flex h-8 w-8 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-colors hover:bg-bg-card-hover ${
               chatOpen ? "right-[481px]" : "right-[175px]"
-            } max-sm:bottom-auto max-sm:top-[17px] max-sm:right-[93px]`}
+            } max-sm:bottom-auto max-sm:top-[50px] max-sm:right-[93px]`}
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>

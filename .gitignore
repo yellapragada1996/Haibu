@@ -16,3 +16,4 @@ next-env.d.ts
 
 # OS junk
 .DS_Store
+.aider*

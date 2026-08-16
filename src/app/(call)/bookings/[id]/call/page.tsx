@@ -61,45 +61,45 @@ const DAILY_CSS = `
   outline: 1px solid #2A2A2A !important;
 }
 
-/* Main (active-speaker) tile. RESERVED-COLUMN MODEL (haibu-call-layout-
-   final-spec.md §2): the stage NEVER extends under the self-view strip.
-   Daily's container already excludes the sidebar column (192px + 1px gap)
-   and, with chat open, the chat panel too — so subtracting 31px (the spec's
-   224px strip minus Daily's 193px column) reserves the strip in both states
-   with one rule. Video keeps object-fit: contain — no cropping. */
+/* Main (active-speaker) tile. OVERLAY MODEL (V1): the stage fills the full
+   video container — the creator's media is the product. Self-view is a
+   bottom-right corner PiP (see .fixed below), not a reserved column. Chat
+   is a sibling sidebar that Daily pushes the stage with when opened. Video
+   keeps object-fit: contain — no cropping. */
 .tile:not(.local) {
-  width: calc(100% - 31px) !important;
+  width: 100% !important;
   height: 100% !important;
   max-width: none !important;
   max-height: none !important;
   aspect-ratio: auto !important;
 }
 
-/* Daily centers the stage tile in its flex container — with the narrower
-   reserved-column width that centering adds an offset that breaks the gap
-   math. Flush-left so the tile's right edge lands exactly 224px from the
-   container's right edge. */
-.speaker > .active {
-  justify-content: flex-start !important;
+/* Self-view: an overlay PiP anchored to the bottom-right of the STAGE.
+   .speaker is the positioning context; the self-view sidebar (a child of
+   .speaker) fills it with pointer-events off, and .fixed re-enables pointer
+   events and stacks above the stage. The chat sidebar is a SIBLING of
+   .speaker (class .sidebar.hidden) and keeps Daily's native push behavior. */
+.speaker {
+  position: relative !important;
 }
 
-/* Self-view: sits INSIDE the reserved 224px strip (spec §2), never on the
-   stage. right:16px inside the sidebar places the tile's right edge 16px
-   from the sidebar's right edge — which centers the 192px tile in the
-   224px strip (16px margins both sides) and, since the stage now ends
-   224px left of that same edge, guarantees the 16px stage gap. Correct in
-   both chat states because the sidebar itself repositions when chat opens. */
-.sidebar {
-  position: relative !important;
+.speaker > .sidebar {
+  position: absolute !important;
+  inset: 0 !important;
   overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
 }
 
 .fixed {
   position: absolute !important;
-  top: 16px !important;
+  top: auto !important;
+  bottom: 16px !important;
   right: 16px !important;
   left: auto !important;
   transform: none !important;
+  pointer-events: auto !important;
+  z-index: 20 !important;
 }
 
 /* Fullscreen (state 3): self-view hidden AND its reserved column released,

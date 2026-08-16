@@ -2,6 +2,9 @@
 .env
 .env*.local
 
+# Google OAuth credentials downloaded from Google Cloud Console
+*.apps.googleusercontent.com.json
+
 # deps
 node_modules/
 

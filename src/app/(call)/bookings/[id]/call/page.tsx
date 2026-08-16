@@ -576,6 +576,38 @@ textarea[placeholder="Type a message…"] {
 body.haibu-call-theme {
   font-family: "Inter", system-ui, sans-serif;
 }
+
+/* --- Mobile (≤640px): full-screen portrait stage, small top-right PiP,
+   chat as a bottom sheet --- */
+@media (max-width: 640px) {
+  /* Keep the stage full width even while chat is open (Daily narrows it to
+     88px to make room for a side panel; we overlay chat as a bottom sheet). */
+  .speaker {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+
+  .fixed {
+    top: calc(16px + env(safe-area-inset-top, 0px)) !important;
+    bottom: auto !important;
+    right: 16px !important;
+    width: 110px !important;
+    height: 62px !important;
+  }
+
+  /* Chat: overlay bottom sheet instead of a full-width side panel that
+     squeezes the stage and pushes the self-view off-screen. */
+  .main > .sidebar:not(.hidden) {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    height: 55% !important;
+    width: 100% !important;
+    z-index: 30 !important;
+  }
+}
 `;
 
 type Phase = "loading" | "too_early" | "ready" | "in_call" | "ended" | "error";
@@ -1026,7 +1058,7 @@ export default function CallPage() {
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
             className={`absolute bottom-[150px] z-20 flex h-8 w-8 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-colors hover:bg-bg-card-hover ${
               chatOpen ? "right-[481px]" : "right-[175px]"
-            }`}
+            } max-sm:bottom-auto max-sm:top-[17px] max-sm:right-[93px]`}
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>

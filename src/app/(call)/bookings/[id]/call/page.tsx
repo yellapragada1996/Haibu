@@ -62,6 +62,17 @@ const DAILY_CSS = `
   outline: 1px solid #2A2A2A !important;
 }
 
+/* Daily's <video> is ~4px larger than the tile and has sharp corners — round
+   it and clip the content wrapper so nothing pokes past the tile's corners. */
+.tile .content {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+
+.tile video {
+  border-radius: 14px !important;
+}
+
 /* Main (active-speaker) tile. OVERLAY MODEL (V1): the stage fills the full
    video container — the creator's media is the product. Self-view is a
    bottom-right corner PiP (see .fixed below), not a reserved column. Chat
@@ -1013,8 +1024,8 @@ export default function CallPage() {
             onClick={toggleSelfView}
             aria-label={selfViewHidden ? "Show self-view" : "Hide self-view"}
             title={selfViewHidden ? "Show self-view" : "Hide self-view"}
-            className={`absolute bottom-[143px] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-all duration-300 hover:bg-bg-card-hover ${
-              chatOpen ? "right-[474px]" : "right-[168px]"
+            className={`absolute bottom-[150px] z-20 flex h-8 w-8 items-center justify-center rounded-full bg-bg-surface text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-colors hover:bg-bg-card-hover ${
+              chatOpen ? "right-[481px]" : "right-[175px]"
             }`}
           >
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}

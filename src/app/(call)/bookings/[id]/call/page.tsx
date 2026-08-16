@@ -102,6 +102,19 @@ const DAILY_CSS = `
   z-index: 20 !important;
 }
 
+/* Small breathing gap between the chat drawer and the stage when chat is
+   open. The chat sidebar is a sibling of .speaker under .main (not the
+   self-view sidebar, which is .speaker > .sidebar). */
+.main > .sidebar {
+  margin-left: 4px !important;
+}
+
+/* Dismissible self-view: toggling the body class hide-self-view removes the
+   corner PiP entirely for a pure media experience. */
+body.hide-self-view .fixed {
+  display: none !important;
+}
+
 /* Fullscreen (state 3): self-view hidden AND its reserved column released,
    so the stage reclaims 100% width with no dead gap. NOTE: fullscreen +
    chat-open (state 4) is intentionally NOT handled here — see the separate
@@ -592,6 +605,7 @@ export default function CallPage() {
   const [sessionEndAt, setSessionEndAt] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState("");
   const [controlsHidden, setControlsHidden] = useState(false);
+  const [selfViewHidden, setSelfViewHidden] = useState(false);
   const [error, setError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<DailyCall | null>(null);
@@ -785,25 +799,31 @@ export default function CallPage() {
   // tray stays visible whenever the user is actually present. UI-only —
   // loadCss swaps CSS and never touches join/connection state.
   const hiddenRef = useRef(false);
+  const selfViewHiddenRef = useRef(false);
   const wakeRef = useRef<() => void>(() => {});
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (phase !== "in_call") return;
 
+    const bodyClass = (idle: boolean) =>
+      "haibu-call-theme" +
+      (idle ? " idle" : "") +
+      (selfViewHiddenRef.current ? " hide-self-view" : "");
+
     const show = () => {
       clearTimeout(idleTimerRef.current);
       if (hiddenRef.current) {
         hiddenRef.current = false;
         setControlsHidden(false);
-        frameRef.current?.loadCss({ bodyClass: "haibu-call-theme", cssText: cssTextRef.current });
+        frameRef.current?.loadCss({ bodyClass: bodyClass(false), cssText: cssTextRef.current });
       }
     };
     const hide = () => {
       clearTimeout(idleTimerRef.current);
       hiddenRef.current = true;
       setControlsHidden(true);
-      frameRef.current?.loadCss({ bodyClass: "haibu-call-theme idle", cssText: cssTextRef.current });
+      frameRef.current?.loadCss({ bodyClass: bodyClass(true), cssText: cssTextRef.current });
     };
     const armTimer = () => {
       clearTimeout(idleTimerRef.current);
@@ -825,10 +845,28 @@ export default function CallPage() {
       if (hiddenRef.current) {
         hiddenRef.current = false;
         setControlsHidden(false);
-        frameRef.current?.loadCss({ bodyClass: "haibu-call-theme", cssText: cssTextRef.current });
+        frameRef.current?.loadCss({
+          bodyClass:
+            "haibu-call-theme" +
+            (selfViewHiddenRef.current ? " hide-self-view" : ""),
+          cssText: cssTextRef.current,
+        });
       }
     };
   }, [phase]);
+
+  const toggleSelfView = () => {
+    const next = !selfViewHiddenRef.current;
+    selfViewHiddenRef.current = next;
+    setSelfViewHidden(next);
+    frameRef.current?.loadCss({
+      bodyClass:
+        "haibu-call-theme" +
+        (hiddenRef.current ? " idle" : "") +
+        (next ? " hide-self-view" : ""),
+      cssText: cssTextRef.current,
+    });
+  };
 
   const handleLeave = () => {
     frameRef.current?.leave();
@@ -892,6 +930,11 @@ export default function CallPage() {
         <div className="flex shrink-0 items-center gap-3">
           {phase === "in_call" && sessionEndAt && (
             <span className="font-mono text-sm text-text-secondary">{timeLeft}</span>
+          )}
+          {phase === "in_call" && (
+            <Button size="small" variant="secondary" onClick={toggleSelfView}>
+              {selfViewHidden ? "Show self-view" : "Hide self-view"}
+            </Button>
           )}
           {phase === "in_call" && (
             <Button size="small" onClick={handleLeave}>

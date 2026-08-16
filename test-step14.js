@@ -138,8 +138,10 @@ async function main() {
     await fan.waitForTimeout(500);
     const reviewedCard = fan.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
     const rateGone = await reviewedCard.getByText("Rate", { exact: true }).count();
-    console.log("[3] 'Rate' hint gone after review:", rateGone === 0);
+    const rowStars = await reviewedCard.locator("text=★★★★★").count();
+    console.log("[3] 'Rate' hint gone:", rateGone === 0, "| reviewed row shows 5 stars:", rowStars > 0);
     if (rateGone !== 0) throw new Error("Rate hint should be gone after review");
+    if (rowStars === 0) throw new Error("Reviewed row should show the star rating");
 
     await reviewedCard.click();
     await fan.waitForSelector("text=Your review", { timeout: 5000 });

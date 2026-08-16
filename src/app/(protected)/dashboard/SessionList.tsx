@@ -229,7 +229,12 @@ export function SessionList({
                     <span className="text-xs text-text-tertiary">Review period expired</span>
                   )}
                   {completed && s.review && (
-                    <span className="text-xs text-text-tertiary">›</span>
+                    <span
+                      className="text-xs text-amber-400"
+                      aria-label={`${s.review.rating} stars`}
+                    >
+                      {"★".repeat(s.review.rating)}
+                    </span>
                   )}
                 </div>
               </Card>

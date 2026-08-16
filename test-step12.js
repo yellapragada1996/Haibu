@@ -69,7 +69,7 @@ async function main() {
 
     // 2. Submit a 5-star review with text (double-blind: held, not public)
     await fan.getByRole("button", { name: "5 stars" }).click();
-    await fan.getByPlaceholder("How was the lesson? What would you tell someone considering booking?").fill("Lovely session, very relaxing.");
+    await fan.getByPlaceholder("How was your session?").fill("Lovely session, very relaxing.");
     await fan.getByRole("button", { name: "Submit review" }).click();
     await sleep(1500); // allow server action + router.refresh
 

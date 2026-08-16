@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Textarea";
 import { submitReview } from "@/app/(protected)/actions/reviews";
-import { placeholderForCategory } from "@/lib/review-tags";
+import { REVIEW_PLACEHOLDER } from "@/lib/review-tags";
 
 const MAX_TEXT = 500;
 
@@ -85,7 +85,7 @@ export function ReviewSection({
 
       <Textarea
         className="mt-4"
-        placeholder={placeholderForCategory(category)}
+        placeholder={REVIEW_PLACEHOLDER}
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={MAX_TEXT}

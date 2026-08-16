@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { submitReview } from "@/app/(protected)/actions/reviews";
-import { placeholderForCategory, REVIEW_WINDOW_MS } from "@/lib/review-tags";
+import { REVIEW_PLACEHOLDER, REVIEW_WINDOW_MS } from "@/lib/review-tags";
 
 export type SessionItem = {
   id: string;
@@ -113,6 +113,12 @@ export function SessionList({
 
   const list = tab === "upcoming" ? upcoming : past;
   const activeStars = hover || rating;
+  const pendingCount = past.filter(
+    (s) =>
+      s.status === "completed" &&
+      !s.review &&
+      Date.now() <= new Date(s.end_at).getTime() + REVIEW_WINDOW_MS,
+  ).length;
 
   return (
     <div>
@@ -124,6 +130,12 @@ export function SessionList({
           Past
         </Pill>
       </div>
+
+      {tab === "past" && pendingCount > 0 && (
+        <p className="mb-3 text-xs text-text-tertiary">
+          {pendingCount} session{pendingCount === 1 ? "" : "s"} awaiting review
+        </p>
+      )}
 
       {list.length === 0 ? (
         <p className="text-sm text-text-secondary">
@@ -174,9 +186,14 @@ export function SessionList({
             return (
               <Card
                 key={s.id}
-                className={`flex items-center gap-4 ${s.review ? "cursor-pointer hover:bg-bg-card-hover" : ""}`}
+                className={`flex items-center gap-4 ${
+                  s.review || (completed && withinWindow)
+                    ? "cursor-pointer hover:bg-bg-card-hover"
+                    : ""
+                }`}
                 onClick={() => {
                   if (s.review) setViewing(s);
+                  else if (completed && withinWindow) openReview(s);
                 }}
               >
                 <Link
@@ -204,15 +221,9 @@ export function SessionList({
                     ${((s.price_cents ?? 0) / 100).toFixed(2)}
                   </span>
                   {completed && !s.review && withinWindow && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openReview(s);
-                      }}
-                      className="rounded-pill bg-accent px-3 py-1 text-xs font-semibold text-white hover:bg-accent-hover"
-                    >
-                      Leave a review
-                    </button>
+                    <span className="flex items-center gap-1 text-xs font-medium text-amber-400">
+                      <span aria-hidden>★</span> Rate
+                    </span>
                   )}
                   {completed && !s.review && !withinWindow && (
                     <span className="text-xs text-text-tertiary">Review period expired</span>
@@ -253,7 +264,7 @@ export function SessionList({
 
         <Textarea
           className="mt-4"
-          placeholder={reviewing ? placeholderForCategory(reviewing.category) : ""}
+          placeholder={reviewing ? REVIEW_PLACEHOLDER : ""}
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={MAX_TEXT}

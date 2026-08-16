@@ -101,15 +101,16 @@ async function main() {
     const pastAlpha = await fan.locator("text=Review Test Alpha").count();
     const pastGamma = await fan.locator("text=Review Test Gamma").count();
     const expiredBeta = await fan.locator("div.rounded-card").filter({ hasText: "Review Test Beta" }).locator("text=Review period expired").count();
-    console.log("[1] Past tab: alpha visible:", pastAlpha, "| gamma visible:", pastGamma, "| beta 'Review period expired':", expiredBeta);
-    if (!(pastAlpha > 0 && pastGamma === 0 && expiredBeta > 0)) throw new Error("Past tab shows wrong sessions");
+    const awaiting = await fan.locator("text=awaiting review").count();
+    console.log("[1] Past tab: alpha visible:", pastAlpha, "| gamma visible:", pastGamma, "| beta 'Review period expired':", expiredBeta, "| awaiting cue:", awaiting);
+    if (!(pastAlpha > 0 && pastGamma === 0 && expiredBeta > 0 && awaiting > 0)) throw new Error("Past tab shows wrong sessions");
 
     // ---------- 2. review form modal ----------
     const aCard = fan.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
-    await aCard.getByRole("button", { name: "Leave a review" }).click();
+    await aCard.click();
     await fan.waitForSelector("text=Leave a review", { timeout: 5000 });
     await fan.getByRole("button", { name: "5 stars" }).click();
-    await fan.getByPlaceholder("How was the lesson? What would you tell someone considering booking?").fill("Great lesson, very helpful.");
+    await fan.getByPlaceholder("How was your session?").fill("Great lesson, very helpful.");
     const formPixels = await pixelCheck(fan, "/tmp/step14-review-modal.png", "review-form-modal");
     if (formPixels.golden < 30) throw new Error("Golden stars not rendered in review modal");
 
@@ -136,9 +137,9 @@ async function main() {
     await fan.getByRole("button", { name: "Past", exact: true }).click();
     await fan.waitForTimeout(500);
     const reviewedCard = fan.locator("div.rounded-card").filter({ hasText: "Review Test Alpha" });
-    const pillGone = await reviewedCard.getByRole("button", { name: "Leave a review" }).count();
-    console.log("[3] 'Leave a review' pill gone after review:", pillGone === 0);
-    if (pillGone !== 0) throw new Error("Review pill should be gone after review");
+    const rateGone = await reviewedCard.getByText("Rate", { exact: true }).count();
+    console.log("[3] 'Rate' hint gone after review:", rateGone === 0);
+    if (rateGone !== 0) throw new Error("Rate hint should be gone after review");
 
     await reviewedCard.click();
     await fan.waitForSelector("text=Your review", { timeout: 5000 });

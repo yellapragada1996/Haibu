@@ -15,6 +15,11 @@ export default function VerifyEmailPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [redirectTarget] = useState(() => {
+    if (typeof window === "undefined") return "/dashboard";
+    const r = new URLSearchParams(window.location.search).get("redirect");
+    return r && r.startsWith("/") && !r.startsWith("//") ? r : "/dashboard";
+  });
 
   useEffect(() => {
     (async () => {
@@ -26,7 +31,7 @@ export default function VerifyEmailPage() {
         return;
       }
       if (user.email_confirmed_at) {
-        router.replace("/dashboard");
+        router.replace(redirectTarget);
         return;
       }
       setEmail(user.email ?? "");
@@ -57,7 +62,7 @@ export default function VerifyEmailPage() {
       setLoading(false);
       return;
     }
-    router.replace("/dashboard");
+    router.replace(redirectTarget);
     router.refresh();
   };
 

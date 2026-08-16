@@ -97,7 +97,7 @@ export default function LoginPage() {
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        if (/not confirmed/i.test(error.message)) {
+        if (error.code === "email_not_confirmed") {
           setMessage("Please verify your email first.");
           setMode("verify");
           startResend();

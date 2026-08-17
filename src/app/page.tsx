@@ -26,6 +26,7 @@ async function getCreatorsWithOfferings() {
   const rows = await db
     .select({
       id: creatorProfiles.id,
+      slug: creatorProfiles.slug,
       display_name: users.display_name,
       avatar_url: users.avatar_url,
       identity_verified: creatorProfiles.identity_verified,
@@ -116,7 +117,7 @@ export default async function HomePage() {
           {creators.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {creators.map((c) => (
-                <Link key={c.id} href={`/creators/${c.id}`}>
+                <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                   <CreatorCard
                     name={c.display_name}
                     categories={c.categories}
@@ -190,7 +191,7 @@ export default async function HomePage() {
           <SectionHeading title="Available today" />
           <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll">
             {dedupeCreators(creators).slice(0, 12).map((c) => (
-              <Link key={c.id} href={`/creators/${c.id}`}>
+              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}
@@ -212,7 +213,7 @@ export default async function HomePage() {
           <SectionHeading title="Trending this week" />
           <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll">
             {dedupeCreators(creators).slice(0, 12).map((c) => (
-              <Link key={c.id} href={`/creators/${c.id}`}>
+              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}
@@ -240,7 +241,7 @@ export default async function HomePage() {
               />
           <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll horizontal-scroll">
                 {catCreators.slice(0, 12).map((c) => (
-                  <Link key={c.id} href={`/creators/${c.id}`}>
+                  <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                     <CreatorCard
                       name={c.display_name}
                       categories={c.categories}

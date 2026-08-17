@@ -29,6 +29,7 @@ export default async function CategoryPage({
   const rows = await db
     .select({
       id: creatorProfiles.id,
+      slug: creatorProfiles.slug,
       display_name: users.display_name,
       avatar_url: users.avatar_url,
       offering_category: offerings.category,
@@ -80,7 +81,7 @@ export default async function CategoryPage({
         {creators.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {creators.map((c) => (
-              <Link key={c.id} href={`/creators/${c.id}`}>
+              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}

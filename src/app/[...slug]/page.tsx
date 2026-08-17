@@ -165,9 +165,9 @@ export default async function CreatorHandlePage({
         {/* Meta: rating only when it exists (>=3 reviews for a meaningful
             average); price anchor; no session count / "New creator" (v2). */}
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">
-          {reviewCount >= 3 && (
+          {reviewCount >= 1 && (
             <span className="text-rating">
-              ★ {avgRating.toFixed(1)} ({reviewCount} reviews)
+              ★ {avgRating.toFixed(1)} ({reviewCount} {reviewCount === 1 ? "review" : "reviews"})
             </span>
           )}
           {cheapest && (

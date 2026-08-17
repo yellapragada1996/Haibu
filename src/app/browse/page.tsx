@@ -13,8 +13,29 @@ import {
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
+import { generateAvailableSlots } from "@/lib/availability";
 
 export const metadata = { title: "Browse creators — Haibu" };
+
+// Does the creator have at least one open slot from now until end of today?
+async function hasSlotToday(
+  creatorId: string,
+  offeringIds: string[],
+): Promise<boolean> {
+  const now = new Date();
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  for (const offeringId of offeringIds) {
+    const slots = await generateAvailableSlots({
+      creator_id: creatorId,
+      offering_id: offeringId,
+      from: now,
+      to: endOfDay,
+    });
+    if (slots.length > 0) return true;
+  }
+  return false;
+}
 
 // Full catalog — the "View more" destination for Available today + Discover.
 async function getAllCreators() {
@@ -43,15 +64,25 @@ async function getAllCreators() {
       ),
     );
 
-  const map = new Map<string, typeof rows[0] & { categories: string[] }>();
+  const map = new Map<
+    string,
+    typeof rows[0] & { categories: string[]; offeringIds: string[] }
+  >();
   for (const r of rows) {
     const existing = map.get(r.id);
     if (existing) {
       if (!existing.categories.includes(r.offering_category)) {
         existing.categories.push(r.offering_category);
       }
+      if (!existing.offeringIds.includes(r.offering_id)) {
+        existing.offeringIds.push(r.offering_id);
+      }
     } else {
-      map.set(r.id, { ...r, categories: [r.offering_category] });
+      map.set(r.id, {
+        ...r,
+        categories: [r.offering_category],
+        offeringIds: [r.offering_id],
+      });
     }
   }
   return Array.from(map.values()).sort(
@@ -62,8 +93,21 @@ async function getAllCreators() {
   );
 }
 
-export default async function BrowsePage() {
-  const creators = await getAllCreators();
+export default async function BrowsePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ available?: string }>;
+}) {
+  let creators = await getAllCreators();
+  const { available } = await searchParams;
+  const onlyAvailableToday = available === "today";
+  if (onlyAvailableToday) {
+    const filtered: (typeof creators)[number][] = [];
+    for (const c of creators) {
+      if (await hasSlotToday(c.id, c.offeringIds)) filtered.push(c);
+    }
+    creators = filtered;
+  }
   const categories = await getCategories();
   const categoryLabels = categoriesToLabelMap(categories);
 
@@ -93,7 +137,9 @@ export default async function BrowsePage() {
           ))}
         </div>
 
-        <h1 className="mb-6 text-2xl font-bold text-white">All creators</h1>
+        <h1 className="mb-6 text-2xl font-bold text-white">
+          {onlyAvailableToday ? "Available today" : "All creators"}
+        </h1>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
           {creators.map((c) => (

@@ -14,6 +14,27 @@ import {
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
+import { generateAvailableSlots } from "@/lib/availability";
+
+// Does the creator have at least one open slot from now until end of today?
+async function hasSlotToday(
+  creatorId: string,
+  offeringIds: string[],
+): Promise<boolean> {
+  const now = new Date();
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  for (const offeringId of offeringIds) {
+    const slots = await generateAvailableSlots({
+      creator_id: creatorId,
+      offering_id: offeringId,
+      from: now,
+      to: endOfDay,
+    });
+    if (slots.length > 0) return true;
+  }
+  return false;
+}
 
 // 2 rows × 5 on desktop (2 rows × 2 on mobile) — "View more" expands.
 const ROWS = 10;
@@ -46,7 +67,7 @@ async function getCreatorsWithOfferings() {
 
   const map = new Map<
     string,
-    typeof rows[0] & { categories: string[] }
+    typeof rows[0] & { categories: string[]; offeringIds: string[] }
   >();
   for (const r of rows) {
     const existing = map.get(r.id);
@@ -54,8 +75,15 @@ async function getCreatorsWithOfferings() {
       if (!existing.categories.includes(r.offering_category)) {
         existing.categories.push(r.offering_category);
       }
+      if (!existing.offeringIds.includes(r.offering_id)) {
+        existing.offeringIds.push(r.offering_id);
+      }
     } else {
-      map.set(r.id, { ...r, categories: [r.offering_category] });
+      map.set(r.id, {
+        ...r,
+        categories: [r.offering_category],
+        offeringIds: [r.offering_id],
+      });
     }
   }
   // Sort: rating ↓ → sessions ↓ → price ↑ (no sort UI shown).
@@ -69,6 +97,11 @@ async function getCreatorsWithOfferings() {
 
 export default async function HomePage() {
   const creators = await getCreatorsWithOfferings();
+  // "Available today" = only creators with at least one open slot today.
+  const availableToday: (typeof creators)[number][] = [];
+  for (const c of creators) {
+    if (await hasSlotToday(c.id, c.offeringIds)) availableToday.push(c);
+  }
   const categories = await getCategories();
   const categoryLabels = categoriesToLabelMap(categories);
 
@@ -122,14 +155,14 @@ export default async function HomePage() {
               Available today
             </h2>
             <Link
-              href="/browse"
+              href="/browse?available=today"
               className="text-sm text-text-secondary hover:text-white"
             >
               View more →
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
-            {creators.slice(0, ROWS).map(card)}
+            {availableToday.slice(0, ROWS).map(card)}
           </div>
         </section>
 

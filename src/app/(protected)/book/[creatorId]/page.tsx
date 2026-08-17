@@ -133,6 +133,7 @@ export default function BookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [autoReserving, setAutoReserving] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [reservedSlot, setReservedSlot] = useState<TimeSlot | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -252,6 +253,7 @@ export default function BookPage() {
       setReservedSlot(slot);
       setLoading(false);
     }
+    setAutoReserving(false);
   };
 
   const handleCancelPayment = () => {
@@ -274,6 +276,7 @@ export default function BookPage() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       setSelectedDate(key);
       autoReservedRef.current = true;
+      setAutoReserving(true);
       void handleReserveSlot(target);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -308,7 +311,13 @@ export default function BookPage() {
         </div>
       )}
 
-      {selectedOffering && !clientSecret && (
+      {selectedOffering && !clientSecret && autoReserving && (
+        <div className="mt-6 py-16 text-center">
+          <p className="text-sm text-text-secondary">Reserving your slot…</p>
+        </div>
+      )}
+
+      {selectedOffering && !clientSecret && !autoReserving && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <div>

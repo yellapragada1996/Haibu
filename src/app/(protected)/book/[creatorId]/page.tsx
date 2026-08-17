@@ -261,6 +261,13 @@ export default function BookPage() {
         fetchSlots(selectedOffering);
       } else if (result.error === "blocked") {
         setError("You can't book a session with this creator.");
+      } else if (result.error === "invalid_slot") {
+        // e.g. the slot drifted inside the 60-min lead time while the page
+        // was open, or the creator's availability changed — refresh the grid.
+        setError("That time is no longer available — pick another slot.");
+        fetchSlots(selectedOffering);
+      } else if (result.error === "unauthorized") {
+        setError("Your session expired — please log in again.");
       } else {
         setError("Something went wrong.");
       }

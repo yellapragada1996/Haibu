@@ -191,7 +191,10 @@ export async function generateAvailableSlots(params: {
       ) {
         const slotEnd = addMinutes(slotStart, duration);
 
-        if (slotEnd <= cutoff) continue;
+        // Min lead time: the session must START at least min_lead_minutes
+        // from now (reserveSlot enforces the same rule — a slot that ends
+        // after the cutoff but starts before it is not bookable).
+        if (slotStart < cutoff) continue;
         if (slotStart < from) continue;
         if (slotEnd > effectiveTo) continue;
 

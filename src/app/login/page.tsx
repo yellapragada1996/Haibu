@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -57,10 +57,11 @@ export default function LoginPage() {
     offeringId: string;
   } | null>(null);
   const router = useRouter();
-  const [redirectTo] = useState(() => {
-    if (typeof window === "undefined") return "/dashboard";
-    return new URLSearchParams(window.location.search).get("redirect") ?? "/dashboard";
-  });
+  // useSearchParams is hydration-safe — reading window.location.search in a
+  // useState initializer silently keeps the SSR default (e.g. "/dashboard")
+  // because hydration adopts the server's state.
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? "/dashboard";
   const supabase = createClient();
 
   // Already logged in? Redirect immediately instead of showing the form.
@@ -144,8 +145,10 @@ export default function LoginPage() {
           });
         }
       }
-      router.push(redirectTo);
-      router.refresh();
+      // Full navigation after auth — client-side router.push + refresh lets
+      // the middleware's auth-page redirect (session now exists) bounce to
+      // /dashboard instead of the intended page.
+      window.location.assign(redirectTo);
     } else if (mode === "signup") {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
@@ -182,8 +185,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push(redirectTo);
-      router.refresh();
+      window.location.assign(redirectTo);
     } else if (mode === "reset-verify") {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "recovery" });
       if (error) {
@@ -207,8 +209,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
-    router.refresh();
+    window.location.assign("/dashboard");
   };
 
   const showTabs = mode === "login" || mode === "signup";

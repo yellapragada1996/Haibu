@@ -58,7 +58,12 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthPage && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const target = request.nextUrl.searchParams.get("redirect");
+    url.pathname =
+      target && target.startsWith("/") && !target.startsWith("//")
+        ? target
+        : "/dashboard";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

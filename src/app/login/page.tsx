@@ -46,6 +46,7 @@ export default function LoginPage() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [booking, setBooking] = useState<{
     creatorName: string;
+    avatarUrl: string | null;
     offeringTitle: string;
     durationMinutes: number;
     displayDate: string;
@@ -228,7 +229,15 @@ export default function LoginPage() {
             {/* Prominent booking-context card — anchors the screen, above auth options */}
             <div className="mb-5 rounded-card border border-border-subtle bg-bg-card p-4">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-full bg-bg-card-hover" />
+                {booking.avatarUrl ? (
+                  <img
+                    src={booking.avatarUrl}
+                    alt=""
+                    className="h-11 w-11 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-11 w-11 rounded-full bg-bg-card-hover" />
+                )}
                 <div>
                   <div className="text-[15px] font-bold text-white">
                     {booking.creatorName}

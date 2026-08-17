@@ -83,6 +83,7 @@ export function SlotPicker({
         JSON.stringify({
           creatorId: creator.id,
           creatorName: creator.display_name,
+          avatarUrl: creator.avatar_url,
           offeringId: offering.id,
           offeringTitle: offering.title,
           durationMinutes: offering.duration_minutes,

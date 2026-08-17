@@ -71,8 +71,14 @@ function bioFor(cats) {
     const id = uuid();
     const userId = uuid();
     const email = `seed-${c.slug}@haibu.test`;
-    // High-res real portrait photos (pravatar, 600px).
-    const avatar = `https://i.pravatar.cc/600?u=${encodeURIComponent(c.slug)}`;
+    // Unique avatars: first 70 get high-res pravatar (pool is exactly 70);
+    // the rest get unique randomuser portraits.
+    const avatar =
+      c.i < 70
+        ? `https://i.pravatar.cc/600?img=${c.i + 1}`
+        : `https://randomuser.me/api/portraits/${
+            c.i % 2 === 0 ? "women" : "men"
+          }/${Math.floor(c.i / 2) % 100}.jpg`;
     // 1–3 category combo (weighted: mostly 2)
     const comboN = Math.random() < 0.3 ? 1 : Math.random() < 0.7 ? 2 : 3;
     const combo = pick(cats, comboN);

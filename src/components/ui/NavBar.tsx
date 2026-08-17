@@ -50,8 +50,9 @@ export function NavBar({
     <nav className="sticky top-0 z-40 border-b border-border-subtle bg-bg-surface">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4">
         <button
+          type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          className="sm:hidden flex items-center justify-center w-9 h-9 rounded-input hover:bg-bg-card-hover text-white"
+          className="hidden items-center justify-center w-9 h-9 rounded-input hover:bg-bg-card-hover text-white"
         >
           {menuOpen ? (
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -68,7 +69,7 @@ export function NavBar({
           <Logo />
         </Link>
 
-        <div className="hidden sm:flex flex-1 justify-center max-w-[560px] mx-auto">
+        <div className="flex flex-1 justify-center max-w-[560px] mx-auto">
           <div className="relative w-full">
             <input
               type="text"
@@ -113,7 +114,7 @@ export function NavBar({
                   </Link>
                 </>
               ) : (
-                <ButtonLink href="/creator/profile" size="small" className="hidden sm:inline-flex">
+                <ButtonLink href="/creator/profile" size="small" className="inline-flex">
                   Become a Creator
                 </ButtonLink>
               )}

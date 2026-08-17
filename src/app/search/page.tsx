@@ -3,7 +3,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { Pill } from "@/components/ui/Pill";
 import { db } from "@/db";
-import { creatorProfiles, users, offerings } from "@/db/schema";
+import { creatorProfiles, users, offerings, reviews } from "@/db/schema";
 import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
@@ -31,6 +31,7 @@ export default async function SearchPage({
           offering_category: offerings.category,
           offering_price: offerings.price_cents,
           offering_duration: offerings.duration_minutes,
+          rating: sql<number>`COALESCE((SELECT AVG(r.rating)::float FROM reviews r WHERE r.creator_id = creator_profiles.id AND r.is_public = true), 0)`,
         })
         .from(creatorProfiles)
         .innerJoin(users, eq(users.id, creatorProfiles.user_id))
@@ -96,7 +97,7 @@ export default async function SearchPage({
                   priceCents={c.offering_price}
                   durationMinutes={c.offering_duration}
                   thumbnailUrl={c.avatar_url}
-                  rating={0}
+                  rating={c.rating}
                   sessionCount={0}
                 />
               </Link>

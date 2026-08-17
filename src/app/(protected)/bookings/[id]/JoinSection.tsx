@@ -58,7 +58,7 @@ export function JoinSection({
         </>
       )}
       {state === "open" && (
-        <p className="text-sm font-medium text-live-green">
+        <p className="text-sm font-medium text-live">
           Your session is live — join now.
         </p>
       )}

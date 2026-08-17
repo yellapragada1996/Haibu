@@ -144,7 +144,7 @@ export function ProfileForm({
             defaultValue={existingBio}
             rows={4}
             placeholder="Tell fans about yourself and your sessions..."
-            className="w-full bg-bg-base border border-border-subtle outline-none rounded-input px-4 py-3 text-sm text-white placeholder-text-secondary transition-colors focus:border-accent resize-none"
+            className="w-full bg-bg-base border border-border-subtle outline-none rounded-input px-4 py-3 text-sm text-white placeholder-text-secondary transition-colors focus:border-primary resize-none"
           />
         </div>
 
@@ -211,7 +211,7 @@ export function ProfileForm({
 
           {isReturn && onboardingStatus && (
             <div className="mb-3 rounded-input bg-bg-base p-3">
-              <p className="text-sm text-live-green">
+              <p className="text-sm text-live">
                 {onboardingStatus.charges_enabled && onboardingStatus.payouts_enabled
                   ? "All set! Your account is ready."
                   : "Still processing — this may take a moment."}
@@ -304,7 +304,7 @@ export function ProfileForm({
                 onChange={togglePublished}
                 className="peer sr-only"
               />
-              <div className="h-6 w-11 rounded-pill bg-bg-card-hover after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-live-green peer-checked:after:translate-x-full" />
+              <div className="h-6 w-11 rounded-pill bg-bg-card-hover after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-live peer-checked:after:translate-x-full" />
             </label>
           </div>
         </Card>

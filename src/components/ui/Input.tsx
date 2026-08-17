@@ -17,7 +17,7 @@ export function Input({
         className={`w-full bg-bg-base border outline-none transition-colors px-4 py-3 text-sm text-white placeholder-text-secondary ${
           error
             ? "border-error focus:border-error"
-            : "border-border-subtle focus:border-accent"
+            : "border-border-subtle focus:border-primary"
         } ${
           pill ? "rounded-pill" : "rounded-input"
         } ${className}`}
@@ -41,7 +41,7 @@ export function Select({ error, className = "", children, ...props }: SelectProp
         className={`w-full bg-bg-base border outline-none rounded-input px-4 py-3 text-sm text-white appearance-none ${
           error
             ? "border-error focus:border-error"
-            : "border-border-subtle focus:border-accent"
+            : "border-border-subtle focus:border-primary"
         } ${className}`}
         {...props}
       >

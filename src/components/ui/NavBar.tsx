@@ -78,7 +78,7 @@ export function NavBar({
               onKeyDown={(e) => {
                 if (e.key === "Enter") goSearch();
               }}
-              className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-white placeholder-text-secondary outline-none focus:border-accent"
+              className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-white placeholder-text-secondary outline-none focus:border-primary"
             />
             <button
               type="button"
@@ -209,7 +209,7 @@ export function NavBar({
           ) : (
             <Link
               href="/creator/profile"
-              className="block rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-white text-center"
+              className="block rounded-pill bg-primary px-4 py-2 text-sm font-semibold text-on-primary text-center"
               onClick={() => setMenuOpen(false)}
             >
               Become a Creator

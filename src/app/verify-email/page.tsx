@@ -83,7 +83,7 @@ export default function VerifyEmailPage() {
         <div className="flex justify-center mb-6">
           <svg height="60" viewBox="0 0 105 60" className="w-auto">
             <text x="0" y="41" fontFamily="Arial,Helvetica,sans-serif" fontSize="34" fontWeight="600" letterSpacing="-0.5" fill="white">haibu</text>
-            <circle cx="97" cy="35" r="5" fill="#A81120" />
+            <circle cx="97" cy="35" r="5" style={{ fill: "var(--color-brand)" }} />
           </svg>
         </div>
 

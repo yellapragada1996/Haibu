@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { reserveSlot } from "@/app/(protected)/actions/booking";
 import { loadStripe } from "@stripe/stripe-js";
+import { STRIPE_APPEARANCE } from "@/lib/stripe-theme";
 import {
   Elements,
   PaymentElement,
@@ -83,21 +84,21 @@ function CheckoutForm({
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-[#3BD671]">
+        <p className="text-sm font-medium text-live">
           Slot reserved — pay now
         </p>
         <button
           onClick={onBack}
-          className="text-xs text-[#8A8A8A] hover:text-white"
+          className="text-xs text-text-secondary hover:text-white"
         >
           Cancel
         </button>
       </div>
 
       {/* Payment summary */}
-      <div className="rounded-xl bg-[#1E1E1E] p-4 mb-4 space-y-1">
+      <div className="rounded-xl bg-bg-card p-4 mb-4 space-y-1">
         <p className="text-sm font-medium text-white">{offeringTitle}</p>
-        <p className="text-xs text-[#8A8A8A]">
+        <p className="text-xs text-text-secondary">
           {new Date(slotTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} ·{" "}
           {new Date(slotTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} ·{" "}
           {durationMinutes} min · ${(priceCents / 100).toFixed(2)}
@@ -108,14 +109,14 @@ function CheckoutForm({
         onChange={(e) => setCardComplete(e.complete)}
       />
       {error && (
-        <p className="mt-3 rounded-xl bg-[#1E1E1E] p-3 text-sm text-red-400">
+        <p className="mt-3 rounded-xl bg-bg-card p-3 text-sm text-error">
           {error}
         </p>
       )}
       <button
         onClick={handlePay}
         disabled={!stripe || loading || !cardComplete}
-        className="mt-4 w-full rounded-xl bg-[#A81120] px-6 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+        className="mt-4 w-full rounded-xl bg-primary px-6 py-3 font-medium text-on-primary transition hover:opacity-90 disabled:opacity-50"
       >
         {loading ? "Processing..." : `Pay $${(priceCents / 100).toFixed(2)}`}
       </button>
@@ -276,11 +277,11 @@ export default function BookPage() {
               key={o.id}
               onClick={() => handleSelectOffering(o)}
               className={`w-full rounded-xl p-4 text-left transition ${
-                "bg-[#1E1E1E] hover:bg-[#232323]"
+                "bg-bg-card hover:bg-bg-card-hover"
               }`}
             >
               <p className="font-medium text-white">{o.title}</p>
-              <p className="text-sm text-[#8A8A8A]">
+              <p className="text-sm text-text-secondary">
                 {o.duration_minutes} min · ${(o.price_cents / 100).toFixed(2)}
               </p>
             </button>
@@ -293,22 +294,22 @@ export default function BookPage() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-sm font-medium text-white">{selectedOffering.title}</p>
-              <p className="text-xs text-[#8A8A8A]">
+              <p className="text-xs text-text-secondary">
                 {selectedOffering.duration_minutes} min · ${(selectedOffering.price_cents / 100).toFixed(2)}
               </p>
             </div>
             <button
               onClick={() => setSelectedOffering(null)}
-              className="text-xs text-[#8A8A8A] hover:text-white"
+              className="text-xs text-text-secondary hover:text-white"
             >
               Change
             </button>
           </div>
-          <h2 className="mb-3 text-sm font-medium text-[#8A8A8A]">
+          <h2 className="mb-3 text-sm font-medium text-text-secondary">
             Available times
           </h2>
           {slots.length === 0 && (
-            <p className="text-sm text-[#8A8A8A]">No available slots in the next 30 days.</p>
+            <p className="text-sm text-text-secondary">No available slots in the next 30 days.</p>
           )}
           {datePills.length > 0 && (
             <div className="relative group">
@@ -331,7 +332,7 @@ export default function BookPage() {
                       onClick={() => setSelectedDate(dateKey)}
                       className={`inline-flex items-center h-9 px-4 rounded-pill text-xs font-medium whitespace-nowrap transition-colors ${
                         active
-                          ? "bg-accent text-white"
+                          ? "bg-primary text-on-primary"
                           : "bg-bg-card-hover text-text-secondary hover:text-white"
                       }`}
                     >
@@ -378,7 +379,7 @@ export default function BookPage() {
                 key={s.start_at}
                 onClick={() => handleReserveSlot(s)}
                 disabled={loading}
-                className="rounded-xl bg-[#1E1E1E] px-3 py-2 text-sm text-white transition hover:bg-[#232323] disabled:opacity-50"
+                className="rounded-xl bg-bg-card px-3 py-2 text-sm text-white transition hover:bg-bg-card-hover disabled:opacity-50"
               >
                 {fmtSlot(s)}
               </button>
@@ -388,7 +389,7 @@ export default function BookPage() {
       )}
 
       {error && !clientSecret && (
-        <p className="mt-4 rounded-xl bg-[#1E1E1E] p-3 text-sm text-red-400">{error}</p>
+        <p className="mt-4 rounded-xl bg-bg-card p-3 text-sm text-error">{error}</p>
       )}
 
       {clientSecret && (
@@ -396,16 +397,7 @@ export default function BookPage() {
           stripe={stripePromise}
           options={{
             clientSecret,
-            appearance: {
-              theme: "night",
-              variables: {
-                colorPrimary: "#A81120",
-                colorBackground: "#1A1A1A",
-                colorText: "#FFFFFF",
-                colorDanger: "#EF4444",
-                borderRadius: "12px",
-              },
-            },
+            appearance: STRIPE_APPEARANCE,
           }}
         >
           <CheckoutForm

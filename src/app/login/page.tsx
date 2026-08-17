@@ -29,7 +29,7 @@ function Logo() {
     <div className="flex justify-center mb-6">
       <svg height="60" viewBox="0 0 105 60" className="w-auto">
         <text x="0" y="41" fontFamily="Arial,Helvetica,sans-serif" fontSize="34" fontWeight="600" letterSpacing="-0.5" fill="white">haibu</text>
-        <circle cx="97" cy="35" r="5" fill="#A81120" />
+        <circle cx="97" cy="35" r="5" style={{ fill: "var(--color-brand)" }} />
       </svg>
     </div>
   );
@@ -199,13 +199,13 @@ export default function LoginPage() {
           <div className="flex rounded-pill bg-bg-base p-1 mb-6">
             <button
               onClick={() => { setMode("login"); setMessage(""); }}
-              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-accent text-white" : "text-text-secondary hover:text-white"}`}
+              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-primary text-on-primary" : "text-text-secondary hover:text-white"}`}
             >
               Log in
             </button>
             <button
               onClick={() => { setMode("signup"); setMessage(""); }}
-              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-accent text-white" : "text-text-secondary hover:text-white"}`}
+              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-primary text-on-primary" : "text-text-secondary hover:text-white"}`}
             >
               Sign up
             </button>

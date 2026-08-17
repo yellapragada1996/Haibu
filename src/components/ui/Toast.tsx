@@ -33,7 +33,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const typeColors: Record<string, string> = {
     info: "",
-    success: "border-l-live-green",
+    success: "border-l-live",
     error: "border-l-error",
   };
 

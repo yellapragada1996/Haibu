@@ -6,9 +6,9 @@ type BadgeVariant =
   | "completed";
 
 const styles: Record<BadgeVariant, string> = {
-  live: "bg-live-green text-black",
-  confirmed: "border border-live-green text-live-green",
-  pending: "border border-accent text-accent",
+  live: "bg-live text-black",
+  confirmed: "border border-live text-live",
+  pending: "border border-text-secondary text-text-secondary",
   cancelled: "border border-text-tertiary text-text-tertiary",
   completed: "border border-white text-white",
 };

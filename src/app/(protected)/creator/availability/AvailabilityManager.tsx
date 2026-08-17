@@ -427,7 +427,7 @@ export function AvailabilityManager({
               />
             </div>
             {shadowedOverrideDates.length > 0 && (
-              <p className="text-xs text-amber-400">
+              <p className="text-xs text-text-secondary">
                 This range covers {shadowedOverrideDates.length} custom-hours{" "}
                 {shadowedOverrideDates.length === 1 ? "date" : "dates"} (
                 {shadowedOverrideDates.slice(0, 2).map((d) => fmtDate(d)).join(", ")}
@@ -456,7 +456,7 @@ export function AvailabilityManager({
               aria-label="Custom hours date"
             />
             {overrideShadowedBy && (
-              <p className="text-xs text-amber-400">
+              <p className="text-xs text-text-secondary">
                 This date is already marked unavailable (block on{" "}
                 {blockLabel(overrideShadowedBy)}), so custom hours won't apply unless
                 you remove the block.

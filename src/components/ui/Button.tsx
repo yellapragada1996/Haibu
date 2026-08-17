@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { type ButtonHTMLAttributes, type AnchorHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "destructive";
 type Size = "default" | "small";
 
 const variantStyles: Record<Variant, string> = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover active:bg-accent-pressed",
+    "bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-hover",
   secondary:
-    "border border-border-subtle bg-bg-card-hover text-white hover:bg-border-subtle",
+    "border border-border-subtle bg-neutral-default text-white hover:bg-neutral-hover",
   ghost:
     "bg-transparent text-text-secondary hover:text-white hover:bg-bg-card-hover",
-  danger:
+  destructive:
     "bg-error text-white hover:opacity-90 active:opacity-80",
 };
 

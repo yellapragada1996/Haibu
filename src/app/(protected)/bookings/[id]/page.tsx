@@ -181,7 +181,7 @@ export default async function BookingPage({
       )}
       {existingReview && (
         <Card className="mt-6">
-          <p className="text-sm font-medium text-live-green">Reviewed ✓</p>
+          <p className="text-sm font-medium text-live">Reviewed ✓</p>
         </Card>
       )}
       {reviewExpired && (

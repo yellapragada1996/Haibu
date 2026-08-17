@@ -23,7 +23,7 @@ export function TabNav() {
             href={tab.href}
             className={`flex-1 rounded-pill px-3 py-2 text-center text-sm font-medium transition-colors ${
               active
-                ? "bg-accent text-white"
+                ? "bg-primary text-on-primary"
                 : "text-text-secondary hover:text-white"
             }`}
           >

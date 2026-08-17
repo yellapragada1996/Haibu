@@ -18,7 +18,7 @@ export function EmptyState({
         {clearHref && (
           <Link
             href={clearHref}
-            className="mt-2 inline-block text-sm font-medium text-accent hover:text-accent-hover"
+            className="mt-2 inline-block text-sm font-medium text-primary hover:text-primary-hover"
           >
             Clear search
           </Link>

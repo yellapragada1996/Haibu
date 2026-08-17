@@ -27,7 +27,7 @@ function thumbClass(selected: boolean, kind: "positive" | "negative") {
   const base =
     "flex items-center gap-2 rounded-pill border px-4 py-2 text-sm font-semibold transition-colors";
   if (selected && kind === "positive") {
-    return `${base} border-live-green text-live-green bg-bg-card-hover`;
+    return `${base} border-live text-live bg-bg-card-hover`;
   }
   if (selected && kind === "negative") {
     return `${base} border-error text-error bg-bg-card-hover`;
@@ -71,7 +71,7 @@ export function CreatorReviewButton({
   }
 
   if (reviewed) {
-    return <span className="text-xs font-medium text-live-green">Reviewed ✓</span>;
+    return <span className="text-xs font-medium text-live">Reviewed ✓</span>;
   }
   if (!canReview) {
     return <span className="text-xs text-text-tertiary">Review period expired</span>;

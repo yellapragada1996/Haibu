@@ -84,7 +84,7 @@ export function AdminListControls({
             }
           }}
           placeholder={placeholder}
-          className="h-9 w-full rounded-pill border border-border-subtle bg-bg-base px-4 pr-9 text-sm text-white placeholder-text-secondary outline-none focus:border-accent"
+          className="h-9 w-full rounded-pill border border-border-subtle bg-bg-base px-4 pr-9 text-sm text-white placeholder-text-secondary outline-none focus:border-primary"
         />
         {search && (
           <button
@@ -106,7 +106,7 @@ export function AdminListControls({
               onClick={() => setFilter(o.value)}
               className={`rounded-pill px-3 py-1.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-accent text-white"
+                  ? "bg-primary text-on-primary"
                   : "bg-bg-card-hover text-text-secondary hover:text-white"
               }`}
             >

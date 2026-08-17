@@ -51,8 +51,8 @@ export function CreatorCard({
             {name}
           </span>
           {availableToday && (
-            <span className="flex items-center gap-1 text-xs text-live-green">
-              <span className="w-1.5 h-1.5 rounded-full bg-live-green" />
+            <span className="flex items-center gap-1 text-xs text-live">
+              <span className="w-1.5 h-1.5 rounded-full bg-live" />
               Available
             </span>
           )}
@@ -61,7 +61,7 @@ export function CreatorCard({
           {shown.map((cat) => (
             <span
               key={cat}
-              className="inline-flex items-center rounded-pill bg-accent px-2 py-0.5 text-[10px] font-medium text-white"
+              className="inline-flex items-center rounded-pill bg-brand px-2 py-0.5 text-[10px] font-medium text-white"
             >
               {categoryLabels?.[cat] ?? cat}
             </span>

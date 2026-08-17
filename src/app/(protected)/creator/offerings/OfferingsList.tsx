@@ -321,7 +321,7 @@ function DeleteButton({
   onDelete: (o: Offering) => void;
 }) {
   return (
-    <Button variant="ghost" size="small" onClick={() => onDelete(offering)}>
+    <Button variant="secondary" size="small" onClick={() => onDelete(offering)}>
       Delete
     </Button>
   );
@@ -350,6 +350,7 @@ function DeleteConfirmModal({
         </p>
         <div className="flex gap-2">
           <Button
+            variant="destructive"
             size="small"
             disabled={deleting}
             onClick={async () => {
@@ -362,7 +363,7 @@ function DeleteConfirmModal({
             {deleting ? "Deleting..." : "Delete"}
           </Button>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="small"
             onClick={onCancel}
             disabled={deleting}

@@ -34,9 +34,9 @@ function sessionBadge(status: string): { label: string; className: string } {
     case "completed":
       return { label: "Completed", className: "border border-white text-white" };
     case "confirmed":
-      return { label: "Upcoming", className: "border border-live-green text-live-green" };
+      return { label: "Upcoming", className: "border border-live text-live" };
     case "reserved":
-      return { label: "Reserved", className: "border border-accent text-accent" };
+      return { label: "Reserved", className: "border border-text-secondary text-text-secondary" };
     case "expired":
       return { label: "Expired", className: "border border-text-tertiary text-text-tertiary" };
     default:
@@ -144,7 +144,7 @@ export function SessionList({
           {tab === "upcoming" ? (
             <>
               No upcoming sessions —{" "}
-              <Link href="/" className="text-accent underline hover:text-accent-hover">
+              <Link href="/" className="text-primary underline hover:text-primary-hover">
                 browse creators
               </Link>
             </>
@@ -223,7 +223,7 @@ export function SessionList({
                     ${((s.price_cents ?? 0) / 100).toFixed(2)}
                   </span>
                   {completed && !s.review && withinWindow && (
-                    <span className="flex items-center gap-1 text-xs font-medium text-amber-400">
+                    <span className="flex items-center gap-1 text-xs font-medium text-rating">
                       <span aria-hidden>★</span> Rate
                     </span>
                   )}
@@ -232,7 +232,7 @@ export function SessionList({
                   )}
                   {completed && s.review && (
                     <span
-                      className="text-xs text-amber-400"
+                      className="text-xs text-rating"
                       aria-label={`${s.review.rating} stars`}
                     >
                       {"★".repeat(s.review.rating)}
@@ -261,7 +261,7 @@ export function SessionList({
               onMouseEnter={() => setHover(n)}
               onMouseLeave={() => setHover(0)}
               className={`text-2xl leading-none transition-transform ${
-                n <= activeStars ? "text-amber-400" : "text-text-tertiary"
+                n <= activeStars ? "text-rating" : "text-text-tertiary"
               } hover:scale-110`}
             >
               ★
@@ -299,7 +299,7 @@ export function SessionList({
           <div>
             <div className="flex items-center gap-2">
               <span
-                className="text-amber-400"
+                className="text-rating"
                 aria-label={`${viewing.review.rating} stars`}
               >
                 {"★".repeat(viewing.review.rating)}

@@ -11,7 +11,7 @@ function OtpSlot({ index }: { index: number }) {
     <div
       className={`flex h-12 w-10 items-center justify-center rounded-pill border text-lg font-semibold text-white transition-colors ${
         active
-          ? "border-accent bg-bg-card-hover"
+          ? "border-primary bg-bg-card-hover"
           : "border-border-subtle bg-bg-base"
       }`}
     >

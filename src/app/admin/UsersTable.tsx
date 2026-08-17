@@ -100,7 +100,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
                     {suspended ? (
                       <span className="text-error">suspended</span>
                     ) : (
-                      <span className="text-live-green">active</span>
+                      <span className="text-live">active</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-text-tertiary">
@@ -121,7 +121,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
                     ) : (
                       <Button
                         size="small"
-                        variant="danger"
+                        variant="destructive"
                         onClick={() => {
                           setSuspendTarget(r);
                           setReason("");
@@ -157,11 +157,11 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
         />
         {error && <p className="mt-2 text-sm text-error">{error}</p>}
         <div className="mt-4 flex gap-2">
-          <Button variant="danger" onClick={confirmSuspend} disabled={loading}>
+          <Button variant="destructive" onClick={confirmSuspend} disabled={loading}>
             {loading ? "Suspending…" : "Confirm suspend"}
           </Button>
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={() => setSuspendTarget(null)}
             disabled={loading}
           >

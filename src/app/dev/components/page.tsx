@@ -86,9 +86,9 @@ export default function ComponentsShowcase() {
           </SubSection>
           <SubSection title="Danger (destructive)">
             <div className="flex gap-2 flex-wrap">
-              <Button variant="danger">Danger default</Button>
-              <Button variant="danger" disabled>Danger disabled</Button>
-              <Button variant="danger" size="small">Danger small</Button>
+              <Button variant="destructive">Danger default</Button>
+              <Button variant="destructive" disabled>Danger disabled</Button>
+              <Button variant="destructive" size="small">Danger small</Button>
             </div>
           </SubSection>
           <SubSection title="ButtonLink (primary)">

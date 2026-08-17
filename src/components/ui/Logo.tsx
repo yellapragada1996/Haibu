@@ -26,7 +26,7 @@ export function Logo({
       >
         haibu
       </text>
-      <circle cx="97" cy="35" r="5" fill="#A81120" />
+      <circle cx="97" cy="35" r="5" style={{ fill: "var(--color-brand)" }} />
     </svg>
   );
 }

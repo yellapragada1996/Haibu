@@ -23,7 +23,7 @@ export function Switch({
       aria-label={label}
       onClick={() => onCheckedChange(!checked)}
       className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-pill transition-colors ${
-        checked ? "bg-accent" : "bg-bg-card-hover"
+        checked ? "bg-live" : "bg-bg-card-hover"
       } ${className}`}
       {...props}
     >

@@ -23,11 +23,11 @@ const STATUSES = ["open", "reviewed", "actioned", "dismissed"] as const;
 function statusClass(s: string) {
   switch (s) {
     case "open":
-      return "border border-accent text-accent";
+      return "border border-text-secondary text-text-secondary";
     case "reviewed":
-      return "border border-live-green text-live-green";
+      return "border border-live text-live";
     case "actioned":
-      return "bg-live-green text-black";
+      return "bg-live text-black";
     case "dismissed":
       return "border border-text-tertiary text-text-tertiary";
     default:

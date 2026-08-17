@@ -26,7 +26,7 @@ export function Avatar({ src, name, size = 32 }: AvatarProps) {
   return (
     <div
       style={{ width: size, height: size, fontSize: size * 0.4 }}
-      className="rounded-full bg-accent text-white flex items-center justify-center font-semibold"
+      className="rounded-full bg-neutral-default text-white flex items-center justify-center font-semibold"
     >
       {initials}
     </div>

@@ -26,9 +26,9 @@ function shortId(id: string) {
 function statusClass(s: string) {
   switch (s) {
     case "confirmed":
-      return "border border-live-green text-live-green";
+      return "border border-live text-live";
     case "reserved":
-      return "border border-accent text-accent";
+      return "border border-text-secondary text-text-secondary";
     case "completed":
       return "border border-white text-white";
     default:
@@ -141,7 +141,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
                       {r.status === "confirmed" && (
                         <Button
                           size="small"
-                          variant="danger"
+                          variant="destructive"
                           onClick={() => {
                             setTarget(r);
                             setReason("");
@@ -192,11 +192,11 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
         />
         {error && <p className="mt-2 text-sm text-error">{error}</p>}
         <div className="mt-4 flex gap-2">
-          <Button variant="danger" onClick={confirm} disabled={loading}>
+          <Button variant="destructive" onClick={confirm} disabled={loading}>
             {loading ? "Cancelling…" : "Confirm full refund + cancel"}
           </Button>
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={() => setTarget(null)}
             disabled={loading}
           >

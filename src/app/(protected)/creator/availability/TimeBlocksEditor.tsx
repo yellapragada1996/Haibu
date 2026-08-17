@@ -68,7 +68,7 @@ export function TimeBlocksEditor({
           <select
             value={block.start_minute}
             onChange={(e) => updateBlock(index, "start_minute", Number(e.target.value))}
-            className="bg-bg-base border border-border-subtle rounded-input pl-2 pr-8 py-1.5 text-sm text-white outline-none focus:border-accent"
+            className="bg-bg-base border border-border-subtle rounded-input pl-2 pr-8 py-1.5 text-sm text-white outline-none focus:border-primary"
           >
             {MINUTE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -80,7 +80,7 @@ export function TimeBlocksEditor({
           <select
             value={block.end_minute}
             onChange={(e) => updateBlock(index, "end_minute", Number(e.target.value))}
-            className="bg-bg-base border border-border-subtle rounded-input pl-2 pr-8 py-1.5 text-sm text-white outline-none focus:border-accent"
+            className="bg-bg-base border border-border-subtle rounded-input pl-2 pr-8 py-1.5 text-sm text-white outline-none focus:border-primary"
           >
             {MINUTE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

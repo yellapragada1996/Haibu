@@ -144,7 +144,7 @@ export default async function CreatorProfilePage({
             {creator.display_name}
           </h1>
           {creator.identity_verified && (
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="text-live-green">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="text-live">
               <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" />
               <path d="M6 10l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -216,7 +216,7 @@ export default async function CreatorProfilePage({
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <span
-                        className="text-sm text-amber-400"
+                        className="text-sm text-rating"
                         aria-label={`${r.rating ?? 0} stars`}
                       >
                         {"★".repeat(r.rating ?? 0)}

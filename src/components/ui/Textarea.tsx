@@ -17,7 +17,7 @@ export function Textarea({
         className={`w-full bg-bg-base border outline-none transition-colors px-4 py-3 text-sm text-white placeholder-text-secondary resize-y ${
           error
             ? "border-error focus:border-error"
-            : "border-border-subtle focus:border-accent"
+            : "border-border-subtle focus:border-primary"
         } rounded-input ${className}`}
         {...props}
       />

@@ -50,7 +50,7 @@ export function ReviewSection({
   if (done) {
     return (
       <Card className="mt-6">
-        <p className="text-sm font-medium text-live-green">Reviewed ✓</p>
+        <p className="text-sm font-medium text-live">Reviewed ✓</p>
         <p className="mt-1 text-xs text-text-secondary">
           Thank you — your review has been shared with {creatorName}.
         </p>
@@ -75,7 +75,7 @@ export function ReviewSection({
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}
             className={`text-2xl leading-none transition-transform ${
-              n <= active ? "text-amber-400" : "text-text-tertiary"
+              n <= active ? "text-rating" : "text-text-tertiary"
             } hover:scale-110`}
           >
             ★

@@ -69,6 +69,7 @@ export function CancelSection({
       <p className="mt-1 text-xs text-text-secondary">This cannot be undone.</p>
       <div className="mt-4 flex gap-2">
         <Button
+          variant="destructive"
           onClick={async () => {
             setLoading(true);
             setError(null);
@@ -85,7 +86,7 @@ export function CancelSection({
           {loading ? "Cancelling…" : "Confirm cancellation"}
         </Button>
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={() => setShowConfirm(false)}
           disabled={loading}
         >

@@ -14,7 +14,7 @@ export function Pill({
     <button
       className={`inline-flex items-center rounded-pill px-5 py-2.5 text-[15px] font-medium transition-colors ${
         variant === "active"
-          ? "bg-accent text-white"
+          ? "bg-primary text-on-primary"
           : "bg-bg-card-hover text-text-secondary hover:text-white"
       } ${className}`}
       {...props}

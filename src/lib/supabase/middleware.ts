@@ -30,11 +30,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protected routes — redirect to /login if unauthenticated, carrying the
-  // original path so the user returns to where they were after login.
+  // original path (including query params, e.g. a booking's ?offering=&slot=)
+  // so the user returns to exactly where they were after login.
   const protectedPaths = [
     "/dashboard",
     "/settings",
     "/bookings",
+    "/book",
     "/creator",
     "/admin",
     "/api/protected",
@@ -43,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path),
   );
 
-  // Auth pages — redirect to /dashboard if already authenticated
+  // Auth pages — redirect to the intended page if already authenticated
   const authPaths = ["/login", "/signup"];
   const isAuthPage = authPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path),
@@ -52,18 +54,28 @@ export async function updateSession(request: NextRequest) {
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", request.nextUrl.pathname);
+    url.search = "";
+    url.searchParams.set(
+      "redirect",
+      request.nextUrl.pathname + request.nextUrl.search,
+    );
     return NextResponse.redirect(url);
   }
 
   if (isAuthPage && user) {
     const url = request.nextUrl.clone();
-    const target = request.nextUrl.searchParams.get("redirect");
+    const rawTarget = request.nextUrl.searchParams.get("redirect");
+    // The redirect param may itself carry a query string (e.g.
+    // /book/abc?offering=x&slot=y) — split it so pathname and search are set
+    // independently instead of mangling the ? into the pathname.
+    const q = rawTarget ? rawTarget.indexOf("?") : -1;
+    const targetPath = q === -1 ? rawTarget : rawTarget!.slice(0, q);
+    const targetSearch = q === -1 ? null : rawTarget!.slice(q);
     url.pathname =
-      target && target.startsWith("/") && !target.startsWith("//")
-        ? target
+      targetPath && targetPath.startsWith("/") && !targetPath.startsWith("//")
+        ? targetPath
         : "/dashboard";
-    url.search = "";
+    url.search = targetSearch ?? "";
     return NextResponse.redirect(url);
   }
 

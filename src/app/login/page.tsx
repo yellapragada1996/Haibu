@@ -87,7 +87,16 @@ export default function LoginPage() {
       }
       try {
         const raw = sessionStorage.getItem("pendingBooking");
-        if (raw) setBooking(JSON.parse(raw));
+        // A booking context only makes sense when the user actually came from
+        // the slot picker (Continue → /login?redirect=/book/...). A stale
+        // pendingBooking left behind by an abandoned flow must not resurrect
+        // the "Almost there" card when the user just clicks "Log in" from a
+        // creator page or the navbar.
+        if (raw && safe.startsWith("/book/")) {
+          setBooking(JSON.parse(raw));
+        } else if (raw) {
+          sessionStorage.removeItem("pendingBooking");
+        }
       } catch {
         /* ignore malformed storage */
       }

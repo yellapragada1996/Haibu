@@ -27,6 +27,7 @@ export function NavBar({
   const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -199,10 +200,17 @@ export function NavBar({
             </>
           ) : (
             <>
-              <ButtonLink href="/login" size="small" variant="ghost">
+              <ButtonLink
+                href={`/login?redirect=${encodeURIComponent(pathname)}`}
+                size="small"
+                variant="ghost"
+              >
                 Log in
               </ButtonLink>
-              <ButtonLink href="/login?tab=signup" size="small">
+              <ButtonLink
+                href={`/login?tab=signup&redirect=${encodeURIComponent(pathname)}`}
+                size="small"
+              >
                 Sign up
               </ButtonLink>
             </>

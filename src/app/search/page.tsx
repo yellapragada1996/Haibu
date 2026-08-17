@@ -20,16 +20,7 @@ export default async function SearchPage({
 
   const categories = await getCategories();
   const categoryLabels = categoriesToLabelMap(categories);
-  // Only show pills for categories present among the search results
-  // (mirrors the "available today" behaviour — no empty pills).
-  const resultCategoryIds = new Set(
-    creators.flatMap((c) => c.categories ?? []),
-  );
-  const pillCategories =
-    creators.length > 0
-      ? categories.filter((c) => resultCategoryIds.has(c.slug))
-      : categories;
-  const pills = [{ slug: "all", display_label: "All" }, ...pillCategories];
+  let pillCategories = categories;
 
   const rows = normalizedQuery
     ? await db
@@ -75,6 +66,13 @@ export default async function SearchPage({
     }
   }
   const creators = Array.from(map.values());
+  // Only show pills for categories present among the search results
+  // (mirrors the "available today" behaviour — no empty pills).
+  const resultCategoryIds = new Set(creators.flatMap((c) => c.categories ?? []));
+  if (creators.length > 0) {
+    pillCategories = categories.filter((c) => resultCategoryIds.has(c.slug));
+  }
+  const pills = [{ slug: "all", display_label: "All" }, ...pillCategories];
 
   return (
     <PublicLayout>

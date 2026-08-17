@@ -197,9 +197,14 @@ export function NavBar({
               </div>
             </>
           ) : (
-            <ButtonLink href="/login" size="small">
-              Log in
-            </ButtonLink>
+            <>
+              <ButtonLink href="/login" size="small" variant="ghost">
+                Log in
+              </ButtonLink>
+              <ButtonLink href="/login?tab=signup" size="small">
+                Sign up
+              </ButtonLink>
+            </>
           )}
         </div>
       </div>

@@ -2,25 +2,21 @@ import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { CreatorCard } from "@/components/ui/CreatorCard";
 import { Pill } from "@/components/ui/Pill";
-import { ButtonLink, Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/Button";
 import { db } from "@/db";
-import { creatorProfiles, users, offerings, bookings } from "@/db/schema";
-import { eq, and, sql, gte, desc, asc, isNull } from "drizzle-orm";
-
+import {
+  creatorProfiles,
+  users,
+  offerings,
+  bookings,
+  reviews,
+} from "@/db/schema";
+import { eq, and, sql, isNull } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 
-// For shelves that show one card per creator (not per category), dedupe by id.
-function dedupeCreators<T extends { id: string }>(list: T[]): T[] {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  for (const item of list) {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      out.push(item);
-    }
-  }
-  return out;
-}
+// 2 rows × 5 on desktop (2 rows × 2 on mobile) — "View more" expands.
+const ROWS = 10;
 
 async function getCreatorsWithOfferings() {
   const rows = await db
@@ -29,11 +25,13 @@ async function getCreatorsWithOfferings() {
       slug: creatorProfiles.slug,
       display_name: users.display_name,
       avatar_url: users.avatar_url,
-      identity_verified: creatorProfiles.identity_verified,
       offering_category: offerings.category,
       offering_price: offerings.price_cents,
       offering_duration: offerings.duration_minutes,
       offering_id: offerings.id,
+      rating: sql<number>`COALESCE((SELECT AVG(r.rating)::float FROM reviews r WHERE r.creator_id = creator_profiles.id AND r.is_public = true), 0)`,
+      reviewCount: sql<number>`(SELECT COUNT(*) FROM reviews r WHERE r.creator_id = creator_profiles.id AND r.is_public = true)`,
+      sessionCount: sql<number>`(SELECT COUNT(*) FROM bookings b WHERE b.creator_id = creator_profiles.id AND b.status = 'completed')`,
     })
     .from(creatorProfiles)
     .innerJoin(users, eq(users.id, creatorProfiles.user_id))
@@ -44,14 +42,11 @@ async function getCreatorsWithOfferings() {
         eq(offerings.is_active, true),
         isNull(offerings.deleted_at),
       ),
-    )
-    .orderBy(asc(offerings.price_cents));
+    );
 
-  // One record per creator with the full distinct category list.
-  // Lowest-priced offering provides price/duration ("from $X").
   const map = new Map<
     string,
-    typeof rows[0] & { categories: string[]; sessionCount: number; rating: number }
+    typeof rows[0] & { categories: string[] }
   >();
   for (const r of rows) {
     const existing = map.get(r.id);
@@ -60,36 +55,15 @@ async function getCreatorsWithOfferings() {
         existing.categories.push(r.offering_category);
       }
     } else {
-      map.set(r.id, {
-        ...r,
-        categories: [r.offering_category],
-        sessionCount: 0,
-        rating: 0,
-      });
+      map.set(r.id, { ...r, categories: [r.offering_category] });
     }
   }
-  return Array.from(map.values());
-}
-
-function SectionHeading({
-  title,
-  action,
-}: {
-  title: string;
-  action?: { label: string; href: string };
-}) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-xl font-semibold text-white">{title}</h2>
-      {action && (
-        <Link
-          href={action.href}
-          className="text-sm text-text-secondary hover:text-white transition-colors"
-        >
-          {action.label} →
-        </Link>
-      )}
-    </div>
+  // Sort: rating ↓ → sessions ↓ → price ↑ (no sort UI shown).
+  return Array.from(map.values()).sort(
+    (a, b) =>
+      b.rating - a.rating ||
+      b.sessionCount - a.sessionCount ||
+      a.offering_price - b.offering_price,
   );
 }
 
@@ -97,204 +71,114 @@ export default async function HomePage() {
   const creators = await getCreatorsWithOfferings();
   const categories = await getCategories();
   const categoryLabels = categoriesToLabelMap(categories);
-  const pills = [{ slug: "all", display_label: "All" }, ...categories];
 
-  if (creators.length < 3) {
-    return (
-      <PublicLayout>
-        <main className="max-w-[1400px] mx-auto px-4 py-8">
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-            {pills.map((c) => (
-              <Pill key={c.slug} variant={c.slug === "all" ? "active" : "inactive"}>
-                {c.display_label}
-              </Pill>
-            ))}
-          </div>
+  // Value prop is for cold (anonymous) visitors only.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isAnon = !user;
 
-          <h2 className="text-xl font-semibold text-white mb-6">
-            Browse creators
-          </h2>
-          {creators.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {creators.map((c) => (
-                <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
-                  <CreatorCard
-                    name={c.display_name}
-                    categories={c.categories}
-                    categoryLabels={categoryLabels}
-                    priceCents={c.offering_price}
-                    durationMinutes={c.offering_duration}
-                    thumbnailUrl={c.avatar_url}
-                    rating={c.rating}
-                    sessionCount={c.sessionCount}
-                  />
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-text-secondary text-lg">
-                No creators yet — be the first!
-              </p>
-              <div className="mt-4">
-                <ButtonLink href="/creator/profile">
-                  Become a Creator
-                </ButtonLink>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-16 bg-bg-surface rounded-modal p-8 text-center">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Become a Creator
-            </h2>
-            <p className="text-text-secondary mb-6 max-w-md mx-auto">
-              Share your talent, set your own schedule, and earn money doing what you love.
-            </p>
-            <ButtonLink href="/creator/profile">Get started</ButtonLink>
-          </div>
-
-          <footer className="mt-16 border-t border-border-subtle pt-8 pb-12">
-            <div className="flex flex-wrap gap-6 text-sm text-text-secondary">
-              <Link href="#" className="hover:text-white">About</Link>
-              <Link href="#" className="hover:text-white">Terms of Service</Link>
-              <Link href="#" className="hover:text-white">Privacy Policy</Link>
-              <Link href="#" className="hover:text-white">Trust &amp; Safety</Link>
-              <Link href="#" className="hover:text-white">Support</Link>
-              <Link href="/creator/profile" className="hover:text-white">Become a Creator</Link>
-            </div>
-            <p className="mt-4 text-xs text-text-tertiary">
-              &copy; {new Date().getFullYear()} haibu. All rights reserved.
-            </p>
-          </footer>
-        </main>
-      </PublicLayout>
-    );
-  }
+  const card = (c: (typeof creators)[number]) => (
+    <Link
+      key={c.id}
+      href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}
+      aria-label={`Book a session with ${c.display_name}`}
+    >
+      <CreatorCard
+        name={c.display_name}
+        categories={c.categories}
+        priceCents={c.offering_price}
+        rating={c.rating}
+        thumbnailUrl={c.avatar_url}
+        categoryLabels={categoryLabels}
+      />
+    </Link>
+  );
 
   return (
     <PublicLayout>
-      <main className="max-w-[1400px] mx-auto px-4 py-8">
-        {/* Category pills */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {pills.map((c) => (
-            <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>
-              <Pill variant={c.slug === "all" ? "active" : "inactive"}>
-                {c.display_label}
-              </Pill>
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
+        {isAnon && (
+          <h1 className="px-2 text-center text-[22px] font-bold text-white">
+            Book a live 1:1 video session with a creator
+          </h1>
+        )}
+
+        {/* Category filter pills — Trending (default) + categories */}
+        <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+          <Pill variant="active">Trending</Pill>
+          {categories.map((c) => (
+            <Link key={c.slug} href={`/browse/${c.slug}`}>
+              <Pill variant="inactive">{c.display_label}</Pill>
             </Link>
           ))}
         </div>
 
-        {/* Available Today */}
-        <section className="mb-10">
-          <SectionHeading title="Available today" />
-          <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll">
-            {dedupeCreators(creators).slice(0, 12).map((c) => (
-              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
-                <CreatorCard
-                  name={c.display_name}
-                  categories={c.categories}
-                  categoryLabels={categoryLabels}
-                  priceCents={c.offering_price}
-                  durationMinutes={c.offering_duration}
-                  thumbnailUrl={c.avatar_url}
-                  rating={c.rating}
-                  sessionCount={c.sessionCount}
-                  availableToday
-                />
-              </Link>
-            ))}
+        {/* Available today — 2 rows + View more */}
+        <section className="mt-8">
+          <div className="mb-3 flex items-baseline justify-between px-1">
+            <h2 className="text-lg font-semibold text-white">
+              Available today
+            </h2>
+            <Link
+              href="/browse"
+              className="text-sm text-text-secondary hover:text-white"
+            >
+              View more →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
+            {creators.slice(0, ROWS).map(card)}
           </div>
         </section>
 
-        {/* Trending */}
-        <section className="mb-10">
-          <SectionHeading title="Trending this week" />
-          <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll">
-            {dedupeCreators(creators).slice(0, 12).map((c) => (
-              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
-                <CreatorCard
-                  name={c.display_name}
-                  categories={c.categories}
-                  categoryLabels={categoryLabels}
-                  priceCents={c.offering_price}
-                  durationMinutes={c.offering_duration}
-                  thumbnailUrl={c.avatar_url}
-                  rating={c.rating}
-                  sessionCount={c.sessionCount}
-                />
-              </Link>
-            ))}
+        {/* Discover — 2 rows + View more */}
+        <section className="mt-10">
+          <div className="mb-3 flex items-baseline justify-between px-1">
+            <h2 className="text-lg font-semibold text-white">Discover</h2>
+            <Link
+              href="/browse"
+              className="text-sm text-text-secondary hover:text-white"
+            >
+              View more →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
+            {creators.map(card)}
           </div>
         </section>
 
-        {/* Category shelves */}
-        {categories.map((cat) => {
-          const catCreators = creators.filter((c) => c.categories.includes(cat.slug));
-          if (catCreators.length < 3) return null;
-          return (
-            <section key={cat.slug} className="mb-10">
-              <SectionHeading
-                title={cat.display_label}
-                action={{ label: "See all", href: `/browse/${cat.slug}` }}
-              />
-          <div className="flex gap-4 overflow-x-auto pb-4 horizontal-scroll horizontal-scroll">
-                {catCreators.slice(0, 12).map((c) => (
-                  <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
-                    <CreatorCard
-                      name={c.display_name}
-                      categories={c.categories}
-                      categoryLabels={categoryLabels}
-                      priceCents={c.offering_price}
-                      durationMinutes={c.offering_duration}
-                      thumbnailUrl={c.avatar_url}
-                      rating={c.rating}
-                      sessionCount={c.sessionCount}
-                    />
-                  </Link>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-
-        {/* Become a Creator band */}
-        <div className="my-16 bg-bg-surface rounded-modal p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Become a Creator
+        {/* Become a Creator band — centered */}
+        <section className="mt-12 rounded-card border border-border-subtle bg-bg-surface px-6 py-10 text-center">
+          <h2 className="text-lg font-semibold text-white">
+            Become a creator
           </h2>
-          <p className="text-text-secondary mb-6 max-w-md mx-auto">
-            Share your talent, set your own schedule, and earn money doing what
-            you love.
+          <p className="mt-2 text-sm text-text-secondary">
+            Book live sessions, grow your audience, get paid.
           </p>
-          <ButtonLink href="/creator/profile">Get started</ButtonLink>
-        </div>
+          <ButtonLink href="/creator/profile" className="mt-5">
+            Become a Creator
+          </ButtonLink>
+        </section>
 
-        {/* Footer */}
-        <footer className="border-t border-border-subtle pt-8 pb-12">
-          <div className="flex flex-wrap gap-6 text-sm text-text-secondary">
-            <Link href="#" className="hover:text-white">
-              About
+        <footer className="mt-16 border-t border-border-subtle pt-8 pb-12">
+          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-text-secondary">
+            <Link href="/" className="hover:text-white">
+              Home
             </Link>
-            <Link href="#" className="hover:text-white">
-              Terms of Service
+            <Link href="/search" className="hover:text-white">
+              Search
             </Link>
-            <Link href="#" className="hover:text-white">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="hover:text-white">
-              Trust &amp; Safety
-            </Link>
-            <Link href="#" className="hover:text-white">
-              Support
+            <Link href="/browse/casual_talk" className="hover:text-white">
+              Browse
             </Link>
             <Link href="/creator/profile" className="hover:text-white">
               Become a Creator
             </Link>
           </div>
           <p className="mt-4 text-xs text-text-tertiary">
-            &copy; {new Date().getFullYear()} haibu. All rights reserved.
+            &copy; 2026 Haibu · Toronto, ON, Canada
           </p>
         </footer>
       </main>

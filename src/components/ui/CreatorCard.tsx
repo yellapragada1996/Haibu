@@ -1,12 +1,10 @@
-import { Card } from "./Card";
-
 type CreatorCardProps = {
   name: string;
   categories: string[];
   priceCents: number;
-  durationMinutes: number;
+  durationMinutes?: number;
   rating: number;
-  sessionCount: number;
+  sessionCount?: number;
   thumbnailUrl?: string | null;
   availableToday?: boolean;
   categoryLabels?: Record<string, string>;
@@ -14,72 +12,68 @@ type CreatorCardProps = {
 
 const MAX_CATEGORY_PILLS = 3;
 
+// Tall poster card (≈200×380, 3:4) — the atomic discovery unit.
 export function CreatorCard({
   name,
   categories,
   priceCents,
-  durationMinutes,
   rating,
-  sessionCount,
   thumbnailUrl,
-  availableToday,
   categoryLabels,
 }: CreatorCardProps) {
-  // Distinct categories, capped display with +N overflow indicator.
   const distinct = Array.from(new Set(categories));
   const shown = distinct.slice(0, MAX_CATEGORY_PILLS);
   const overflow = distinct.length - shown.length;
 
   return (
-    <Card hover className="w-[280px] flex-shrink-0 !p-0 overflow-hidden">
-      <div className="aspect-[4/3] bg-bg-card-hover flex items-center justify-center rounded-t-card overflow-hidden">
+    <div className="flex aspect-[3/4] w-full flex-col overflow-hidden rounded-card border border-border-subtle bg-bg-card transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      {/* Thumbnail — top ~70% */}
+      <div className="relative min-h-0 w-full flex-[7] overflow-hidden bg-bg-card-hover">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt={name}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <span className="text-text-tertiary text-3xl font-bold">
-            {name.charAt(0)}
-          </span>
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-3xl font-bold text-text-tertiary">
+              {name.charAt(0)}
+            </span>
+          </div>
         )}
       </div>
-      <div className="p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="font-semibold text-sm text-white truncate">
-            {name}
-          </span>
-          {availableToday && (
-            <span className="flex items-center gap-1 text-xs text-live">
-              <span className="w-1.5 h-1.5 rounded-full bg-live" />
-              Available
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+
+      {/* Body — bottom ~30% */}
+      <div className="flex min-h-0 flex-[3] flex-col gap-1.5 p-3">
+        <p className="truncate text-[13px] font-semibold text-white">{name}</p>
+        <div className="flex flex-wrap items-center gap-1">
           {shown.map((cat) => (
             <span
               key={cat}
-              className="inline-flex items-center rounded-pill bg-brand px-2 py-0.5 text-[10px] font-medium text-white"
+              className="inline-flex items-center rounded-pill bg-brand px-2 py-0.5 text-[9px] font-medium text-white"
             >
               {categoryLabels?.[cat] ?? cat}
             </span>
           ))}
           {overflow > 0 && (
-            <span className="inline-flex items-center rounded-pill bg-bg-card-hover px-2 py-0.5 text-[10px] font-medium text-text-secondary">
+            <span className="inline-flex items-center rounded-pill bg-bg-card-hover px-2 py-0.5 text-[9px] font-medium text-text-secondary">
               +{overflow}
             </span>
           )}
-          <span className="text-text-secondary text-xs">
-            ${(priceCents / 100).toFixed(0)} / {durationMinutes} min
+        </div>
+        <div className="mt-auto flex items-center justify-between">
+          {/* Rating only when it exists — no grayed "★ —" */}
+          {rating > 0 ? (
+            <span className="text-xs font-semibold text-rating">
+              ★ {rating.toFixed(1)}
+            </span>
+          ) : null}
+          <span className="ml-auto text-xs text-text-secondary">
+            From ${(priceCents / 100).toFixed(0)}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-text-tertiary">
-          <span>★ {rating > 0 ? rating.toFixed(1) : "—"}</span>
-          <span>{sessionCount} sessions</span>
-        </div>
       </div>
-    </Card>
+    </div>
   );
 }

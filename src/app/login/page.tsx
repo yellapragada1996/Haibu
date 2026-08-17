@@ -76,6 +76,10 @@ export default function LoginPage() {
       } catch {
         /* ignore malformed storage */
       }
+      // "Sign up" in the nav links to ?tab=signup — land on the signup tab.
+      if (new URLSearchParams(window.location.search).get("tab") === "signup") {
+        setMode("signup");
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

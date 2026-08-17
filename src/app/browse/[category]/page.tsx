@@ -6,7 +6,7 @@ import { Pill } from "@/components/ui/Pill";
 import { ButtonLink } from "@/components/ui/Button";
 import { db } from "@/db";
 import { creatorProfiles, users, offerings, reviews } from "@/db/schema";
-import { eq, and, asc, isNull, sql } from "drizzle-orm";
+import { eq, and, asc, isNull, sql, inArray } from "drizzle-orm";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
@@ -82,10 +82,25 @@ export default async function CategoryPage({
 
   // Preserve the "available today" context when navigating between pills.
   const { available } = await searchParams;
+  let pillCategories = categories;
   const onlyAvailableToday = available === "today";
   if (onlyAvailableToday) {
     const ids = await getAvailableTodayCreatorIds();
     creators = creators.filter((c) => ids.has(c.id));
+    // Pills = categories of ALL available-today creators (across every
+    // category), so filtering by a pill never makes the other pills vanish.
+    const catRows = await db
+      .select({ slug: offerings.category })
+      .from(offerings)
+      .where(
+        and(
+          inArray(offerings.creator_id, [...ids]),
+          eq(offerings.is_active, true),
+          isNull(offerings.deleted_at),
+        ),
+      );
+    const catSet = new Set(catRows.map((r) => r.slug));
+    pillCategories = categories.filter((c) => catSet.has(c.slug));
   }
 
   const supabase = await createClient();
@@ -105,11 +120,7 @@ export default async function CategoryPage({
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {[
             { slug: "all", display_label: "All" },
-            ...(onlyAvailableToday
-              ? categories.filter((c) =>
-                  creators.some((x) => x.categories.includes(c.slug)),
-                )
-              : categories),
+            ...pillCategories,
           ].map((c) => (
             <Link
               key={c.slug}

@@ -9,6 +9,7 @@ import { creatorProfiles, users, offerings, reviews } from "@/db/schema";
 import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function CategoryPage({
   params,
@@ -64,9 +65,20 @@ export default async function CategoryPage({
   }
   const creators = Array.from(map.values());
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isAnon = !user;
+
   return (
     <PublicLayout>
       <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
+        {isAnon && (
+          <p className="mb-6 text-center text-[22px] font-bold text-white">
+            Book a live 1:1 video session with a creator
+          </p>
+        )}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {[{ slug: "all", display_label: "All" }, ...categories].map((c) => (
             <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>

@@ -110,6 +110,11 @@ export default async function BrowsePage({
   }
   const categories = await getCategories();
   const categoryLabels = categoriesToLabelMap(categories);
+  // In "available today" mode, only show pills for categories that actually
+  // have available-today creators (e.g. All + ASMR + Music, no empty pills).
+  const pillCategories = onlyAvailableToday
+    ? categories.filter((c) => creators.some((x) => x.categories.includes(c.slug)))
+    : categories;
 
   const supabase = await createClient();
   const {
@@ -130,7 +135,7 @@ export default async function BrowsePage({
           <Link href="/">
             <Pill variant="active">All</Pill>
           </Link>
-          {categories.map((c) => (
+          {pillCategories.map((c) => (
             <Link
               key={c.slug}
               href={

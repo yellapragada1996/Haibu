@@ -125,7 +125,14 @@ export default async function CategoryPage({
           </p>
         )}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {[{ slug: "all", display_label: "All" }, ...categories].map((c) => (
+          {[
+            { slug: "all", display_label: "All" },
+            ...(onlyAvailableToday
+              ? categories.filter((c) =>
+                  creators.some((x) => x.categories.includes(c.slug)),
+                )
+              : categories),
+          ].map((c) => (
             <Link
               key={c.slug}
               href={

@@ -235,7 +235,7 @@ export default async function CreatorHandlePage({
                       ${(o.price_cents / 100).toFixed(2)}
                     </span>
                     <ButtonLink
-                      href={`/book/${creator.id}?offering=${o.id}`}
+                      href={`/slot/${creator.id}?offering=${o.id}`}
                       size="small"
                       aria-label={`Book ${o.title}`}
                     >

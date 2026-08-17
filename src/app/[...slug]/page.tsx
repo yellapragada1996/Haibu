@@ -167,7 +167,10 @@ export default async function CreatorHandlePage({
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">
           {reviewCount >= 1 && (
             <span className="text-rating">
-              ★ {avgRating.toFixed(1)} ({reviewCount} {reviewCount === 1 ? "review" : "reviews"})
+              ★ {avgRating.toFixed(1)}
+              <span className="text-text-secondary">
+                {" "}({reviewCount} {reviewCount === 1 ? "review" : "reviews"})
+              </span>
             </span>
           )}
           {cheapest && (

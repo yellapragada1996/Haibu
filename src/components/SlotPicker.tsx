@@ -82,9 +82,14 @@ export function SlotPicker({
         "pendingBooking",
         JSON.stringify({
           creatorId: creator.id,
+          creatorName: creator.display_name,
           offeringId: offering.id,
+          offeringTitle: offering.title,
+          durationMinutes: offering.duration_minutes,
           slotStart: selectedSlot,
           priceCents: offering.price_cents,
+          displayDate: selectedDate ? fmtDate(selectedDate) : "",
+          displayTime: fmtTime(selectedSlot),
         }),
       );
     } catch {

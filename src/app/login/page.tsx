@@ -43,6 +43,18 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [booking, setBooking] = useState<{
+    creatorName: string;
+    offeringTitle: string;
+    durationMinutes: number;
+    displayDate: string;
+    displayTime: string;
+    priceCents: number;
+    slotStart: string;
+    creatorId: string;
+    offeringId: string;
+  } | null>(null);
   const router = useRouter();
   const [redirectTo] = useState(() => {
     if (typeof window === "undefined") return "/dashboard";
@@ -57,6 +69,12 @@ export default function LoginPage() {
         data: { session },
       } = await supabase.auth.getSession();
       if (session) router.replace(redirectTo);
+      try {
+        const raw = sessionStorage.getItem("pendingBooking");
+        if (raw) setBooking(JSON.parse(raw));
+      } catch {
+        /* ignore malformed storage */
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -195,7 +213,96 @@ export default function LoginPage() {
       <Card className="w-full max-w-[400px] !p-8">
         <Logo />
 
-        {showTabs && (
+        {/* Booking context (deferred auth): a guest arriving mid-booking sees
+            what they're completing before the auth options. */}
+        {booking && (mode === "login" || mode === "signup") && (
+          <>
+            <h1 className="mb-1 text-center text-lg font-semibold text-white">
+              Almost there — confirm your booking
+            </h1>
+            <p className="mb-4 mt-1 text-center text-sm text-text-secondary">
+              Complete your {booking.offeringTitle} session with{" "}
+              {booking.creatorName} to receive your join link.
+            </p>
+
+            {/* Prominent booking-context card — anchors the screen, above auth options */}
+            <div className="mb-5 rounded-card border border-border-subtle bg-bg-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-full bg-bg-card-hover" />
+                <div>
+                  <div className="text-[15px] font-bold text-white">
+                    {booking.creatorName}
+                  </div>
+                  <div className="text-xs text-text-secondary">
+                    {booking.offeringTitle} · {booking.durationMinutes} min
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 border-t border-border-subtle pt-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-secondary">When</span>
+                  <span className="font-semibold text-white">
+                    {booking.displayDate} · {booking.displayTime}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex justify-between text-sm">
+                  <span className="text-text-secondary">Total</span>
+                  <span className="font-bold text-white">
+                    ${(booking.priceCents / 100).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <GoogleButton loading={loading} onClick={handleGoogleLogin} />
+              {!showEmailForm ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowEmailForm(true)}
+                  className="w-full"
+                >
+                  Continue with email
+                </Button>
+              ) : (
+                <form onSubmit={handleBookingEmail} className="space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Choose a password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  {message && (
+                    <p className="text-center text-sm text-text-secondary">
+                      {message}
+                    </p>
+                  )}
+                  <Button type="submit" disabled={loading} className="w-full">
+                    Create account
+                  </Button>
+                </form>
+              )}
+              <button
+                type="button"
+                onClick={() => setBooking(null)}
+                className="w-full text-center text-sm text-text-secondary hover:text-white"
+              >
+                Already have an account? Log in
+              </button>
+            </div>
+          </>
+        )}
+
+        {!booking && showTabs && (
           <div className="flex rounded-pill bg-bg-base p-1 mb-6">
             <button
               onClick={() => { setMode("login"); setMessage(""); }}
@@ -212,7 +319,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {mode === "login" && (
+        {mode === "login" && !booking && (
           <>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -237,7 +344,7 @@ export default function LoginPage() {
           </>
         )}
 
-        {mode === "signup" && (
+        {mode === "signup" && !booking && (
           <>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -333,13 +440,44 @@ export default function LoginPage() {
     </div>
   );
 
+  // Email path in booking context: create the account (password is required by
+  // Supabase), then verify via the existing OTP flow. A true passwordless magic
+  // link needs the Supabase confirm template to render {{ .ConfirmationURL }}
+  // (dashboard config) — flagged separately.
+  async function handleBookingEmail(e: FormEvent) {
+    e.preventDefault();
+    if (!booking) return;
+    setLoading(true);
+    setMessage("");
+    const origin = window.location.origin;
+    const bookUrl = `/book/${booking.creatorId}?offering=${booking.offeringId}&slot=${encodeURIComponent(booking.slotStart)}`;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(bookUrl)}`,
+      },
+    });
+    if (error) {
+      setMessage(error.message);
+      setLoading(false);
+      return;
+    }
+    setMode("verify");
+    startResend();
+    setLoading(false);
+  }
+
   function handleGoogleLogin() {
     setLoading(true);
     (async () => {
+      const target = booking
+        ? `/book/${booking.creatorId}?offering=${booking.offeringId}&slot=${encodeURIComponent(booking.slotStart)}`
+        : redirectTo;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}`,
         },
       });
       if (error) {

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haibu — Session Page Wireframe</title>
+<style>
+  :root {
+    --bg: #121212; --surface: #1A1A1A; --card: #1E1E1E; --hover: #232323; --border: #2A2A2A;
+    --txt: #FFFFFF; --txt2: #8A8A8A; --txt3: #5A5A5A;
+    --primary: #FFFFFF; --on-primary: #121212;
+    --brand: #A81120; --live: #3BD671; --rating: #FFC53D; --error: #EF4444;
+    --radius: 14px; --pill: 999px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0D0D0D; color: var(--txt); font-family: "Inter", system-ui, sans-serif; padding: 32px 16px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: var(--txt2); font-size: 13px; margin-bottom: 20px; }
+  .note { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-size: 12px; color: var(--txt2); margin-bottom: 24px; max-width: 760px; }
+  .stage { display: flex; gap: 28px; flex-wrap: wrap; }
+  .frame { border: 1px solid var(--border); border-radius: 18px; padding: 14px; background: var(--surface); }
+  .frame h2 { font-size: 14px; margin-bottom: 10px; }
+  .frame .tag { font-size: 11px; color: var(--txt3); margin-bottom: 12px; }
+  .phone { width: 340px; background: var(--bg); border: 1px solid var(--border); border-radius: 24px; padding: 8px; }
+  .phone .inner { background: var(--bg); border-radius: 16px; overflow: hidden; }
+  .bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .avatar { background: var(--hover); border-radius: var(--pill); }
+  .box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .btn-primary { background: var(--primary); color: var(--on-primary); border-radius: var(--pill); font-weight: 600; font-size: 14px; height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-secondary { background: var(--hover); color: var(--txt); border-radius: var(--pill); font-weight: 600; font-size: 13px; height: 40px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-ghost { color: var(--txt2); font-size: 13px; text-align: center; padding: 10px; display: block; }
+  .badge { background: var(--live); color: #06110a; border-radius: var(--pill); font-size: 10px; font-weight: 700; padding: 2px 8px; }
+  .badge.done { background: var(--hover); color: var(--txt2); }
+  .gray { color: var(--txt2); }
+  .small { font-size: 11px; }
+  .icon { color: var(--txt2); }
+  .a11y { font-size: 10px; color: var(--txt3); margin-top: 8px; line-height: 1.5; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+  <h1>Haibu — Session Page (redesigned)</h1>
+  <div class="sub">Wireframe · status-aware · report/block after the session only · timezone-fixed · join-link note + add-to-calendar</div>
+  <div class="note">Changes from today: (1) <b>Safety (Report/Block) moved to completed-only</b> — absent on upcoming pages; (2) <b>time shown in the user's timezone</b> (fixes the server-TZ bug); (3) new <b>"join link appears 5 min before"</b> note + <b>Add to calendar</b>; (4) <b>status-aware heading</b>; (5) "Paid" instead of "Price". SVG icons only, no emojis.</div>
+
+  <div class="stage">
+
+    <!-- ============ UPCOMING SESSION ============ -->
+    <div class="frame">
+      <h2>Upcoming session (confirmed, future)</h2>
+      <div class="tag">hero = countdown/join · join-link note · add to calendar · cancel · NO report/block</div>
+      <div class="phone"><div class="inner">
+        <div class="bar">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span style="font-size:13px;font-weight:600;">Upcoming session</span>
+          <span style="width:16px;"></span>
+        </div>
+
+        <!-- details card -->
+        <div class="box" style="margin:12px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:10px;">
+            <div class="avatar" style="width:44px;height:44px;border:none;"></div>
+            <div>
+              <p class="small gray">Creator</p>
+              <p style="font-size:15px;font-weight:600;">Queen</p>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;display:grid;gap:6px;">
+            <div class="row"><span class="small gray">Session</span><span class="small" style="font-weight:500;">Piano Lessons</span></div>
+            <div class="row"><span class="small gray">Duration</span><span class="small" style="font-weight:500;">30 minutes</span></div>
+            <div class="row"><span class="small gray">Time</span><span class="small" style="font-weight:500;">Wed, Aug 20 · 3:00 PM <span class="small gray">(EDT)</span></span></div>
+            <div class="row"><span class="small gray">Paid</span><span class="small" style="font-weight:700;">$40.00</span></div>
+            <div class="row"><span class="small gray">Status</span><span class="badge">CONFIRMED</span></div>
+          </div>
+        </div>
+
+        <!-- join card -->
+        <div class="box" style="margin:0 12px;padding:14px;text-align:center;">
+          <p style="font-size:18px;font-weight:700;font-family:ui-monospace,monospace;">02:14:33</p>
+          <p class="small gray" style="margin:2px 0 12px;">until your session starts</p>
+          <div class="btn-primary" style="opacity:0.45;">Join session</div>
+          <p class="small gray" style="margin-top:10px;">Your join link appears here 5 minutes before the session starts.</p>
+          <div class="btn-secondary" style="margin-top:10px;width:100%;">Add to calendar</div>
+        </div>
+
+        <!-- cancel -->
+        <div style="padding:12px;"><span class="btn-ghost">Cancel session</span></div>
+        <div class="a11y" style="padding:0 12px 12px;">NO Report / Block on this state — nothing has happened yet · timezone shown (EDT) · join link note answers "what now?"</div>
+      </div></div>
+    </div>
+
+    <!-- ============ COMPLETED SESSION ============ -->
+    <div class="frame">
+      <h2>Completed session</h2>
+      <div class="tag">hero = review · then Safety (Report/Block) — both only here</div>
+      <div class="phone"><div class="inner">
+        <div class="bar">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span style="font-size:13px;font-weight:600;">Completed session</span>
+          <span style="width:16px;"></span>
+        </div>
+
+        <!-- details card -->
+        <div class="box" style="margin:12px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:10px;">
+            <div class="avatar" style="width:44px;height:44px;border:none;"></div>
+            <div>
+              <p class="small gray">Creator</p>
+              <p style="font-size:15px;font-weight:600;">Queen</p>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;display:grid;gap:6px;">
+            <div class="row"><span class="small gray">Session</span><span class="small" style="font-weight:500;">Piano Lessons</span></div>
+            <div class="row"><span class="small gray">Time</span><span class="small" style="font-weight:500;">Wed, Aug 20 · 3:00 PM <span class="small gray">(EDT)</span></span></div>
+            <div class="row"><span class="small gray">Status</span><span class="badge done">COMPLETED</span></div>
+          </div>
+        </div>
+
+        <!-- review card -->
+        <div class="box" style="margin:0 12px;padding:14px;">
+          <p style="font-size:14px;font-weight:600;margin-bottom:8px;">How did it go?</p>
+          <div class="small" style="color:var(--rating);font-size:20px;margin-bottom:10px;">★★★★★</div>
+          <div style="height:64px;border:1px solid var(--border);border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;" class="small gray">Share a few words… (optional)</div>
+          <div class="btn-primary" style="margin-top:12px;width:100%;">Submit review</div>
+          <span class="btn-ghost">Maybe later</span>
+        </div>
+
+        <!-- safety — only here -->
+        <div style="padding:12px 12px 12px;">
+          <p class="small gray" style="text-transform:uppercase;letter-spacing:0.06em;font-size:10px;margin-bottom:6px;">Safety</p>
+          <div style="display:flex;gap:8px;">
+            <span class="btn-secondary" style="flex:1;">Report</span>
+            <span class="btn-secondary" style="flex:1;">Block Queen</span>
+          </div>
+        </div>
+        <div class="a11y" style="padding:0 12px 12px;">Report + Block appear ONLY after completion (nothing to report before) · review + safety grouped as the "after" state</div>
+      </div></div>
+    </div>
+
+  </div>
+</body>
+</html>

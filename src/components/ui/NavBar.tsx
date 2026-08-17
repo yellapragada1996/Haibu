@@ -6,7 +6,7 @@ import { Button, ButtonLink } from "./Button";
 import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type NavBarProps = {
   isLoggedIn?: boolean;
@@ -164,7 +164,28 @@ export function NavBar({
                       onClick={async () => {
                         setAvatarOpen(false);
                         await supabase.auth.signOut();
-                        router.push("/login");
+                        // Clear any booking intent so /login doesn't show a
+                        // stale "Almost there" context after logout.
+                        try {
+                          sessionStorage.removeItem("pendingBooking");
+                        } catch {
+                          /* ignore */
+                        }
+                        // Stay on the current page when it's public (e.g. a
+                        // creator profile), else land on the home page.
+                        const pathname =
+                          typeof window !== "undefined"
+                            ? window.location.pathname
+                            : "/";
+                        const publicPath =
+                          pathname === "/" ||
+                          pathname.startsWith("/@") ||
+                          pathname.startsWith("/creators") ||
+                          pathname.startsWith("/browse") ||
+                          pathname.startsWith("/search") ||
+                          pathname.startsWith("/slot") ||
+                          pathname.startsWith("/dev");
+                        router.push(publicPath ? pathname : "/");
                         router.refresh();
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:text-white hover:bg-bg-card-hover"

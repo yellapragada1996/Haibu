@@ -77,6 +77,13 @@ function CheckoutForm({
       setError(stripeError.message ?? "Payment failed");
       setLoading(false);
     } else if (bookingId) {
+      // Booking done — clear the intent so /login never shows a stale
+      // "Almost there" context for a completed booking.
+      try {
+        sessionStorage.removeItem("pendingBooking");
+      } catch {
+        /* ignore */
+      }
       router.push("/bookings/" + bookingId);
     }
   };

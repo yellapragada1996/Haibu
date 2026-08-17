@@ -1,29 +1,140 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Haibu design language — monochrome-first, color = meaning.
+   See haibu-design-token-system.md.
+
+   Three tiers:
+     1. Primitives  — raw values (never referenced by components)
+     2. Semantic    — meaning; theme-swappable (dark default + light override)
+     3. Component   — rare, defined at the component when needed
+
+   Backward-compat aliases at the bottom keep the OLD token names working
+   until the component migration completes; remove them last.
+   ============================================================================ */
+
 @theme {
-  --color-bg-base: #121212;
-  --color-bg-surface: #1A1A1A;
-  --color-bg-card: #1E1E1E;
-  --color-bg-card-hover: #232323;
-  --color-border-subtle: #2A2A2A;
+  /* ------------------------------------------------------------------
+     Tier 1 — Primitives (raw values)
+     ------------------------------------------------------------------ */
 
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #8A8A8A;
-  --color-text-tertiary: #5A5A5A;
+  /* Color — neutrals */
+  --primitive-black: #000000;
+  --primitive-gray-950: #121212;
+  --primitive-gray-900: #1A1A1A;
+  --primitive-gray-850: #1E1E1E;
+  --primitive-gray-800: #232323;
+  --primitive-gray-700: #2A2A2A;
+  --primitive-gray-400: #5A5A5A;
+  --primitive-gray-300: #8A8A8A;
+  --primitive-gray-100: #E8E8E8;
+  --primitive-white: #FFFFFF;
 
-  --color-accent: #A81120;
-  --color-accent-hover: #C21329;
-  --color-accent-pressed: #8A0E1A;
+  /* Color — brand (identity only) + semantic hues */
+  --primitive-red-700: #A81120;
+  --primitive-green-400: #3BD671;
+  --primitive-yellow-400: #FFC53D;
+  --primitive-red-error: #EF4444;
 
-  --color-live-green: #3BD671;
-  --color-error: #EF4444;
-
+  /* Radius */
   --radius-card: 14px;
   --radius-input: 12px;
   --radius-pill: 999px;
   --radius-modal: 20px;
 
+  /* Typography */
   --font-family-sans: "Inter", system-ui, sans-serif;
+  --font-size-h1: 32px;
+  --font-size-h2: 24px;
+  --font-size-h3: 18px;
+  --font-size-body: 15px;
+  --font-size-small: 13px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ------------------------------------------------------------------
+     Tier 2 — Semantic (dark default). Referenced by components.
+     ------------------------------------------------------------------ */
+
+  /* Backgrounds */
+  --color-bg-base: var(--primitive-gray-950);
+  --color-bg-surface: var(--primitive-gray-900);
+  --color-bg-card: var(--primitive-gray-850);
+  --color-bg-card-hover: var(--primitive-gray-800);
+  --color-border-subtle: var(--primitive-gray-700);
+
+  /* Text */
+  --color-text-primary: var(--primitive-white);
+  --color-text-secondary: var(--primitive-gray-300);
+  --color-text-tertiary: var(--primitive-gray-400);
+
+  /* Primary action — elevated WHITE (brightest thing on screen) */
+  --color-primary: var(--primitive-white);
+  --color-primary-hover: var(--primitive-gray-100);
+  --color-on-primary: var(--primitive-gray-950);
+
+  /* Neutral interactive */
+  --color-neutral-default: var(--primitive-gray-800);
+  --color-neutral-hover: var(--primitive-gray-700);
+
+  /* Brand — identity ONLY (logo dot + card category badges) */
+  --color-brand: var(--primitive-red-700);
+
+  /* Semantic */
+  --color-live: var(--primitive-green-400);      /* available / live / confirmed */
+  --color-rating: var(--primitive-yellow-400);   /* stars only */
+  --color-error: var(--primitive-red-error);     /* errors + destructive */
+
+  /* ------------------------------------------------------------------
+     Backward-compat aliases (OLD token names).
+     Remove after the component migration — they exist only so this
+     token-level step causes zero visual change.
+     ------------------------------------------------------------------ */
+  --color-accent: var(--color-brand);
+  --color-accent-hover: #C21329;
+  --color-accent-pressed: #8A0E1A;
+  --color-live-green: var(--color-live);
+}
+
+/* --------------------------------------------------------------------------
+   Tier 2 — Light mode (complete). Add later by setting data-theme="light"
+   on <html>; every component updates automatically.
+   -------------------------------------------------------------------------- */
+[data-theme="light"] {
+  --color-bg-base: #FFFFFF;
+  --color-bg-surface: #F8F8F8;
+  --color-bg-card: #F0F0F0;
+  --color-bg-card-hover: #E8E8E8;
+  --color-border-subtle: #D4D4D4;
+
+  --color-text-primary: #121212;
+  --color-text-secondary: #525252;
+  --color-text-tertiary: #737373;
+
+  /* Primary inverts to dark in light mode */
+  --color-primary: #121212;
+  --color-primary-hover: #232323;
+  --color-on-primary: #FFFFFF;
+
+  --color-neutral-default: #E8E8E8;
+  --color-neutral-hover: #D4D4D4;
+
+  --color-brand: #A81120;   /* brand stays red in both themes */
+  --color-live: #3BD671;
+  --color-rating: #FFC53D;
+  --color-error: #EF4444;
 }
 
 body {

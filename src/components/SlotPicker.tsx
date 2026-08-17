@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -73,6 +73,16 @@ export function SlotPicker({
   const slotsForDate = selectedDate
     ? slots.filter((s) => localDateKey(s.start_at) === selectedDate)
     : [];
+
+  // Default to TODAY when the creator has slots today; otherwise the first
+  // available day — so the time grid is never empty on arrival.
+  useEffect(() => {
+    if (slots.length === 0 || selectedDate) return;
+    const todayKey = new Date().toLocaleDateString("en-CA");
+    if (datePills.includes(todayKey)) setSelectedDate(todayKey);
+    else setSelectedDate(datePills[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots]);
 
   const continueFlow = async () => {
     if (!selectedSlot) return;

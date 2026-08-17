@@ -10,11 +10,34 @@ import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
+import { generateAvailableSlots } from "@/lib/availability";
+
+// Does the creator have at least one open slot from now until end of today?
+async function hasSlotToday(
+  creatorId: string,
+  offeringIds: string[],
+): Promise<boolean> {
+  const now = new Date();
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  for (const offeringId of offeringIds) {
+    const slots = await generateAvailableSlots({
+      creator_id: creatorId,
+      offering_id: offeringId,
+      from: now,
+      to: endOfDay,
+    });
+    if (slots.length > 0) return true;
+  }
+  return false;
+}
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ category: string }>;
+  searchParams: Promise<{ available?: string }>;
 }) {
   const { category } = await params;
   const categories = await getCategories();
@@ -36,6 +59,7 @@ export default async function CategoryPage({
       offering_category: offerings.category,
       offering_price: offerings.price_cents,
       offering_duration: offerings.duration_minutes,
+      offering_id: offerings.id,
       rating: sql<number>`COALESCE((SELECT AVG(r.rating)::float FROM reviews r WHERE r.creator_id = creator_profiles.id AND r.is_public = true), 0)`,
     })
     .from(creatorProfiles)
@@ -52,18 +76,39 @@ export default async function CategoryPage({
     .orderBy(asc(offerings.price_cents));
 
   // One record per creator with full distinct category list.
-  const map = new Map<string, (typeof rows)[0] & { categories: string[] }>();
+  const map = new Map<
+    string,
+    (typeof rows)[0] & { categories: string[]; offeringIds: string[] }
+  >();
   for (const r of rows) {
     const existing = map.get(r.id);
     if (existing) {
       if (!existing.categories.includes(r.offering_category)) {
         existing.categories.push(r.offering_category);
       }
+      if (!existing.offeringIds.includes(r.offering_id)) {
+        existing.offeringIds.push(r.offering_id);
+      }
     } else {
-      map.set(r.id, { ...r, categories: [r.offering_category] });
+      map.set(r.id, {
+        ...r,
+        categories: [r.offering_category],
+        offeringIds: [r.offering_id],
+      });
     }
   }
-  const creators = Array.from(map.values());
+  let creators = Array.from(map.values());
+
+  // Preserve the "available today" context when navigating between pills.
+  const { available } = await searchParams;
+  const onlyAvailableToday = available === "today";
+  if (onlyAvailableToday) {
+    const filtered: (typeof creators)[number][] = [];
+    for (const c of creators) {
+      if (await hasSlotToday(c.id, c.offeringIds)) filtered.push(c);
+    }
+    creators = filtered;
+  }
 
   const supabase = await createClient();
   const {
@@ -81,7 +126,18 @@ export default async function CategoryPage({
         )}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {[{ slug: "all", display_label: "All" }, ...categories].map((c) => (
-            <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>
+            <Link
+              key={c.slug}
+              href={
+                c.slug === "all"
+                  ? onlyAvailableToday
+                    ? "/browse?available=today"
+                    : "/"
+                  : onlyAvailableToday
+                    ? `/browse/${c.slug}?available=today`
+                    : `/browse/${c.slug}`
+              }
+            >
               <Pill variant={c.slug === category ? "active" : "inactive"}>
                 {c.display_label}
               </Pill>

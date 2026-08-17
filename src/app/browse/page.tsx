@@ -131,7 +131,14 @@ export default async function BrowsePage({
             <Pill variant="active">All</Pill>
           </Link>
           {categories.map((c) => (
-            <Link key={c.slug} href={`/browse/${c.slug}`}>
+            <Link
+              key={c.slug}
+              href={
+                onlyAvailableToday
+                  ? `/browse/${c.slug}?available=today`
+                  : `/browse/${c.slug}`
+              }
+            >
               <Pill variant="inactive">{c.display_label}</Pill>
             </Link>
           ))}

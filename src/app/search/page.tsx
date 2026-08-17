@@ -11,9 +11,10 @@ import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; category?: string }>;
 }) {
-  const { q = "" } = await searchParams;
+  const { q = "", category: categoryParam } = await searchParams;
+  const activeCategory = typeof categoryParam === "string" ? categoryParam : null;
 
   const normalizedQuery = q.trim().replace(/\s+/g, " ");
 
@@ -40,6 +41,9 @@ export default async function SearchPage({
           and(
             eq(creatorProfiles.is_published, true),
             sql`"creator_profiles"."search_tsv" @@ plainto_tsquery('english', ${normalizedQuery})`,
+            ...(activeCategory
+              ? [eq(offerings.category, activeCategory)]
+              : []),
             eq(offerings.is_active, true),
             isNull(offerings.deleted_at),
           ),
@@ -68,8 +72,21 @@ export default async function SearchPage({
       <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {pills.map((c) => (
-            <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>
-              <Pill variant="inactive">{c.display_label}</Pill>
+            <Link
+              key={c.slug}
+              href={
+                c.slug === "all"
+                  ? `/search?q=${encodeURIComponent(normalizedQuery)}`
+                  : `/search?q=${encodeURIComponent(normalizedQuery)}&category=${c.slug}`
+              }
+            >
+              <Pill
+                variant={
+                  (activeCategory ?? "all") === c.slug ? "active" : "inactive"
+                }
+              >
+                {c.display_label}
+              </Pill>
             </Link>
           ))}
         </div>

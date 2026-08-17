@@ -487,6 +487,9 @@ export default function LoginPage() {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}`,
+          // Always show Google's account chooser — otherwise Google reuses the
+          // cached account session and the guest can't pick a different one.
+          queryParams: { prompt: "select_account" },
         },
       });
       if (error) {

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haibu — Flow Wireframes · Screens 1–2</title>
+<style>
+  :root {
+    --bg: #121212; --surface: #1A1A1A; --card: #1E1E1E; --hover: #232323; --border: #2A2A2A;
+    --txt: #FFFFFF; --txt2: #8A8A8A; --txt3: #5A5A5A;
+    --primary: #FFFFFF; --on-primary: #121212;
+    --brand: #A81120; --live: #3BD671; --rating: #FFC53D; --error: #EF4444;
+    --radius: 14px; --pill: 999px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0D0D0D; color: var(--txt); font-family: "Inter", system-ui, sans-serif; padding: 32px 16px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: var(--txt2); font-size: 13px; margin-bottom: 20px; }
+  .note { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; font-size: 12px; color: var(--txt2); margin-bottom: 24px; max-width: 900px; }
+  .stage { display: flex; gap: 28px; flex-wrap: wrap; }
+  .frame { border: 1px solid var(--border); border-radius: 18px; padding: 14px; background: var(--surface); }
+  .frame h2 { font-size: 14px; margin-bottom: 10px; }
+  .frame .tag { font-size: 11px; color: var(--txt3); margin-bottom: 12px; }
+  .phone { width: 340px; background: var(--bg); border: 1px solid var(--border); border-radius: 24px; padding: 8px; }
+  .phone .inner { background: var(--bg); border-radius: 16px; overflow: hidden; }
+  .desktop { width: 560px; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  /* design-system buttons */
+  .btn-primary { background: var(--primary); color: var(--on-primary); border-radius: var(--pill); font-weight: 600; font-size: 14px; height: 36px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-secondary { background: var(--hover); color: var(--txt); border-radius: var(--pill); font-weight: 600; font-size: 14px; height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-ghost-link { color: var(--txt2); font-size: 13px; text-align: center; padding: 12px; display: block; }
+  .btn-icon { width: 36px; height: 36px; border-radius: var(--pill); background: transparent; color: var(--txt2); display: inline-flex; align-items: center; justify-content: center; }
+  .btn-icon:hover { background: var(--hover); color: var(--txt); }
+  /* primitives */
+  .bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .banner { background: var(--hover); border-radius: var(--radius); aspect-ratio: 3 / 1; display: flex; align-items: flex-end; padding: 6px 8px; }
+  .avatar { background: var(--hover); border-radius: var(--pill); border: 3px solid var(--bg); }
+  .box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .badge { background: var(--brand); color: #fff; border-radius: var(--pill); font-size: 9px; padding: 2px 7px; }
+  .cat { background: var(--brand); color: #fff; border-radius: var(--pill); font-size: 10px; font-weight: 600; padding: 3px 10px; }
+  .cat-more { background: var(--card); color: var(--txt2); border: 1px solid var(--border); border-radius: var(--pill); font-size: 10px; font-weight: 600; padding: 3px 10px; }
+  .rating { color: var(--rating); }
+  .gray { color: var(--txt2); }
+  .small { font-size: 11px; }
+  .lbl { color: var(--txt3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 12px 6px; }
+  .icon { color: var(--txt2); }
+  .chip { background: var(--hover); border: 1px solid var(--border); border-radius: var(--pill); font-size: 12px; font-weight: 500; height: 36px; padding: 0 16px; color: var(--txt2); display: inline-flex; align-items: center; white-space: nowrap; }
+  .chip.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 600; }
+  .slot { background: var(--card); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; padding: 11px 0; color: var(--txt); min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .slot.sel { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .slot.off { color: var(--txt3); opacity: 0.45; }
+  .sticky { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .a11y { font-size: 10px; color: var(--txt3); margin-top: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <h1>Haibu — Deferred Auth Booking Flow</h1>
+  <div class="sub">Wireframes · Screen 1 (creator profile, banner added) + Screen 2 (slot picker) · awaiting feedback</div>
+  <div class="note">Screen 1: banner shown when the creator has one, hidden when absent (same as current profile) · category pills (max 3 + "+N") · no emojis (SVG only) · single centered column on desktop. Screen 2: slot picker, no login required, sticky summary footer with total.</div>
+
+  <div class="stage">
+
+    <!-- ============ SCREEN 1 · MOBILE ============ -->
+    <div class="frame">
+      <h2>Screen 1 — Creator profile · Mobile</h2>
+      <div class="tag">haibu.live/@queen · banner (if set) · category pills · 44px+ targets</div>
+      <div class="phone"><div class="inner">
+        <div class="bar">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span class="small gray">@queen</span>
+          <span style="width:16px;"></span>
+        </div>
+
+        <!-- banner: rendered only if creator has banner_url; hidden when absent -->
+        <div class="banner"><span class="small" style="color:var(--txt3);">banner (if set) — hidden when absent</span></div>
+
+        <!-- avatar overlapping banner edge (per profile spec), then identity -->
+        <div style="padding:0 12px;margin-top:-20px;">
+          <div class="avatar" style="width:64px;height:64px;"></div>
+        </div>
+        <div style="padding:10px 12px 2px;display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:700;font-size:16px;">Queen</span>
+          <span class="btn-icon" title="Share profile" aria-label="Share profile" role="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
+          </span>
+        </div>
+        <div style="padding:0 12px;display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="cat">ASMR</span>
+          <span class="cat">Music</span>
+          <!-- max 3 pills; if more: <span class="cat-more">+N</span> -->
+        </div>
+        <div class="small" style="color:var(--rating);padding:6px 12px 0;">★ 4.9 · <span style="color:var(--txt2)">128 sessions</span></div>
+        <div class="small gray" style="padding:4px 12px 8px;">from $25 · 30 min</div>
+        <div class="gray small" style="padding:0 12px 10px;">Professional singer-songwriter, 10 years of vocal coaching. Relaxed, supportive, beginner-friendly.</div>
+
+        <!-- how it works: SVG icons only -->
+        <div class="box" style="margin:4px 12px 6px;display:flex;justify-content:space-around;padding:10px 4px;">
+          <span style="text-align:center;font-size:10px;color:var(--txt2);">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="display:block;margin:0 auto 4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Pick a time</span>
+          <span style="text-align:center;font-size:10px;color:var(--txt2);">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="display:block;margin:0 auto 4px;"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Pay securely</span>
+          <span style="text-align:center;font-size:10px;color:var(--txt2);">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="display:block;margin:0 auto 4px;"><path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+            Join live</span>
+        </div>
+
+        <!-- offerings — all of them, each with its own Book button -->
+        <div class="lbl">Offerings</div>
+        <div style="padding:0 12px;display:grid;gap:6px;">
+          <div class="box" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;">
+            <div><div style="font-size:12px;font-weight:600;">Piano Lessons</div><div class="small gray">30 min</div></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;font-weight:700;">$40</span><span class="btn-primary">Book</span></div>
+          </div>
+          <div class="box" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;">
+            <div><div style="font-size:12px;font-weight:600;">Vocal Coaching</div><div class="small gray">30 min</div></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;font-weight:700;">$40</span><span class="btn-primary">Book</span></div>
+          </div>
+          <div class="box" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;">
+            <div><div style="font-size:12px;font-weight:600;">15 min session</div><div class="small gray">15 min</div></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;font-weight:700;">$20</span><span class="btn-primary">Book</span></div>
+          </div>
+          <div class="box" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;">
+            <div><div style="font-size:12px;font-weight:600;">Tingles session</div><div class="small gray">30 min</div></div>
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;font-weight:700;">$20</span><span class="btn-primary">Book</span></div>
+          </div>
+        </div>
+
+        <!-- recent reviews inline -->
+        <div class="lbl">Recent reviews</div>
+        <div style="padding:0 12px;display:grid;gap:6px;">
+          <div class="box" style="padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><div class="avatar" style="width:22px;height:22px;border:none;"></div><span class="small" style="font-weight:600;">Alex</span><span class="small rating">★★★★★</span></div>
+            <div class="small gray">Great teacher — super patient, explained everything clearly.</div>
+          </div>
+          <div class="box" style="padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><div class="avatar" style="width:22px;height:22px;border:none;"></div><span class="small" style="font-weight:600;">Maya</span><span class="small rating">★★★★★</span></div>
+            <div class="small gray">Best 30 minutes of my week. Already booked again.</div>
+          </div>
+        </div>
+        <div class="small gray" style="padding:10px 12px;">View all 24 reviews →</div>
+        <div class="a11y" style="padding:0 12px 12px;">Banner renders only when banner_url exists · category pills brand-red, max 3 + "+N" · Book = white primary pill, 44px+ target</div>
+      </div></div>
+    </div>
+
+    <!-- ============ SCREEN 1 · DESKTOP ============ -->
+    <div class="frame">
+      <h2>Screen 1 — Creator profile · Desktop</h2>
+      <div class="tag">single centered column · banner (if set) · offerings internal grid</div>
+      <div class="desktop">
+        <div class="bar"><span class="small gray">haibu.live/@queen</span><span style="width:16px;"></span></div>
+        <div style="max-width:800px;margin:0 auto;padding:16px 20px 24px;text-align:center;">
+          <div class="banner" style="margin-bottom:-40px;"><span class="small" style="color:var(--txt3);">banner (if set)</span></div>
+          <div style="text-align:center;"><div class="avatar" style="width:88px;height:88px;margin:0 auto;"></div></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;">
+            <span style="font-weight:700;font-size:22px;">Queen</span>
+            <span class="btn-icon" title="Share profile" aria-label="Share profile" role="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
+            </span>
+          </div>
+          <div style="display:flex;justify-content:center;gap:6px;margin:8px 0;flex-wrap:wrap;">
+            <span class="cat">ASMR</span><span class="cat">Music</span>
+          </div>
+          <div class="small" style="color:var(--rating);margin:4px 0;">★ 4.9 · <span style="color:var(--txt2)">128 sessions</span></div>
+          <div class="gray small">from $25 · 30 min</div>
+          <div class="gray small" style="max-width:480px;margin:10px auto 0;">Professional singer-songwriter, 10 years of vocal coaching. Relaxed, supportive, beginner-friendly.</div>
+          <div class="box" style="margin:18px auto;max-width:520px;padding:12px;display:flex;justify-content:space-around;">
+            <span style="font-size:11px;color:var(--txt2);">(SVG icons) Pick a time</span>
+            <span style="font-size:11px;color:var(--txt2);">Pay securely</span>
+            <span style="font-size:11px;color:var(--txt2);">Join live</span>
+          </div>
+          <div class="lbl" style="text-align:left;margin-left:0;">Offerings</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;text-align:left;">
+            <div class="box" style="padding:14px;"><div style="font-size:14px;font-weight:600;">Piano Lessons</div><div class="small gray">30 min</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;"><span style="font-size:14px;font-weight:700;">$40</span><span class="btn-primary">Book</span></div></div>
+            <div class="box" style="padding:14px;"><div style="font-size:14px;font-weight:600;">Vocal Coaching</div><div class="small gray">30 min</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;"><span style="font-size:14px;font-weight:700;">$40</span><span class="btn-primary">Book</span></div></div>
+            <div class="box" style="padding:14px;"><div style="font-size:14px;font-weight:600;">15 min session</div><div class="small gray">15 min</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;"><span style="font-size:14px;font-weight:700;">$20</span><span class="btn-primary">Book</span></div></div>
+            <div class="box" style="padding:14px;"><div style="font-size:14px;font-weight:600;">Tingles session</div><div class="small gray">30 min</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;"><span style="font-size:14px;font-weight:700;">$20</span><span class="btn-primary">Book</span></div></div>
+          </div>
+          <div class="lbl" style="text-align:left;margin-left:0;">Recent reviews</div>
+          <div style="display:grid;gap:6px;text-align:left;">
+            <div class="box" style="padding:10px 12px;"><span class="small" style="font-weight:600;">Alex <span class="small rating">★★★★★</span></span><div class="small gray">Great teacher — super patient.</div></div>
+            <div class="box" style="padding:10px 12px;"><span class="small" style="font-weight:600;">Maya <span class="small rating">★★★★★</span></span><div class="small gray">Best 30 minutes of my week.</div></div>
+          </div>
+          <div class="small gray" style="margin:8px 0 0;text-align:left;">View all 24 reviews →</div>
+        </div>
+        <div class="a11y" style="padding:0 20px 14px;">Banner conditional · avatar overlaps banner edge · category pills max 3 + "+N"</div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 2 · MOBILE (slot picker) ============ -->
+    <div class="frame">
+      <h2>Screen 2 — Slot picker · Mobile</h2>
+      <div class="tag">no login required · date pills ("Wed, Aug 20") · times ("9:30 AM") · timezone note · sticky footer</div>
+      <div class="phone"><div class="inner">
+        <div class="bar">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span style="font-size:13px;font-weight:600;">Pick a time</span>
+          <span style="width:16px;"></span>
+        </div>
+
+        <!-- offering context bar -->
+        <div class="box" style="margin:10px 12px 4px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+          <div class="avatar" style="width:26px;height:26px;border:none;"></div>
+          <span class="small" style="font-weight:600;">Queen</span>
+          <span class="small gray">· Piano Lessons · 30 min</span>
+        </div>
+
+        <!-- date pills -->
+        <div style="padding:12px 12px 4px;display:flex;gap:6px;overflow-x:auto;">
+          <span class="chip">Tue, Aug 19</span>
+          <span class="chip on">Wed, Aug 20</span>
+          <span class="chip">Thu, Aug 21</span>
+          <span class="chip">Fri, Aug 22</span>
+          <span class="chip">Sat, Aug 23</span>
+        </div>
+
+        <!-- time grid -->
+        <div style="padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+          <div class="slot">9:00 AM</div>
+          <div class="slot sel">9:30 AM</div>
+          <div class="slot">10:00 AM</div>
+          <div class="slot">10:30 AM</div>
+          <div class="slot">11:00 AM</div>
+          <div class="slot off">11:30 AM</div>
+          <div class="slot">2:00 PM</div>
+          <div class="slot">2:30 PM</div>
+          <div class="slot">3:00 PM</div>
+        </div>
+
+        <div class="gray small" style="padding:0 12px;">Times shown in your timezone <span style="color:var(--txt2);font-weight:600;">(EDT)</span></div>
+
+        <!-- sticky summary footer -->
+        <div class="sticky">
+          <div><div class="small gray">Wed, Aug 20 · 9:30 AM</div><div style="font-size:14px;font-weight:700;">$40.00</div></div>
+          <span class="btn-primary">Continue</span>
+        </div>
+        <div class="a11y" style="padding:8px 12px 12px;">Slots are buttons with aria-labels ("Wed Aug 20 — 9:30 AM") · 44px+ targets · arrow-key nav · selected + disabled states · no login required</div>
+      </div></div>
+    </div>
+
+    <!-- ============ SCREEN 2 · DESKTOP (slot picker) ============ -->
+    <div class="frame">
+      <h2>Screen 2 — Slot picker · Desktop</h2>
+      <div class="tag">centered column (~480px) · wider time grid · summary + Continue inline</div>
+      <div class="desktop">
+        <div style="max-width:480px;margin:0 auto;padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:15px;font-weight:700;">Pick a time</span>
+            <span style="width:16px;"></span>
+          </div>
+          <div class="box" style="padding:8px 12px;display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <div class="avatar" style="width:26px;height:26px;border:none;"></div>
+            <span class="small" style="font-weight:600;">Queen</span>
+            <span class="small gray">· Piano Lessons · 30 min</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+            <span class="chip">Tue, Aug 19</span>
+            <span class="chip on">Wed, Aug 20</span>
+            <span class="chip">Thu, Aug 21</span>
+            <span class="chip">Fri, Aug 22</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;">
+            <div class="slot">9:00 AM</div><div class="slot sel">9:30 AM</div><div class="slot">10:00 AM</div><div class="slot">10:30 AM</div>
+            <div class="slot">11:00 AM</div><div class="slot off">11:30 AM</div><div class="slot">12:00 PM</div><div class="slot">2:00 PM</div>
+            <div class="slot">2:30 PM</div><div class="slot">3:00 PM</div><div class="slot">3:30 PM</div><div class="slot">4:00 PM</div>
+          </div>
+          <div class="gray small" style="margin-bottom:14px;">Times shown in your timezone <span style="color:var(--txt2);font-weight:600;">(EDT)</span></div>
+          <div class="box" style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;">
+            <div><div class="small gray">Wed, Aug 20 · 9:30 AM</div><div style="font-size:14px;font-weight:700;">$40.00</div></div>
+            <span class="btn-primary">Continue</span>
+          </div>
+        </div>
+        <div class="a11y" style="padding:0 20px 14px;">Same content as mobile, 4-col time grid inside the centered column · summary card + Continue inline (not sticky) · timezone note</div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 3 · MOBILE (auth in booking context) ============ -->
+    <div class="frame">
+      <h2>Screen 3 — Auth in booking context · Mobile</h2>
+      <div class="tag">conditional (anonymous guests only) · booking-context card anchors the screen ABOVE auth options · Google primary · magic-link email</div>
+      <div class="phone"><div class="inner">
+        <div class="bar">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span style="font-size:13px;font-weight:600;">Confirm booking</span>
+          <span style="width:16px;"></span>
+        </div>
+        <div style="padding:16px 12px;">
+          <!-- headline -->
+          <div style="font-size:18px;font-weight:700;line-height:1.3;">Almost there — confirm your booking</div>
+          <div class="gray small" style="margin:8px 0 14px;">Sign in or create an account to complete your Piano Lessons session with Queen and receive your join link.</div>
+
+          <!-- PROMINENT booking-context card — anchors the screen, ABOVE auth options -->
+          <div class="box" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar" style="width:44px;height:44px;border:none;"></div>
+              <div>
+                <div style="font-size:15px;font-weight:700;">Queen</div>
+                <div class="small gray">Piano Lessons · 30 min</div>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span class="gray small">When</span><span style="font-size:13px;font-weight:600;">Wed, Aug 20 · 3:00 PM</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;"><span class="gray small">Total</span><span style="font-size:15px;font-weight:700;">$40.00</span></div>
+            </div>
+          </div>
+
+          <!-- auth options — below the card -->
+          <div style="margin-top:16px;display:grid;gap:8px;">
+            <button class="btn-primary" style="height:44px;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span style="background:#4285F4;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;">G</span>
+              Continue with Google
+            </button>
+            <button class="btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Continue with email
+            </button>
+            <span class="btn-ghost-link">Already have an account? Log in</span>
+          </div>
+        </div>
+        <div class="a11y" style="padding:0 12px 12px;">Booking card renders BEFORE any auth button — guest sees exactly what they're completing first · Google = primary, auto-confirmed · email = magic link, no OTP · 44px+ buttons</div>
+      </div></div>
+    </div>
+
+    <!-- ============ SCREEN 3 · DESKTOP (auth in booking context) ============ -->
+    <div class="frame">
+      <h2>Screen 3 — Auth in booking context · Desktop</h2>
+      <div class="tag">centered column (~480px) · same order: headline → booking card → auth options</div>
+      <div class="desktop">
+        <div style="max-width:480px;margin:0 auto;padding:24px 20px;">
+          <div style="font-size:18px;font-weight:700;line-height:1.3;">Almost there — confirm your booking</div>
+          <div class="gray small" style="margin:8px 0 16px;">Sign in or create an account to complete your Piano Lessons session with Queen and receive your join link.</div>
+          <div class="box" style="padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar" style="width:48px;height:48px;border:none;"></div>
+              <div>
+                <div style="font-size:16px;font-weight:700;">Queen</div>
+                <div class="small gray">Piano Lessons · 30 min</div>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span class="gray small">When</span><span style="font-size:13px;font-weight:600;">Wed, Aug 20 · 3:00 PM</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;"><span class="gray small">Total</span><span style="font-size:16px;font-weight:700;">$40.00</span></div>
+            </div>
+          </div>
+          <div style="margin-top:18px;display:grid;gap:10px;">
+            <button class="btn-primary" style="height:44px;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span style="background:#4285F4;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;">G</span>
+              Continue with Google
+            </button>
+            <button class="btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Continue with email
+            </button>
+            <span class="btn-ghost-link">Already have an account? Log in</span>
+          </div>
+        </div>
+        <div class="a11y" style="padding:0 20px 14px;">Same vertical order as mobile · booking card prominent above auth options · Google auto-confirmed, email magic link</div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 4 · MOBILE — PAYMENT state ============ -->
+    <div class="frame">
+      <h2>Screen 4 — Payment · Mobile</h2>
+      <div class="tag">short reservation (10 min) on entry · Stripe Elements · Pay sticky · failure stays here</div>
+      <div class="phone"><div class="inner">
+        <div class="bar">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+          <span style="font-size:13px;font-weight:600;">Payment</span>
+          <span style="width:16px;"></span>
+        </div>
+        <div style="padding:14px 12px;">
+          <div class="box" style="padding:10px 12px;">
+            <div class="small gray">Queen · Piano Lessons</div>
+            <div class="small gray">Wed, Aug 20 · 3:00 PM</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+              <span class="small" style="color:var(--txt3);">10 min hold on this slot</span>
+              <span style="font-size:15px;font-weight:700;">$40.00</span>
+            </div>
+          </div>
+          <!-- Stripe Elements placeholder -->
+          <div class="box" style="margin-top:12px;padding:12px;border-style:dashed;">
+            <div class="small gray" style="margin-bottom:6px;">Apple Pay · Google Pay · Card</div>
+            <div style="height:110px;display:flex;align-items:center;justify-content:center;" class="small gray">[ Stripe Payment Element ]</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin:10px 2px 0;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="icon"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="small gray">Secure payment · Stripe · 10 min hold</span>
+          </div>
+        </div>
+        <div class="sticky" style="padding:10px 12px;"><span class="btn-primary" style="width:100%;">Pay $40.00</span></div>
+        <div class="a11y" style="padding:8px 12px 12px;">Reservation created on entry (10-min TTL, existing reserveSlot → reservation_expires_at) · failure keeps intent + error on screen · Apple Pay needs live-mode domain verification</div>
+      </div></div>
+    </div>
+
+    <!-- ============ SCREEN 4 · MOBILE — CONFIRMATION (in-place success) ============ -->
+    <div class="frame">
+      <h2>Screen 4b — Confirmation · Mobile <span style="font-size:10px;color:var(--txt3);">(same screen, in-place transition)</span></h2>
+      <div class="tag">on payment success — no new route, same screen swaps to success state</div>
+      <div class="phone"><div class="inner">
+        <div style="padding:20px 14px;">
+          <div style="font-size:20px;font-weight:700;text-align:center;">Your session is booked</div>
+          <div class="gray small" style="margin:6px 0 14px;text-align:center;">Your join link will be ready on your booking page before the session starts.</div>
+          <div class="box" style="padding:14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar" style="width:40px;height:40px;border:none;"></div>
+              <div>
+                <div style="font-size:14px;font-weight:700;">Queen · Piano Lessons</div>
+                <div class="small gray">Wed, Aug 20 · 3:00 PM · $40.00</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;"><span class="btn-primary" style="width:100%;">View your booking</span></div>
+        </div>
+        <div class="a11y" style="padding:0 12px 12px;">In-place success (no redirect) · join link lives on the booking page (existing JoinSection), not email · no email / wrong-email / save-details</div>
+      </div></div>
+    </div>
+
+    <!-- ============ SCREEN 4 · DESKTOP — PAYMENT ============ -->
+    <div class="frame">
+      <h2>Screen 4 — Payment · Desktop</h2>
+      <div class="tag">centered column (~480px) · Pay inline (not sticky)</div>
+      <div class="desktop">
+        <div style="max-width:480px;margin:0 auto;padding:20px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px;">Payment</div>
+          <div class="box" style="padding:10px 12px;">
+            <div class="small gray">Queen · Piano Lessons · Wed, Aug 20 · 3:00 PM</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+              <span class="small" style="color:var(--txt3);">10 min hold on this slot</span>
+              <span style="font-size:15px;font-weight:700;">$40.00</span>
+            </div>
+          </div>
+          <div class="box" style="margin-top:12px;padding:12px;border-style:dashed;">
+            <div class="small gray" style="margin-bottom:6px;">Apple Pay · Google Pay · Card</div>
+            <div style="height:110px;display:flex;align-items:center;justify-content:center;" class="small gray">[ Stripe Payment Element ]</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin:10px 0 14px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="icon"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="small gray">Secure payment · Stripe · 10 min hold</span>
+          </div>
+          <span class="btn-primary" style="width:100%;">Pay $40.00</span>
+        </div>
+        <div class="a11y" style="padding:0 20px 14px;">Same as mobile, centered column · Pay inline (compact, no sticky needed)</div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 4 · DESKTOP — CONFIRMATION ============ -->
+    <div class="frame">
+      <h2>Screen 4b — Confirmation · Desktop <span style="font-size:10px;color:var(--txt3);">(in-place)</span></h2>
+      <div class="tag">success state, same route</div>
+      <div class="desktop">
+        <div style="max-width:480px;margin:0 auto;padding:24px 20px;text-align:center;">
+          <div style="font-size:20px;font-weight:700;">Your session is booked</div>
+          <div class="gray small" style="margin:6px 0 16px;">Your join link will be ready on your booking page before the session starts.</div>
+          <div class="box" style="padding:14px;text-align:left;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar" style="width:40px;height:40px;border:none;"></div>
+              <div>
+                <div style="font-size:14px;font-weight:700;">Queen · Piano Lessons</div>
+                <div class="small gray">Wed, Aug 20 · 3:00 PM · $40.00</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;"><span class="btn-primary" style="width:100%;">View your booking</span></div>
+        </div>
+        <div class="a11y" style="padding:0 20px 14px;">In-place success · join link on the booking page, not email</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

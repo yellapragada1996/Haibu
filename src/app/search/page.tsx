@@ -41,9 +41,6 @@ export default async function SearchPage({
           and(
             eq(creatorProfiles.is_published, true),
             sql`"creator_profiles"."search_tsv" @@ plainto_tsquery('english', ${normalizedQuery})`,
-            ...(activeCategory
-              ? [eq(offerings.category, activeCategory)]
-              : []),
             eq(offerings.is_active, true),
             isNull(offerings.deleted_at),
           ),
@@ -73,6 +70,11 @@ export default async function SearchPage({
     pillCategories = categories.filter((c) => resultCategoryIds.has(c.slug));
   }
   const pills = [{ slug: "all", display_label: "All" }, ...pillCategories];
+  // Category filter is applied in JS (pills always reflect the full search
+  // results, not the narrowed set).
+  const visibleCreators = activeCategory
+    ? creators.filter((c) => c.categories.includes(activeCategory))
+    : creators;
 
   return (
     <PublicLayout>
@@ -98,7 +100,7 @@ export default async function SearchPage({
           ))}
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-2">
+        <h1 className="text-lg font-semibold text-white mb-2">
           {q ? `Search: "${q}"` : "Search creators"}
         </h1>
 
@@ -112,7 +114,7 @@ export default async function SearchPage({
 
         {creators.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4 mt-6">
-            {creators.map((c) => (
+            {visibleCreators.map((c) => (
               <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                 <CreatorCard
                   name={c.display_name}

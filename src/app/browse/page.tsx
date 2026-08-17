@@ -127,7 +127,7 @@ export default async function BrowsePage({
           ))}
         </div>
 
-        <h1 className="mb-6 text-2xl font-bold text-white">
+        <h1 className="mb-6 text-lg font-semibold text-white">
           {onlyAvailableToday ? "Available today" : "All creators"}
         </h1>
 

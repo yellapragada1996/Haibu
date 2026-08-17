@@ -130,7 +130,7 @@ export default async function CategoryPage({
           ))}
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-6">{label}</h1>
+        <h1 className="text-lg font-semibold text-white mb-6">{label}</h1>
 
         {creators.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">

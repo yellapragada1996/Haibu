@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -57,20 +57,34 @@ export default function LoginPage() {
     offeringId: string;
   } | null>(null);
   const router = useRouter();
-  // useSearchParams is hydration-safe — reading window.location.search in a
-  // useState initializer silently keeps the SSR default (e.g. "/dashboard")
-  // because hydration adopts the server's state.
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+  // Read ?redirect= after mount — reading window.location.search in a
+  // useState initializer keeps the SSR default ("/dashboard") because
+  // hydration adopts the server's state. The effect below runs after
+  // hydration and picks up the real value.
+  const [redirectTo, setRedirectTo] = useState("/dashboard");
   const supabase = createClient();
 
-  // Already logged in? Redirect immediately instead of showing the form.
+  // Resolve ?redirect= and handle already-logged-in visitors.
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      // ?redirect= is only readable client-side after hydration. Resolve it
+      // BEFORE checking the session so an already-logged-in visitor also
+      // lands back on the page they came from — not /dashboard.
+      const params = new URLSearchParams(window.location.search);
+      const r = params.get("redirect");
+      const safe =
+        r && r.startsWith("/") && !r.startsWith("//") ? r : "/dashboard";
+      if (safe !== "/dashboard") setRedirectTo(safe);
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session) router.replace(redirectTo);
+      if (cancelled) return;
+      if (session) {
+        router.replace(safe);
+        return;
+      }
       try {
         const raw = sessionStorage.getItem("pendingBooking");
         if (raw) setBooking(JSON.parse(raw));
@@ -78,10 +92,13 @@ export default function LoginPage() {
         /* ignore malformed storage */
       }
       // "Sign up" in the nav links to ?tab=signup — land on the signup tab.
-      if (new URLSearchParams(window.location.search).get("tab") === "signup") {
+      if (params.get("tab") === "signup") {
         setMode("signup");
       }
     })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

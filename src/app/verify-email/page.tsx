@@ -15,11 +15,15 @@ export default function VerifyEmailPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
-  const [redirectTarget] = useState(() => {
-    if (typeof window === "undefined") return "/dashboard";
+  // Reading ?redirect= in a useState initializer keeps the SSR default
+  // ("/dashboard") because hydration adopts the server's state — same bug
+  // class as /login. Resolve it after mount instead.
+  const [redirectTarget, setRedirectTarget] = useState("/dashboard");
+
+  useEffect(() => {
     const r = new URLSearchParams(window.location.search).get("redirect");
-    return r && r.startsWith("/") && !r.startsWith("//") ? r : "/dashboard";
-  });
+    if (r && r.startsWith("/") && !r.startsWith("//")) setRedirectTarget(r);
+  }, []);
 
   useEffect(() => {
     (async () => {

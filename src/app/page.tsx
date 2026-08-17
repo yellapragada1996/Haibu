@@ -148,7 +148,8 @@ export default async function HomePage() {
           ))}
         </div>
 
-        {/* Available today — 2 rows + View more */}
+        {/* Available today — hidden when no creator is bookable today */}
+        {availableToday.length > 0 && (
         <section className="mt-8">
           <div className="mb-3 flex items-baseline justify-between px-1">
             <h2 className="text-lg font-semibold text-white">
@@ -165,6 +166,7 @@ export default async function HomePage() {
             {availableToday.slice(0, ROWS).map(card)}
           </div>
         </section>
+        )}
 
         {/* Discover — 2 rows + View more */}
         <section className="mt-10">

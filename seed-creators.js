@@ -71,7 +71,10 @@ function bioFor(cats) {
     const id = uuid();
     const userId = uuid();
     const email = `seed-${c.slug}@haibu.test`;
-    const avatar = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(c.slug)}`;
+    // Real-looking portrait photos (randomuser.me): alternate men/women.
+    const avatar = `https://randomuser.me/api/portraits/${
+      c.i % 2 === 0 ? "women" : "men"
+    }/${(c.i % 2 === 0 ? Math.floor(c.i / 2) : Math.floor(c.i / 2)) % 100}.jpg`;
     // 1–3 category combo (weighted: mostly 2)
     const comboN = Math.random() < 0.3 ? 1 : Math.random() < 0.7 ? 2 : 3;
     const combo = pick(cats, comboN);

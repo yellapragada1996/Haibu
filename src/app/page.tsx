@@ -107,7 +107,7 @@ export default async function HomePage() {
 
         {/* Category filter pills — Trending (default) + categories */}
         <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
-          <Pill variant="active">Trending</Pill>
+          <Pill variant="active">All</Pill>
           {categories.map((c) => (
             <Link key={c.slug} href={`/browse/${c.slug}`}>
               <Pill variant="inactive">{c.display_label}</Pill>

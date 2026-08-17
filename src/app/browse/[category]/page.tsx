@@ -79,7 +79,7 @@ export default async function CategoryPage({
         <h1 className="text-2xl font-bold text-white mb-6">{label}</h1>
 
         {creators.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
             {creators.map((c) => (
               <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
                 <CreatorCard

@@ -65,7 +65,7 @@ export default async function SearchPage({
 
   return (
     <PublicLayout>
-      <main className="max-w-[1400px] mx-auto px-4 py-8">
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {pills.map((c) => (
             <Link key={c.slug} href={c.slug === "all" ? "/" : `/browse/${c.slug}`}>

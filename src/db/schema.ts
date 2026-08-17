@@ -124,6 +124,7 @@ export const creatorProfiles = pgTable(
       .references(() => users.id, { onDelete: "restrict" })
       .unique()
       .notNull(),
+    slug: text("slug").unique(),
     bio: text("bio"),
     category: text("category")
       .notNull()

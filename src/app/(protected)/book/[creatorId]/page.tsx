@@ -260,6 +260,25 @@ export default function BookPage() {
     setReservedSlot(null);
   };
 
+  // Auto-reserve the slot if ?slot= is present (from the public slot picker),
+  // so a guest lands directly on payment after authenticating — the selection
+  // carries through without re-picking. Runs once.
+  const autoReservedRef = useRef(false);
+  useEffect(() => {
+    if (slots.length === 0 || autoReservedRef.current || !selectedOffering) return;
+    const slotParam = new URLSearchParams(window.location.search).get("slot");
+    if (!slotParam) return;
+    const target = slots.find((s) => s.start_at === slotParam);
+    if (target) {
+      const d = new Date(target.start_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      setSelectedDate(key);
+      autoReservedRef.current = true;
+      void handleReserveSlot(target);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots, selectedOffering]);
+
   const fmtSlot = (s: TimeSlot) =>
     new Date(s.start_at).toLocaleTimeString("en-US", {
       hour: "numeric",

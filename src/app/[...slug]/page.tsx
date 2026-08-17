@@ -101,16 +101,8 @@ export default async function CreatorHandlePage({
     .from(reviews)
     .where(publicFilter);
 
-  const [sessionAgg] = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(bookings)
-    .where(
-      and(eq(bookings.creator_id, creator.id), eq(bookings.status, "completed")),
-    );
-
   const avgRating = Number(ratingAgg?.avg ?? 0);
   const reviewCount = Number(ratingAgg?.count ?? 0);
-  const sessionCount = Number(sessionAgg?.count ?? 0);
   const cheapest = offeringRows[0];
 
   return (
@@ -170,19 +162,16 @@ export default async function CreatorHandlePage({
           )}
         </div>
 
-        {/* Rating + sessions */}
-        <div className="mt-2 flex gap-4 text-sm text-text-secondary">
-          <span>
-            {reviewCount >= 3
-              ? `★ ${avgRating.toFixed(1)} (${reviewCount} reviews)`
-              : "New creator"}
-          </span>
-          <span>{sessionCount} sessions</span>
-          {cheapest && (
-            <span>
-              from ${(cheapest.price_cents / 100).toFixed(0)} ·{" "}
-              {cheapest.duration_minutes} min
+        {/* Meta: rating only when it exists (>=3 reviews for a meaningful
+            average); price anchor; no session count / "New creator" (v2). */}
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">
+          {reviewCount >= 3 && (
+            <span className="text-rating">
+              ★ {avgRating.toFixed(1)} ({reviewCount} reviews)
             </span>
+          )}
+          {cheapest && (
+            <span>sessions from ${(cheapest.price_cents / 100).toFixed(0)}</span>
           )}
         </div>
 

@@ -54,8 +54,8 @@
 2. **Avatar** — overlaps the banner's bottom edge (per profile spec), 64px mobile / 88px desktop, 3px `--bg` border.
 3. **Name + Share** — creator name (bold), and a **share icon button immediately beside the name** (icon-only ghost, `aria-label="Share profile"`). Share = `navigator.share()` on mobile, copy-link fallback on desktop; appends `?ref=...` attribution.
 4. **Category pills** — brand-red, max 3 + `+N` (see §2), directly under the name.
-5. **Rating + session count** — yellow stars + "128 sessions" (real aggregates).
-6. **Price / duration** — `from $25 · 30 min`, on its own line (never mixed into the pills).
+5. **Rating** — yellow stars + "(N reviews)", shown **only when it exists** (≥3 reviews for a meaningful average). No session count, no "New creator" (deferred to v2 — weak signals at low volume).
+6. **Price anchor** — `sessions from $25` (no duration — it varies per offering, and each offering shows its own).
 7. **Bio** — 2-line truncated excerpt.
 8. **"How it works" strip** — 3 SVG icons + labels: Pick a time → Pay securely → Join live. Light card, no emojis.
 9. **Offerings** — every offering shown (no truncation), each a card with: title, duration, price, and its own **"Book" primary button** (white pill, 44px+ target). The card row itself is NOT clickable.

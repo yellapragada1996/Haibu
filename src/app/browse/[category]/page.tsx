@@ -10,27 +10,8 @@ import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
-import { generateAvailableSlots } from "@/lib/availability";
+import { getAvailableTodayCreatorIds } from "@/lib/availability";
 
-// Does the creator have at least one open slot from now until end of today?
-async function hasSlotToday(
-  creatorId: string,
-  offeringIds: string[],
-): Promise<boolean> {
-  const now = new Date();
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
-  for (const offeringId of offeringIds) {
-    const slots = await generateAvailableSlots({
-      creator_id: creatorId,
-      offering_id: offeringId,
-      from: now,
-      to: endOfDay,
-    });
-    if (slots.length > 0) return true;
-  }
-  return false;
-}
 
 export default async function CategoryPage({
   params,
@@ -103,11 +84,8 @@ export default async function CategoryPage({
   const { available } = await searchParams;
   const onlyAvailableToday = available === "today";
   if (onlyAvailableToday) {
-    const filtered: (typeof creators)[number][] = [];
-    for (const c of creators) {
-      if (await hasSlotToday(c.id, c.offeringIds)) filtered.push(c);
-    }
-    creators = filtered;
+    const ids = await getAvailableTodayCreatorIds();
+    creators = creators.filter((c) => ids.has(c.id));
   }
 
   const supabase = await createClient();

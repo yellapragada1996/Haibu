@@ -14,27 +14,7 @@ import {
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
-import { generateAvailableSlots } from "@/lib/availability";
-
-// Does the creator have at least one open slot from now until end of today?
-async function hasSlotToday(
-  creatorId: string,
-  offeringIds: string[],
-): Promise<boolean> {
-  const now = new Date();
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
-  for (const offeringId of offeringIds) {
-    const slots = await generateAvailableSlots({
-      creator_id: creatorId,
-      offering_id: offeringId,
-      from: now,
-      to: endOfDay,
-    });
-    if (slots.length > 0) return true;
-  }
-  return false;
-}
+import { getAvailableTodayCreatorIds } from "@/lib/availability";
 
 // 2 rows × 5 on desktop (2 rows × 2 on mobile) — "View more" expands.
 const ROWS = 10;
@@ -97,11 +77,9 @@ async function getCreatorsWithOfferings() {
 
 export default async function HomePage() {
   const creators = await getCreatorsWithOfferings();
-  // "Available today" = only creators with at least one open slot today.
-  const availableToday: (typeof creators)[number][] = [];
-  for (const c of creators) {
-    if (await hasSlotToday(c.id, c.offeringIds)) availableToday.push(c);
-  }
+  // "Available today" = creators with a window covering today (+ lead time).
+  const availableTodayIds = await getAvailableTodayCreatorIds();
+  const availableToday = creators.filter((c) => availableTodayIds.has(c.id));
   const categories = await getCategories();
   const categoryLabels = categoriesToLabelMap(categories);
 

@@ -7,7 +7,7 @@ import {
   creatorProfiles,
   users,
 } from "@/db/schema";
-import { eq, and, inArray, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, inArray, gte, lte, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addMinutes } from "date-fns";
@@ -214,4 +214,28 @@ export async function generateAvailableSlots(params: {
   }
 
   return slots;
+}
+
+// Fast "available today" check — one SQL query returns creator ids whose
+// availability window covers today (in the creator's local timezone) and
+// extends at least min_lead_minutes past the current local time.
+export async function getAvailableTodayCreatorIds(
+  minLeadMinutes = 60,
+): Promise<Set<string>> {
+  const result = await db.execute(sql`
+    SELECT DISTINCT aw.creator_id AS id
+    FROM availability_windows aw
+    JOIN creator_profiles cp ON cp.id = aw.creator_id
+    JOIN users u ON u.id = cp.user_id
+    WHERE cp.is_published = true
+      AND aw.day_of_week = EXTRACT(DOW FROM NOW() AT TIME ZONE u.timezone)::int
+      AND aw.start_minute <=
+        (EXTRACT(HOUR FROM NOW() AT TIME ZONE u.timezone)::int * 60
+         + EXTRACT(MINUTE FROM NOW() AT TIME ZONE u.timezone)::int)
+      AND aw.end_minute >=
+        (EXTRACT(HOUR FROM NOW() AT TIME ZONE u.timezone)::int * 60
+         + EXTRACT(MINUTE FROM NOW() AT TIME ZONE u.timezone)::int) + ${minLeadMinutes}
+  `);
+  const rows = result.rows as unknown as { id: string }[];
+  return new Set(rows.map((r) => r.id));
 }

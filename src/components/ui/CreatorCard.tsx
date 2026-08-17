@@ -10,7 +10,7 @@ type CreatorCardProps = {
   categoryLabels?: Record<string, string>;
 };
 
-const MAX_CATEGORY_PILLS = 3;
+const MAX_CATEGORY_PILLS = 2;
 
 // Tall poster card (≈200×380, 3:4) — the atomic discovery unit.
 export function CreatorCard({

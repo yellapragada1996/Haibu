@@ -21,6 +21,14 @@ export async function markBookingPaid(bookingId: string, paymentIntentId: string
   } = await supabase.auth.getUser();
   if (!user) return { error: "unauthorized" };
 
+  // Source of truth: verify with Stripe that this payment actually SUCCEEDED.
+  // Never trust the client — this is what prevents confirming an unpaid or
+  // failed payment.
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+  if (pi.status !== "succeeded") {
+    return { error: "payment_not_succeeded" };
+  }
+
   const [booking] = await db
     .select()
     .from(bookings)

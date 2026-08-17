@@ -3,10 +3,61 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { bookings, offerings, creatorProfiles, blocks } from "@/db/schema";
+import { bookings, offerings, creatorProfiles, blocks, ledgerEntries } from "@/db/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
 import { addMinutes } from "date-fns";
+import { revalidatePath } from "next/cache";
+
+// Mark a reserved booking as PAID immediately after client-side
+// confirmPayment succeeds, so the booking page shows the confirmed UI
+// (join countdown + add-to-calendar) without waiting for the async Stripe
+// webhook. The webhook is idempotent — when it arrives and sees
+// status 'confirmed' it no-ops (no duplicate ledger, no refund).
+export async function markBookingPaid(bookingId: string, paymentIntentId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthorized" };
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.id, bookingId));
+  if (!booking || booking.fan_id !== user.id) return { error: "not_found" };
+  if (booking.status === "confirmed") return { ok: true };
+  if (booking.status !== "reserved") return { ok: true };
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(bookings)
+        .set({ status: "confirmed" })
+        .where(eq(bookings.id, bookingId));
+      await tx.insert(ledgerEntries).values({
+        booking_id: bookingId,
+        type: "charge",
+        amount_cents: booking.price_cents,
+        stripe_reference: paymentIntentId,
+      });
+      await tx.insert(ledgerEntries).values({
+        booking_id: bookingId,
+        type: "platform_fee",
+        amount_cents: booking.platform_fee_cents,
+        stripe_reference: paymentIntentId,
+      });
+    });
+  } catch (e: unknown) {
+    // Unique violation on (stripe_reference, type) = the webhook already
+    // recorded it — genuine idempotency, not a failure.
+    if ((e as { code?: string }).code === "23505") return { ok: true };
+    throw e;
+  }
+  revalidatePath(`/bookings/${bookingId}`);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
 
 export async function reserveSlot(offeringId: string, startAtIso: string) {
   const supabase = await createClient();

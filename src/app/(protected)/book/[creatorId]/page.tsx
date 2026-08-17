@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { reserveSlot } from "@/app/(protected)/actions/booking";
+import { reserveSlot, markBookingPaid } from "@/app/(protected)/actions/booking";
 import { loadStripe } from "@stripe/stripe-js";
 import { STRIPE_APPEARANCE } from "@/lib/stripe-theme";
 import {
@@ -65,7 +65,7 @@ function CheckoutForm({
       return;
     }
 
-    const { error: stripeError } = await stripe.confirmPayment({
+    const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
       elements,
       clientSecret,
       confirmParams: {
@@ -83,6 +83,17 @@ function CheckoutForm({
         sessionStorage.removeItem("pendingBooking");
       } catch {
         /* ignore */
+      }
+      // Mark the booking confirmed immediately (reserved → confirmed + ledger)
+      // so the booking page shows the confirmed UI (join + add-to-calendar)
+      // without waiting for the async Stripe webhook. If this fails, the
+      // webhook still handles it moments later.
+      if (paymentIntent?.id) {
+        try {
+          await markBookingPaid(bookingId, paymentIntent.id);
+        } catch {
+          /* webhook is the backstop */
+        }
       }
       router.push("/bookings/" + bookingId);
     }

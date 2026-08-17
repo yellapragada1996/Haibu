@@ -16,6 +16,7 @@ import { JoinSection } from "./JoinSection";
 import { ReviewSection } from "./ReviewSection";
 import { ReportSection } from "./ReportSection";
 import { BlockSection } from "./BlockSection";
+import { AddToCalendarButton } from "@/components/AddToCalendarButton";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
@@ -43,6 +44,10 @@ export default async function BookingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Reject non-UUID ids cleanly (invalid UUIDs would 500 at the DB).
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    notFound();
+  }
   const supabase = await createClient();
   const {
     data: { user },
@@ -73,6 +78,14 @@ export default async function BookingPage({
     .innerJoin(fanUser, eq(fanUser.id, bookingsTable.fan_id))
     .innerJoin(offerings, eq(offerings.id, bookingsTable.offering_id))
     .where(eq(bookingsTable.id, id));
+
+  // Viewer's timezone — session times render in the viewer's local zone,
+  // not the server's (same fix as dashboard / creator bookings).
+  const [viewerTz] = await db
+    .select({ tz: users.timezone })
+    .from(users)
+    .where(eq(users.id, user.id));
+  const tz = viewerTz?.tz ?? undefined;
 
   if (!booking || (booking.fan_id !== user.id && booking.creator_user_id !== user.id)) notFound();
 
@@ -110,9 +123,18 @@ export default async function BookingPage({
     );
 
   const fmtDate = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      ...(tz ? { timeZone: tz } : {}),
+    });
   const fmtTime = (d: Date) =>
-    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      ...(tz ? { timeZone: tz } : {}),
+    });
 
   const startDate = booking.start_at ? new Date(booking.start_at) : null;
   const endDate = booking.end_at ? new Date(booking.end_at) : null;
@@ -126,7 +148,15 @@ export default async function BookingPage({
 
   return (
     <div className="mx-auto max-w-lg px-6 py-12">
-      <h1 className="text-2xl font-semibold text-white">Your Session</h1>
+      <h1 className="text-2xl font-semibold text-white">
+        {booking.status === "completed"
+          ? "Completed session"
+          : booking.status === "confirmed"
+            ? booking.start_at! > new Date()
+              ? "Upcoming session"
+              : "Session in progress"
+            : "Your Session"}
+      </h1>
 
       <Card className="mt-6 space-y-3 p-6">
         {/* Role-aware "who am I meeting" block: fans see the creator,
@@ -155,11 +185,26 @@ export default async function BookingPage({
         </div>
 
         {booking.status === "confirmed" && (
-          <JoinSection
-            bookingId={booking.id}
-            startAt={booking.start_at!.toISOString()}
-            endAt={booking.end_at!.toISOString()}
-          />
+          <>
+            <JoinSection
+              bookingId={booking.id}
+              startAt={booking.start_at!.toISOString()}
+              endAt={booking.end_at!.toISOString()}
+            />
+            <p className="pt-2 text-xs text-text-secondary">
+              Your join link appears here 5 minutes before the session starts.
+            </p>
+            {booking.start_at! > new Date() && (
+              <div className="pt-3">
+                <AddToCalendarButton
+                  title={`${booking.offering_title} with ${booking.creator_name}`}
+                  startAt={booking.start_at!.toISOString()}
+                  endAt={booking.end_at!.toISOString()}
+                  description={`1:1 live video session with ${booking.creator_name} on Haibu.`}
+                />
+              </div>
+            )}
+          </>
         )}
 
         {booking.status === "confirmed" && booking.start_at! > new Date() && (
@@ -190,17 +235,20 @@ export default async function BookingPage({
         </Card>
       )}
 
-      <div className="mt-6">
-        <p className="mb-2 text-xs font-medium text-text-tertiary">Safety</p>
-        <div className="flex flex-wrap items-center gap-4">
-          <ReportSection bookingId={booking.id} targetName={otherName} />
-          <BlockSection
-            bookingId={booking.id}
-            targetName={otherName}
-            alreadyBlocked={!!existingBlock}
-          />
+      {/* Report/Block only AFTER the session — nothing to report before it. */}
+      {booking.status === "completed" && (
+        <div className="mt-6">
+          <p className="mb-2 text-xs font-medium text-text-tertiary">Need help?</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <ReportSection bookingId={booking.id} targetName={otherName} />
+            <BlockSection
+              bookingId={booking.id}
+              targetName={otherName}
+              alreadyBlocked={!!existingBlock}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

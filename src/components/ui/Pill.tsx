@@ -12,7 +12,7 @@ export function Pill({
 }: PillProps) {
   return (
     <button
-      className={`inline-flex items-center rounded-pill px-5 py-2.5 text-[15px] font-medium transition-colors ${
+      className={`inline-flex items-center rounded-pill px-3.5 py-[8px] text-xs font-medium transition-colors ${
         variant === "active"
           ? "bg-primary text-on-primary"
           : "bg-bg-card-hover text-text-secondary hover:text-white"

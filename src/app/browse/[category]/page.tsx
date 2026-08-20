@@ -193,7 +193,7 @@ export default async function CategoryPage({
               No creators here yet — check back soon.
             </p>
             <div className="mt-4">
-              <ButtonLink href="/creator/profile" variant="ghost">
+              <ButtonLink href="/creator" variant="ghost">
                 Become a Creator
               </ButtonLink>
             </div>

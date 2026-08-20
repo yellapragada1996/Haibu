@@ -113,7 +113,7 @@ export function NavBar({
                 </Link>
               )}
               {isLoggedIn && !isCreator && (
-                <ButtonLink href="/creator/profile" size="small">
+                <ButtonLink href="/creator" size="small">
                   Become a Creator
                 </ButtonLink>
               )}

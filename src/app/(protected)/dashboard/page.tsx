@@ -120,7 +120,7 @@ export default async function DashboardPage() {
               </p>
             </div>
             <ButtonLink
-              href="/creator/profile"
+              href="/creator"
               size="small"
               className="w-full sm:w-auto"
             >

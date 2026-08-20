@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCategories } from "@/lib/categories";
 import { stripe } from "@/lib/stripe";
+import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
+import { STRIPE_EXPRESS_COUNTRY_CODES } from "@/lib/stripe-countries";
 import { fromZonedTime } from "date-fns-tz";
 import Stripe from "stripe";
 
@@ -21,6 +23,7 @@ export async function upsertCreatorProfile(formData: FormData) {
   if (!user) redirect("/login");
 
   const bio = formData.get("bio") as string | null;
+  const displayName = (formData.get("display_name") as string | null)?.trim() ?? null;
 
   const existing = await db
     .select({ id: creatorProfiles.id })
@@ -45,10 +48,12 @@ export async function upsertCreatorProfile(formData: FormData) {
   }
 
   // Keep the users.is_creator flag in sync — the NavBar and dashboard read it.
-  await db
-    .update(users)
-    .set({ is_creator: true })
-    .where(eq(users.id, user.id));
+  // Also persist the display name (part of the public profile).
+  const userUpdates: Record<string, unknown> = { is_creator: true };
+  if (displayName && displayName.length >= 2) {
+    userUpdates.display_name = displayName;
+  }
+  await db.update(users).set(userUpdates).where(eq(users.id, user.id));
 
   revalidatePath("/creator/profile");
   return { success: true };
@@ -290,7 +295,7 @@ export async function startStripeOnboarding(country: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  if (!country || !["US", "CA"].includes(country)) {
+  if (!country || !STRIPE_EXPRESS_COUNTRY_CODES.includes(country)) {
     return { error: "Invalid country" };
   }
 
@@ -312,6 +317,8 @@ export async function startStripeOnboarding(country: string) {
       email: user.email ?? undefined,
       capabilities: {
         transfers: { requested: true },
+        // US requires card_payments to be requested alongside transfers
+        // (Stripe rejects `transfers` alone for US accounts).
         ...(country === "US" ? { card_payments: { requested: true } } : {}),
       },
     });
@@ -325,8 +332,8 @@ export async function startStripeOnboarding(country: string) {
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const accountLink = await stripe.accountLinks.create({
     account: stripeAccountId,
-    refresh_url: `${origin}/creator/profile?onboarding=refresh`,
-    return_url: `${origin}/creator/profile?onboarding=return`,
+    refresh_url: `${origin}/creator?onboarding=refresh`,
+    return_url: `${origin}/creator?onboarding=return`,
     type: "account_onboarding",
   });
 
@@ -334,30 +341,52 @@ export async function startStripeOnboarding(country: string) {
 }
 
 export async function checkOnboardingStatus(): Promise<{
-  charges_enabled: boolean;
   payouts_enabled: boolean;
+  charges_enabled: boolean;
+  stripe_onboarding_complete: boolean;
+  identity_verified: boolean;
+  currently_due: string[];
+  eventually_due: string[];
 }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
   const [profile] = await db
-    .select()
+    .select({ id: creatorProfiles.id })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.user_id, user.id));
-  if (!profile?.stripe_account_id) {
-    return { charges_enabled: false, payouts_enabled: false };
+  if (!profile) {
+    return {
+      payouts_enabled: false,
+      charges_enabled: false,
+      stripe_onboarding_complete: false,
+      identity_verified: false,
+      currently_due: [],
+      eventually_due: [],
+    };
   }
 
-  const account = await stripe.accounts.retrieve(profile.stripe_account_id);
+  // Reconcile both phases against Stripe directly. Express account.updated
+  // delivery has proven unreliable, so the direct retrieve is the source of
+  // truth for both flags.
+  const result = await reconcileCreatorOnboarding(profile.id);
+  if (result.connect) {
+    revalidatePath("/creator");
+  }
+
   return {
-    charges_enabled: account.charges_enabled === true,
-    payouts_enabled: account.payouts_enabled === true,
+    payouts_enabled: result.connect?.payouts_enabled ?? false,
+    charges_enabled: result.connect?.charges_enabled ?? false,
+    stripe_onboarding_complete: result.stripeOnboardingComplete,
+    identity_verified: result.identityVerified,
+    currently_due: result.connect?.requirements?.currently_due ?? [],
+    eventually_due: result.connect?.requirements?.eventually_due ?? [],
   };
 }
 
 // ---------------------------------------------------------------------------
-// Stripe Identity
+// Identity verification (second phase of Connect onboarding)
 // ---------------------------------------------------------------------------
 
 export async function startIdentityVerification() {
@@ -370,20 +399,27 @@ export async function startIdentityVerification() {
     .from(creatorProfiles)
     .where(eq(creatorProfiles.user_id, user.id));
   if (!profile) return { error: "Create a profile first" };
+  if (!profile.stripe_account_id) {
+    return { error: "Connect Stripe first" };
+  }
   if (!profile.stripe_onboarding_complete) {
     return { error: "Complete Stripe onboarding first" };
   }
 
+  // This is the identity phase of Connect onboarding, NOT the separate Stripe
+  // Identity product. Express accounts only accept `account_onboarding` links
+  // (`account_update` is rejected for Stripe-hosted onboarding accounts). Since
+  // business/bank is already done, this link resumes at the remaining
+  // identity-verification step, so the creator still does one more visit.
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const verificationSession = await stripe.identity.verificationSessions.create({
-    type: "document",
-    metadata: {
-      creator_profile_id: profile.id,
-    },
-    return_url: `${origin}/creator/profile?identity=done`,
+  const accountLink = await stripe.accountLinks.create({
+    account: profile.stripe_account_id,
+    refresh_url: `${origin}/creator?onboarding=refresh`,
+    return_url: `${origin}/creator?onboarding=return`,
+    type: "account_onboarding",
   });
 
-  return { url: verificationSession.url };
+  return { url: accountLink.url };
 }
 
 // ---------------------------------------------------------------------------
@@ -437,6 +473,7 @@ export async function setPublishedStatus(shouldPublish: boolean) {
     .set({ is_published: shouldPublish })
     .where(eq(creatorProfiles.id, profile.id));
 
+  revalidatePath("/creator");
   revalidatePath("/creator/profile");
   return { success: true };
 }

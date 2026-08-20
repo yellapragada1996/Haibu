@@ -170,7 +170,7 @@ export default async function HomePage() {
           <p className="mt-2 text-sm text-text-secondary">
             Book live sessions, grow your audience, get paid.
           </p>
-          <ButtonLink href="/creator/profile" className="mt-5">
+          <ButtonLink href="/creator" className="mt-5">
             Become a Creator
           </ButtonLink>
         </section>
@@ -186,7 +186,7 @@ export default async function HomePage() {
             <Link href="/browse/casual_talk" className="hover:text-white">
               Browse
             </Link>
-            <Link href="/creator/profile" className="hover:text-white">
+            <Link href="/creator" className="hover:text-white">
               Become a Creator
             </Link>
           </div>

@@ -129,7 +129,7 @@ async function main() {
     }
 
     // ---------- 6. suspend (with reason → audit) ----------
-    await admin.goto(`${BASE}/admin/users`, { waitUntil: "networkidle" });
+    await admin.goto(`${BASE}/admin/users?q=fan@haibu.test`, { waitUntil: "networkidle" });
     const fanRow = admin.locator("tr").filter({ hasText: "fan@haibu.test" });
     await fanRow.getByRole("button", { name: "Suspend" }).click();
     await admin.getByPlaceholder("Required reason").fill("test suspend reason");

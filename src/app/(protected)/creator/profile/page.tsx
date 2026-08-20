@@ -28,10 +28,6 @@ export default async function CreatorProfilePage() {
         <ProfileForm
           existingBio={profile?.bio ?? ""}
           hasProfile={!!profile}
-          stripeAccountId={profile?.stripe_account_id ?? null}
-          stripeOnboardingComplete={profile?.stripe_onboarding_complete ?? false}
-          identityVerified={profile?.identity_verified ?? false}
-          isPublished={profile?.is_published ?? false}
           avatarUrl={userRow?.avatar_url ?? null}
           bannerUrl={profile?.banner_url ?? null}
           displayName={userRow?.display_name ?? user.email ?? ""}

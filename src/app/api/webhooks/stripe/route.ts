@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { creatorProfiles, bookings, ledgerEntries } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
+import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
 import Stripe from "stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
 
@@ -31,11 +32,6 @@ export async function POST(request: Request) {
       case "account.updated":
         await handleAccountUpdated(event);
         break;
-      case "identity.verification_session.verified":
-        await handleIdentityVerified(event);
-        break;
-      case "identity.verification_session.requires_input":
-        break;
       case "payment_intent.succeeded":
         await handlePaymentIntentSucceeded(event);
         break;
@@ -62,27 +58,15 @@ export async function POST(request: Request) {
 async function handleAccountUpdated(event: Stripe.Event) {
   const account = event.data.object as Stripe.Account;
   const [profile] = await db
-    .select()
+    .select({ id: creatorProfiles.id })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.stripe_account_id, account.id));
   if (!profile) return;
 
-  const wasComplete = profile.stripe_onboarding_complete;
-  const isNowCapable = account.charges_enabled === true && account.payouts_enabled === true;
-
-  if (isNowCapable && !wasComplete) {
-    await db.update(creatorProfiles).set({ stripe_onboarding_complete: true }).where(eq(creatorProfiles.id, profile.id));
-  }
-  if (!isNowCapable && wasComplete) {
-    await db.update(creatorProfiles).set({ stripe_onboarding_complete: false, is_published: false }).where(eq(creatorProfiles.id, profile.id));
-  }
-}
-
-async function handleIdentityVerified(event: Stripe.Event) {
-  const session = event.data.object as Stripe.Identity.VerificationSession;
-  const cpId = session.metadata?.creator_profile_id;
-  if (!cpId) return;
-  await db.update(creatorProfiles).set({ identity_verified: true }).where(eq(creatorProfiles.id, cpId));
+  // Reconcile both onboarding phases (business/bank + identity) from the
+  // account's requirements. This is the same logic the page load uses, so
+  // webhook and page never disagree.
+  await reconcileCreatorOnboarding(profile.id);
 }
 
 // ---------------------------------------------------------------------------

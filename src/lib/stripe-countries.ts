@@ -1,5 +1,5 @@
 // Countries supported by Stripe Express hosted onboarding. Shared by the
-// GoLiveCard dropdown (client) and startStripeOnboarding validation (server)
+// SetupWizard dropdown (client) and startStripeOnboarding validation (server)
 // so the two can never drift apart.
 
 export const STRIPE_EXPRESS_COUNTRIES: { value: string; label: string }[] = [

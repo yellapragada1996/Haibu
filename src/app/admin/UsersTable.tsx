@@ -90,7 +90,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
                 ? "admin"
                 : r.is_creator
                   ? "creator"
-                  : "fan";
+                  : "guest";
               return (
                 <tr key={r.id}>
                   <td className="px-3 py-2 text-white">{r.display_name || "—"}</td>

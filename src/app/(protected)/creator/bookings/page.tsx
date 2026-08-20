@@ -109,7 +109,7 @@ export default async function CreatorBookingsPage() {
       <section>
         <h2 className="mb-3 text-lg font-semibold text-white">Upcoming</h2>
         {incoming.length === 0 ? (
-          <p className="text-sm text-text-secondary">No upcoming bookings with fans yet.</p>
+          <p className="text-sm text-text-secondary">No upcoming bookings with guests yet.</p>
         ) : (
           <div className="flex flex-col gap-3">
             {incoming.map((b) => (

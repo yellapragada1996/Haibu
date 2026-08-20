@@ -95,7 +95,7 @@ export default async function AdminUsersPage({
           { label: "All", value: "" },
           { label: "Admins", value: "admin" },
           { label: "Creators", value: "creator" },
-          { label: "Fans", value: "fan" },
+          { label: "Guests", value: "fan" },
         ]}
       />
       {appUsers.length === 0 ? (

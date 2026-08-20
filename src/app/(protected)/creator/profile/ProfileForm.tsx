@@ -14,12 +14,18 @@ export function ProfileForm({
   avatarUrl,
   bannerUrl,
   displayName,
+  formId,
+  hideSubmit,
+  onComplete,
 }: {
   existingBio: string;
   hasProfile: boolean;
   avatarUrl: string | null;
   bannerUrl: string | null;
   displayName: string;
+  formId?: string;
+  hideSubmit?: boolean;
+  onComplete?: () => void;
 }) {
   const router = useRouter();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
@@ -60,7 +66,9 @@ export function ProfileForm({
       setStagedAvatar(null);
       setStagedBanner(null);
       setSaveState("saved");
-      if (hasProfile) {
+      if (onComplete) {
+        onComplete();
+      } else if (hasProfile) {
         router.refresh();
       } else {
         // First-time creation → drop the new creator onto the "Go live" hub.
@@ -70,7 +78,7 @@ export function ProfileForm({
   };
 
   return (
-    <form onSubmit={handleSave} className="space-y-4">
+    <form onSubmit={handleSave} id={formId} className="space-y-4">
       <div>
         <label className="mb-1 block text-sm font-medium text-text-secondary">
           Display name
@@ -113,22 +121,24 @@ export function ProfileForm({
           name="bio"
           defaultValue={existingBio}
           rows={4}
-          placeholder="Tell fans about yourself and your sessions..."
+          placeholder="Tell guests about yourself and your sessions..."
           className="w-full bg-bg-base border border-border-subtle outline-none rounded-input px-4 py-3 text-sm text-white placeholder-text-secondary transition-colors focus:border-primary resize-none"
         />
       </div>
 
       {error && <p className="text-sm text-error">{error}</p>}
 
-      <Button type="submit" disabled={saveState !== "idle"}>
-        {saveState === "saving"
-          ? "Updating..."
-          : saveState === "saved"
-            ? "Updated ✓"
-            : hasProfile
-              ? "Update profile"
-              : "Create profile"}
-      </Button>
+      {!hideSubmit && (
+        <Button type="submit" disabled={saveState !== "idle"}>
+          {saveState === "saving"
+            ? "Updating..."
+            : saveState === "saved"
+              ? "Updated ✓"
+              : hasProfile
+                ? "Update profile"
+                : "Create profile"}
+        </Button>
+      )}
     </form>
   );
 }

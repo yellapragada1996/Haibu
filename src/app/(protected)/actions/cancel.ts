@@ -57,7 +57,7 @@ export async function cancelBooking(
 
   // Auth gate
   if (actor === "fan" && user.id !== booking.fan_id) {
-    return { error: "Only the fan can cancel this booking" };
+    return { error: "Only the guest can cancel this booking" };
   }
   if (actor === "creator" && user.id !== booking.creator_user_id) {
     return { error: "Only the creator can cancel this booking" };
@@ -107,7 +107,7 @@ export async function cancelBooking(
       status: newStatus as typeof booking.status,
       cancelled_by: actor,
       cancel_reason: actor === "fan"
-        ? `fan cancelled (${Math.round(refundPercent * 100)}% refund)`
+        ? `guest cancelled (${Math.round(refundPercent * 100)}% refund)`
         : "creator cancelled",
       ...(payoutEligibleAt ? { payout_eligible_at: payoutEligibleAt } : {}),
     })

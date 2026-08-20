@@ -35,11 +35,19 @@ export function OfferingsList({
   profileId,
   profileCategory,
   categories,
+  createFormId,
+  hideCreateSubmit,
+  hideCreateForm,
+  onCreated,
 }: {
   offerings: Offering[];
   profileId: string;
   profileCategory: string;
   categories: CategoryOption[];
+  createFormId?: string;
+  hideCreateSubmit?: boolean;
+  hideCreateForm?: boolean;
+  onCreated?: () => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -122,10 +130,13 @@ export function OfferingsList({
         </Card>
       ))}
 
-      {!editingId && (
+      {!editingId && !hideCreateForm && (
         <CreateOfferingForm
           defaultCategory={profileCategory}
           categories={categories}
+          formId={createFormId}
+          hideSubmit={hideCreateSubmit}
+          onCreated={onCreated}
         />
       )}
 
@@ -143,9 +154,15 @@ export function OfferingsList({
 function CreateOfferingForm({
   defaultCategory,
   categories,
+  formId,
+  hideSubmit,
+  onCreated,
 }: {
   defaultCategory: string;
   categories: CategoryOption[];
+  formId?: string;
+  hideSubmit?: boolean;
+  onCreated?: () => void;
 }) {
   const [state, action, pending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
@@ -154,8 +171,15 @@ function CreateOfferingForm({
     null,
   );
 
+  useEffect(() => {
+    if (state && typeof state === "object" && "success" in state) {
+      onCreated?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} id={formId} className="space-y-4">
       <h3 className="font-medium text-white">New Offering</h3>
 
       <Input
@@ -213,9 +237,11 @@ function CreateOfferingForm({
         <p className="text-sm text-error">{state.error}</p>
       )}
 
-      <Button type="submit" disabled={pending} size="small">
-        Create offering
-      </Button>
+      {!hideSubmit && (
+        <Button type="submit" disabled={pending} size="small">
+          Create offering
+        </Button>
+      )}
     </form>
   );
 }

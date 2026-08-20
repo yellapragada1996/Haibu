@@ -56,6 +56,7 @@ export async function upsertCreatorProfile(formData: FormData) {
   await db.update(users).set(userUpdates).where(eq(users.id, user.id));
 
   revalidatePath("/creator/profile");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -98,6 +99,61 @@ export async function createOffering(formData: FormData) {
   });
 
   revalidatePath("/creator/offerings");
+  revalidatePath("/creator");
+  return { success: true };
+}
+
+export async function createOfferings(
+  items: {
+    title: string;
+    category: string;
+    duration_minutes: number;
+    price_dollars: number;
+  }[],
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const [profile] = await db
+    .select({ id: creatorProfiles.id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile) return { error: "Create a profile first" };
+
+  const categorySlugs = (await getCategories()).map((c) => c.slug);
+
+  const rows: {
+    creator_id: string;
+    title: string;
+    category: string;
+    duration_minutes: number;
+    price_cents: number;
+  }[] = [];
+
+  for (const item of items) {
+    const title = item.title?.trim();
+    if (!title) return { error: "Title required" };
+    if (!categorySlugs.includes(item.category)) return { error: "Invalid category" };
+    if (![15, 30, 45, 60].includes(item.duration_minutes)) return { error: "Invalid duration" };
+    if (isNaN(item.price_dollars) || item.price_dollars < 5 || item.price_dollars > 500) {
+      return { error: "Price must be between $5.00 and $500.00" };
+    }
+    rows.push({
+      creator_id: profile.id,
+      title,
+      category: item.category,
+      duration_minutes: item.duration_minutes,
+      price_cents: Math.round(item.price_dollars * 100),
+    });
+  }
+
+  if (rows.length > 0) {
+    await db.insert(offerings).values(rows);
+  }
+
+  revalidatePath("/creator/offerings");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -119,6 +175,7 @@ export async function updateOffering(id: string, formData: FormData) {
 
   await db.update(offerings).set(updates).where(eq(offerings.id, id));
   revalidatePath("/creator/offerings");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -133,6 +190,7 @@ export async function deactivateOffering(id: string) {
     .where(eq(offerings.id, id));
 
   revalidatePath("/creator/offerings");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -147,6 +205,7 @@ export async function reactivateOffering(id: string) {
     .where(eq(offerings.id, id));
 
   revalidatePath("/creator/offerings");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -174,6 +233,7 @@ export async function deleteOffering(id: string) {
   }
 
   revalidatePath("/creator/offerings");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -279,6 +339,7 @@ export async function saveAvailability(
   });
 
   revalidatePath("/creator/availability");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -332,8 +393,8 @@ export async function startStripeOnboarding(country: string) {
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const accountLink = await stripe.accountLinks.create({
     account: stripeAccountId,
-    refresh_url: `${origin}/creator?onboarding=refresh`,
-    return_url: `${origin}/creator?onboarding=return`,
+    refresh_url: `${origin}/creator?step=4`,
+    return_url: `${origin}/creator?step=5`,
     type: "account_onboarding",
   });
 
@@ -414,8 +475,8 @@ export async function startIdentityVerification() {
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const accountLink = await stripe.accountLinks.create({
     account: profile.stripe_account_id,
-    refresh_url: `${origin}/creator?onboarding=refresh`,
-    return_url: `${origin}/creator?onboarding=return`,
+    refresh_url: `${origin}/creator?step=5`,
+    return_url: `${origin}/creator?step=6`,
     type: "account_onboarding",
   });
 
@@ -475,6 +536,7 @@ export async function setPublishedStatus(shouldPublish: boolean) {
 
   revalidatePath("/creator");
   revalidatePath("/creator/profile");
+  revalidatePath("/creator");
   return { success: true };
 }
 
@@ -508,5 +570,6 @@ export async function removeBanner() {
     .where(eq(creatorProfiles.id, profile.id));
 
   revalidatePath("/creator/profile");
+  revalidatePath("/creator");
   return { success: true };
 }

@@ -142,7 +142,7 @@ export default async function AdminOverviewPage() {
         />
         <Kpi
           label="Booked sessions"
-          title="Confirmed, completed, or fan no-show bookings"
+          title="Confirmed, completed, or guest no-show bookings"
           value={String(Number(settledBookings?.n ?? 0))}
         />
         <Kpi
@@ -152,7 +152,7 @@ export default async function AdminOverviewPage() {
         />
         <Kpi
           label="Refunds issued"
-          title="Total refunded to fans"
+          title="Total refunded to guests"
           value={money(Number(refunds?.n ?? 0))}
         />
       </div>

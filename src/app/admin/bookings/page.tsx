@@ -99,7 +99,7 @@ export default async function AdminBookingsPage({
           { label: "Confirmed", value: "confirmed" },
           { label: "Completed", value: "completed" },
           { label: "Reserved", value: "reserved" },
-          { label: "No-show fan", value: "no_show_fan" },
+          { label: "No-show guest", value: "no_show_fan" },
           { label: "Cancelled", value: "cancelled" },
         ]}
       />

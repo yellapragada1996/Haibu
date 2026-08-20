@@ -181,7 +181,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
       >
         <p className="text-sm text-text-secondary">
           {target?.offering} · {target?.fan} → {target?.creator}. This issues a
-          full refund to the fan and cannot be undone.
+          full refund to the guest and cannot be undone.
         </p>
         <Textarea
           className="mt-3"
@@ -212,8 +212,8 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
       >
         <p className="text-sm text-text-secondary">
           {overrideTarget?.offering} · {overrideTarget?.fan} →{" "}
-          {overrideTarget?.creator}. This booking is marked no_show_fan (fan did
-          not join).
+          {overrideTarget?.creator}. This booking is marked no_show_fan (guest
+          did not join).
         </p>
         <div className="mt-3 flex flex-col gap-2 text-sm text-white">
           <label className="flex items-center gap-2">
@@ -232,7 +232,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
               checked={overrideChoice === "refund"}
               onChange={() => setOverrideChoice("refund")}
             />
-            Refund fan (full)
+            Refund guest (full)
           </label>
         </div>
         <Textarea

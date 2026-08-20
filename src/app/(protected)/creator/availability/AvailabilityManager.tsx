@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { saveAvailability } from "../actions";
 import { Button } from "@/components/ui/Button";
@@ -37,17 +43,24 @@ function fmtDate(iso: string) {
   });
 }
 
-export function AvailabilityManager({
-  windows,
-  blocks,
-  overrides,
-  timezone,
-}: {
-  windows: { day_of_week: number; start_minute: number; end_minute: number }[];
-  blocks: { id: string; start_at: string; end_at: string }[];
-  overrides: { id: string; date: string; start_minute: number; end_minute: number }[];
-  timezone: string;
-}) {
+export type AvailabilityManagerHandle = {
+  save: () => Promise<void>;
+};
+
+export const AvailabilityManager = forwardRef<
+  AvailabilityManagerHandle,
+  {
+    windows: { day_of_week: number; start_minute: number; end_minute: number }[];
+    blocks: { id: string; start_at: string; end_at: string }[];
+    overrides: { id: string; date: string; start_minute: number; end_minute: number }[];
+    timezone: string;
+    hideSubmit?: boolean;
+    onSaved?: () => void;
+  }
+>(function AvailabilityManager(
+  { windows, blocks, overrides, timezone, hideSubmit, onSaved },
+  ref,
+) {
   const router = useRouter();
   const [days, setDays] = useState<DayState[]>(() => {
     const initial: DayState[] = Array.from({ length: 7 }, () => ({
@@ -222,9 +235,15 @@ export function AvailabilityManager({
       setSaveState("idle");
     } else {
       setSaveState("saved");
+      onSaved?.();
       router.refresh();
     }
   };
+
+  // Expose save() so a parent (the setup wizard) can drive the footer button.
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useImperativeHandle(ref, () => ({ save: () => handleSaveRef.current() }), []);
 
   // Combined specific-dates list, chronologically sorted
   const blockedBy = (date: string) =>
@@ -273,7 +292,7 @@ export function AvailabilityManager({
       {!hasAnyWindows && (
         <Card className="space-y-3">
           <p className="text-sm text-text-secondary">
-            Set your weekly hours so fans know when to book you.
+            Set your weekly hours so guests know when to book you.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="small" variant="secondary" onClick={() => applyPreset("weekdays")}>
@@ -542,16 +561,18 @@ export function AvailabilityManager({
 
       {error && <p className="text-sm text-error">{error}</p>}
 
-      <Button onClick={handleSave} disabled={saveState !== "idle"}>
-        {saveState === "saving"
-          ? "Saving..."
-          : saveState === "saved"
-            ? "Saved ✓"
-            : "Save availability"}
-      </Button>
+      {!hideSubmit && (
+        <Button onClick={handleSave} disabled={saveState !== "idle"}>
+          {saveState === "saving"
+            ? "Saving..."
+            : saveState === "saved"
+              ? "Saved ✓"
+              : "Save availability"}
+        </Button>
+      )}
     </div>
   );
-}
+});
 
 function labelFor(minute: number) {
   const h = Math.floor(minute / 60);

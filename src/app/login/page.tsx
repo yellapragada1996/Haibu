@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { OtpInput } from "@/components/ui/OtpInput";
+import { isSafeRedirectPath } from "@/lib/safe-redirect";
+import { checkEmailStatus } from "@/app/login/actions";
 
 type Mode =
   | "login"
@@ -73,8 +75,9 @@ export default function LoginPage() {
       // lands back on the page they came from — not /dashboard.
       const params = new URLSearchParams(window.location.search);
       const r = params.get("redirect");
-      const safe =
-        r && r.startsWith("/") && !r.startsWith("//") ? r : "/dashboard";
+      // isSafeRedirectPath rejects backslashes too — "/\evil.com" would
+      // otherwise normalize to "//evil.com" and escape the app (CWE-601).
+      const safe = isSafeRedirectPath(r) ? r : "/dashboard";
       if (safe !== "/dashboard") setRedirectTo(safe);
 
       const {
@@ -176,6 +179,24 @@ export default function LoginPage() {
       // /dashboard instead of the intended page.
       window.location.assign(redirectTo);
     } else if (mode === "signup") {
+      // Duplicate-email guard: GoTrue's signUp never errors on an existing
+      // email — it silently re-sends a confirmation and (for unconfirmed
+      // users) rotates the stored token while emailing the stale code, i.e. a
+      // broken OTP. Intercept before signUp so the same email can't be used
+      // for a second account and no unverifiable code is ever sent.
+      const status = await checkEmailStatus(email).catch(() => null);
+      if (status?.registered) {
+        if (status.confirmed) {
+          setMessage("An account with this email already exists. Log in instead.");
+          setMode("login"); // email stays pre-filled for login
+        } else {
+          setMessage("We already sent you a code — check your inbox.");
+          setMode("verify");
+          startResend(); // cooldown only — no new email, so the pending code stays valid
+        }
+        setLoading(false);
+        return;
+      }
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setMessage(error.message);
@@ -481,14 +502,27 @@ export default function LoginPage() {
   );
 
   // Email path in booking context: create the account (password is required by
-  // Supabase), then verify via the existing OTP flow. A true passwordless magic
-  // link needs the Supabase confirm template to render {{ .ConfirmationURL }}
-  // (dashboard config) — flagged separately.
+  // Supabase), then verify via the existing OTP flow. Same duplicate-email
+  // guard as the plain signup — never call signUp for an email that exists.
   async function handleBookingEmail(e: FormEvent) {
     e.preventDefault();
     if (!booking) return;
     setLoading(true);
     setMessage("");
+    const status = await checkEmailStatus(email).catch(() => null);
+    if (status?.registered) {
+      if (status.confirmed) {
+        setMessage(
+          "An account with this email already exists. Use “Already have an account? Log in” to continue.",
+        );
+      } else {
+        setMessage("We already sent you a code — check your inbox.");
+        setMode("verify");
+        startResend();
+      }
+      setLoading(false);
+      return;
+    }
     const origin = window.location.origin;
     const bookUrl = `/book/${booking.creatorId}?offering=${booking.offeringId}&slot=${encodeURIComponent(booking.slotStart)}`;
     const { error } = await supabase.auth.signUp({

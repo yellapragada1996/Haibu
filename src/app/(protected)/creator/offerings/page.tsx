@@ -51,17 +51,22 @@ export default async function CreatorOfferingsPage() {
   const categories = await getCategories();
 
   return (
-    <OfferingsList
-      offerings={list.map((o) => ({
-        ...o,
-        booking_count: Number(o.booking_count),
-      }))}
-      profileId={profile.id}
-      profileCategory={profile.category}
-      categories={categories.map((c) => ({
-        value: c.slug,
-        label: c.display_label,
-      }))}
-    />
+    <div>
+      <h1 className="text-2xl font-bold text-white">Offerings</h1>
+      <div className="mt-6">
+        <OfferingsList
+          offerings={list.map((o) => ({
+            ...o,
+            booking_count: Number(o.booking_count),
+          }))}
+          profileId={profile.id}
+          profileCategory={profile.category}
+          categories={categories.map((c) => ({
+            value: c.slug,
+            label: c.display_label,
+          }))}
+        />
+      </div>
+    </div>
   );
 }

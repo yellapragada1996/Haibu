@@ -2,9 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { SettingsForm } from "./SettingsForm";
+import { ProfileForm } from "./ProfileForm";
 
-export default async function SettingsPage() {
+export default async function DashboardProfilePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -15,12 +15,12 @@ export default async function SettingsPage() {
     .where(eq(users.id, user.id));
 
   return (
-    <div className="mx-auto max-w-xl px-6 py-8">
-      <h1 className="mb-1 text-2xl font-bold text-white">Account Settings</h1>
-      <p className="mb-6 text-sm text-text-secondary">
+    <div>
+      <h1 className="text-2xl font-bold text-white">Profile</h1>
+      <p className="mb-6 mt-1 text-sm text-text-secondary">
         Your display name and avatar are shared across the whole platform.
       </p>
-      <SettingsForm
+      <ProfileForm
         displayName={userRow?.display_name ?? user.email ?? ""}
         avatarUrl={userRow?.avatar_url ?? null}
       />

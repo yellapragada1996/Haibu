@@ -7,13 +7,8 @@ import { bookings, creatorProfiles, ledgerEntries } from "@/db/schema";
 import { eq, and, lt, count, sql } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
 import { revalidatePath } from "next/cache";
-
-function computeFanRefundPercent(startAt: Date): number {
-  const hours = (startAt.getTime() - Date.now()) / (1000 * 60 * 60);
-  if (hours > 24) return 1.0;
-  if (hours >= 1) return 0.5;
-  return 0;
-}
+import { isPgErrorCode } from "@/lib/pg-errors";
+import { cancellationRefundPercent, holdPeriodMs } from "@/lib/session-policy";
 
 async function computeHoldPeriod(creatorId: string, endAt: Date): Promise<Date> {
   const [prior] = await db
@@ -27,8 +22,7 @@ async function computeHoldPeriod(creatorId: string, endAt: Date): Promise<Date> 
       ),
     );
   const priorCount = prior?.cnt ?? 0;
-  const holdMs = priorCount < 5 ? 7 * 24 * 60 * 60 * 1000 : 72 * 60 * 60 * 1000;
-  return new Date(Date.now() + holdMs);
+  return new Date(Date.now() + holdPeriodMs(priorCount));
 }
 
 export async function cancelBooking(
@@ -49,6 +43,7 @@ export async function cancelBooking(
       status: bookings.status,
       start_at: bookings.start_at,
       end_at: bookings.end_at,
+      created_at: bookings.created_at,
       price_cents: bookings.price_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       creator_payout_cents: bookings.creator_payout_cents,
@@ -78,9 +73,13 @@ export async function cancelBooking(
     return { error: "Session has already started" };
   }
 
-  // Refund calculation
-  const refundPercent =
-    actor === "fan" ? computeFanRefundPercent(booking.start_at) : 1.0;
+  // Refund calculation (§3/§4) — includes the 5-minute cooling-off grace for
+  // guests and the tiered guest rule, centralized in session-policy.ts.
+  const refundPercent = cancellationRefundPercent(
+    actor,
+    booking.start_at,
+    booking.created_at,
+  );
 
   const refundCents = Math.round(booking.price_cents * refundPercent);
   const feeReversalCents = Math.round(booking.platform_fee_cents * refundPercent);
@@ -135,7 +134,7 @@ export async function cancelBooking(
         note: `refund: ${actor} cancelled (${Math.round(refundPercent * 100)}%)`,
       });
     } catch (e: unknown) {
-      if ((e as { code?: string }).code !== "23505") throw e;
+      if (!isPgErrorCode(e, "23505")) throw e;
     }
 
     try {
@@ -147,7 +146,7 @@ export async function cancelBooking(
         note: `fee reversal: ${actor} cancelled`,
       });
     } catch (e: unknown) {
-      if ((e as { code?: string }).code !== "23505") throw e;
+      if (!isPgErrorCode(e, "23505")) throw e;
     }
 
     // Creator's non-refunded share (if partial refund)
@@ -161,7 +160,7 @@ export async function cancelBooking(
           note: `creator share from ${actor} cancellation (${100 - Math.round(refundPercent * 100)}% non-refunded)`,
         });
       } catch (e: unknown) {
-        if ((e as { code?: string }).code !== "23505") throw e;
+        if (!isPgErrorCode(e, "23505")) throw e;
       }
     }
   }

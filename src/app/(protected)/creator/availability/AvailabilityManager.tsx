@@ -398,11 +398,21 @@ export function AvailabilityManager({
           above.
         </p>
 
-        <div className="flex gap-2">
-          <Button size="small" variant="secondary" onClick={() => setShowBlockForm(!showBlockForm)}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            size="small"
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => setShowBlockForm(!showBlockForm)}
+          >
             + Mark unavailable
           </Button>
-          <Button size="small" variant="secondary" onClick={() => setShowOverrideForm(!showOverrideForm)}>
+          <Button
+            size="small"
+            variant="secondary"
+            className="w-full sm:w-auto"
+            onClick={() => setShowOverrideForm(!showOverrideForm)}
+          >
             + Add custom hours
           </Button>
         </div>
@@ -481,8 +491,8 @@ export function AvailabilityManager({
           <div className="space-y-2">
             {combinedList.map((entry) => (
               <div key={entry.key} className="rounded-input bg-bg-base px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
                     <span
                       className={`text-sm ${entry.shadowedBy ? "text-text-tertiary" : "text-white"}`}
                     >
@@ -501,10 +511,22 @@ export function AvailabilityManager({
                         ? removeBlockRange(Number(entry.key.split("-")[1]))
                         : removeOverride(entry.date)
                     }
-                    className="text-text-tertiary hover:text-error transition-colors"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill text-text-tertiary transition-colors hover:bg-bg-card-hover hover:text-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     aria-label="Remove entry"
                   >
-                    ×
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      aria-hidden="true"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
                   </button>
                 </div>
                 {entry.shadowedBy && (

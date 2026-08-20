@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { OtpInput } from "@/components/ui/OtpInput";
+import { isSafeRedirectPath } from "@/lib/safe-redirect";
 
 export default function VerifyEmailPage() {
   const supabase = createClient();
@@ -22,7 +23,8 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     const r = new URLSearchParams(window.location.search).get("redirect");
-    if (r && r.startsWith("/") && !r.startsWith("//")) setRedirectTarget(r);
+    // Backslash targets are rejected too (see lib/safe-redirect.ts).
+    if (isSafeRedirectPath(r)) setRedirectTarget(r);
   }, []);
 
   useEffect(() => {

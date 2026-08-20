@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { ImageUpload } from "@/components/ImageUpload";
 import { uploadImage } from "@/lib/imageUpload";
 
-export function SettingsForm({
+export function ProfileForm({
   displayName,
   avatarUrl,
 }: {
@@ -37,7 +37,6 @@ export function SettingsForm({
     setSaveState("saving");
     setError(null);
 
-    // Staged avatar persists together with the name.
     try {
       if (stagedAvatar) await uploadImage("avatar", stagedAvatar);
     } catch (uploadErr) {
@@ -59,42 +58,40 @@ export function SettingsForm({
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSave}>
-        <Card className="space-y-4">
-          <div>
-            <ImageUpload
-              purpose="avatar"
-              currentUrl={avatarUrl}
-              label="Avatar"
-              nameFallback={name}
-              onStagedFile={setStagedAvatar}
-            />
-          </div>
+    <form onSubmit={handleSave}>
+      <Card className="space-y-4">
+        <div>
+          <ImageUpload
+            purpose="avatar"
+            currentUrl={avatarUrl}
+            label="Avatar"
+            nameFallback={name}
+            onStagedFile={setStagedAvatar}
+          />
+        </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Display name
-            </label>
-            <Input
-              name="display_name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your display name"
-            />
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-text-secondary">
+            Display name
+          </label>
+          <Input
+            name="display_name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your display name"
+          />
+        </div>
 
-          {error && <p className="text-sm text-error">{error}</p>}
+        {error && <p className="text-sm text-error">{error}</p>}
 
-          <Button type="submit" disabled={saveState !== "idle"}>
-            {saveState === "saving"
-              ? "Saving..."
-              : saveState === "saved"
-                ? "Saved ✓"
-                : "Save"}
-          </Button>
-        </Card>
-      </form>
-    </div>
+        <Button type="submit" disabled={saveState !== "idle"}>
+          {saveState === "saving"
+            ? "Saving..."
+            : saveState === "saved"
+              ? "Saved ✓"
+              : "Save"}
+        </Button>
+      </Card>
+    </form>
   );
 }

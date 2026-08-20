@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { TimezoneCapture } from "@/components/TimezoneCapture";
 import { EmailGate } from "@/components/EmailGate";
 import { NavBar } from "@/components/ui/NavBar";
+import { BottomNav } from "@/components/ui/BottomNav";
 import { db } from "@/db";
 import { creatorProfiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -37,7 +38,8 @@ export default async function ProtectedLayout({
         userName={profile?.display_name ?? user.email ?? ""}
         avatarUrl={profile?.avatar_url ?? null}
       />
-      <main>{children}</main>
+      <main className="pb-16 md:pb-0">{children}</main>
+      <BottomNav isLoggedIn isCreator={!!profile?.profile_id} />
       <TimezoneCapture />
     </div>
   );

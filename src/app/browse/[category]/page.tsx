@@ -80,6 +80,33 @@ export default async function CategoryPage({
   }
   let creators = Array.from(map.values());
 
+  // Attach each creator's FULL category list. The query above is filtered to
+  // this category, so its `categories` only contains the selected category —
+  // re-fetch all active offering categories so cards show every pill.
+  const creatorIds = creators.map((c) => c.id);
+  if (creatorIds.length > 0) {
+    const catRows = await db
+      .select({ creator_id: offerings.creator_id, slug: offerings.category })
+      .from(offerings)
+      .where(
+        and(
+          inArray(offerings.creator_id, creatorIds),
+          eq(offerings.is_active, true),
+          isNull(offerings.deleted_at),
+        ),
+      );
+    const byId = new Map<string, string[]>();
+    for (const r of catRows) {
+      const arr = byId.get(r.creator_id) ?? [];
+      if (!arr.includes(r.slug)) arr.push(r.slug);
+      byId.set(r.creator_id, arr);
+    }
+    creators = creators.map((c) => ({
+      ...c,
+      categories: byId.get(c.id) ?? c.categories,
+    }));
+  }
+
   // Preserve the "available today" context when navigating between pills.
   const { available } = await searchParams;
   let pillCategories = categories;

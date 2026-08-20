@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createOffering,
@@ -82,8 +82,8 @@ export function OfferingsList({
               }}
             />
           ) : (
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-white">{o.title}</span>
                   {!o.is_active && <Badge variant="cancelled" label="Inactive" />}
@@ -97,7 +97,7 @@ export function OfferingsList({
                   <span>${(o.price_cents / 100).toFixed(2)}</span>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="hidden shrink-0 gap-2 md:flex">
                 <Button
                   variant="secondary"
                   size="small"
@@ -112,6 +112,11 @@ export function OfferingsList({
                 )}
                 <DeleteButton offering={o} onDelete={setPendingDelete} />
               </div>
+              <OfferingActionsMenu
+                offering={o}
+                onEdit={() => setEditingId(o.id)}
+                onDelete={setPendingDelete}
+              />
             </div>
           )}
         </Card>
@@ -324,6 +329,125 @@ function DeleteButton({
     <Button variant="secondary" size="small" onClick={() => onDelete(offering)}>
       Delete
     </Button>
+  );
+}
+
+function OfferingActionsMenu({
+  offering,
+  onEdit,
+  onDelete,
+}: {
+  offering: Offering;
+  onEdit: () => void;
+  onDelete: (o: Offering) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [open]);
+
+  const menuItem =
+    "block w-full rounded-input px-3 py-2.5 text-left text-sm transition-colors";
+
+  return (
+    <div ref={ref} className="relative shrink-0 md:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={`${offering.title} actions`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex h-11 w-11 items-center justify-center rounded-pill text-text-secondary transition-colors hover:bg-bg-card-hover hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <circle cx="5" cy="12" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="19" cy="12" r="1.8" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          aria-label={`${offering.title} actions`}
+          className="absolute right-0 top-full z-20 mt-1 w-44 rounded-input bg-bg-surface p-1 shadow-xl ring-1 ring-border-subtle"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onEdit();
+            }}
+            className={`${menuItem} text-white hover:bg-bg-card-hover`}
+          >
+            Edit
+          </button>
+          {offering.is_active ? (
+            <form
+              action={async () => {
+                await deactivateOffering(offering.id);
+              }}
+            >
+              <button
+                type="submit"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className={`${menuItem} text-white hover:bg-bg-card-hover`}
+              >
+                Deactivate
+              </button>
+            </form>
+          ) : (
+            <form
+              action={async () => {
+                await reactivateOffering(offering.id);
+              }}
+            >
+              <button
+                type="submit"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className={`${menuItem} text-white hover:bg-bg-card-hover`}
+              >
+                Reactivate
+              </button>
+            </form>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onDelete(offering);
+            }}
+            className={`${menuItem} text-error hover:bg-bg-card-hover`}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

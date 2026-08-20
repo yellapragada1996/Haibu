@@ -111,13 +111,13 @@ export default async function HomePage() {
     <PublicLayout>
       <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
         {isAnon && (
-          <h1 className="px-2 text-center text-[22px] font-bold text-white">
+          <h1 className="mb-6 px-2 text-center text-[22px] font-bold text-white">
             Book a live 1:1 video session with a creator
           </h1>
         )}
 
         {/* Category filter pills — Trending (default) + categories */}
-        <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-2">
           <Pill variant="active">All</Pill>
           {categories.map((c) => (
             <Link key={c.slug} href={`/browse/${c.slug}`}>
@@ -129,7 +129,7 @@ export default async function HomePage() {
         {/* Available today — hidden when no creator is bookable today */}
         {availableToday.length > 0 && (
         <section className="mt-8">
-          <div className="mb-3 flex items-baseline justify-between px-1">
+          <div className="mb-6 flex items-baseline justify-between px-1">
             <h2 className="text-lg font-semibold text-white">
               Available today
             </h2>
@@ -148,7 +148,7 @@ export default async function HomePage() {
 
         {/* Discover — 2 rows + View more */}
         <section className="mt-10">
-          <div className="mb-3 flex items-baseline justify-between px-1">
+          <div className="mb-6 flex items-baseline justify-between px-1">
             <h2 className="text-lg font-semibold text-white">Discover</h2>
             <Link
               href="/browse"

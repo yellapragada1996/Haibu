@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NavBar } from "@/components/ui/NavBar";
+import { BottomNav } from "@/components/ui/BottomNav";
 import { db } from "@/db";
 import { creatorProfiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -43,7 +44,8 @@ export async function PublicLayout({ children }: { children: ReactNode }) {
         userName={displayName}
         avatarUrl={avatarUrl}
       />
-      {children}
+      <div className="pb-16 md:pb-0">{children}</div>
+      <BottomNav isLoggedIn={isLoggedIn} isCreator={isCreator} />
     </>
   );
 }

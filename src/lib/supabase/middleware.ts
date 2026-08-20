@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { isSafeRedirectPath } from "@/lib/safe-redirect";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,7 +35,6 @@ export async function updateSession(request: NextRequest) {
   // so the user returns to exactly where they were after login.
   const protectedPaths = [
     "/dashboard",
-    "/settings",
     "/bookings",
     "/book",
     "/creator",
@@ -71,10 +71,9 @@ export async function updateSession(request: NextRequest) {
     const q = rawTarget ? rawTarget.indexOf("?") : -1;
     const targetPath = q === -1 ? rawTarget : rawTarget!.slice(0, q);
     const targetSearch = q === -1 ? null : rawTarget!.slice(q);
-    url.pathname =
-      targetPath && targetPath.startsWith("/") && !targetPath.startsWith("//")
-        ? targetPath
-        : "/dashboard";
+    // isSafeRedirectPath also rejects backslashes — WHATWG normalization
+    // turns "/\evil.com" into "//evil.com" (open redirect, CWE-601).
+    url.pathname = isSafeRedirectPath(targetPath) ? targetPath : "/dashboard";
     url.search = targetSearch ?? "";
     return NextResponse.redirect(url);
   }

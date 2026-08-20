@@ -54,24 +54,29 @@ export default async function CreatorAvailabilityPage() {
     .orderBy(availabilityDateOverrides.date, availabilityDateOverrides.start_minute);
 
   return (
-    <AvailabilityManager
-      windows={windows.map((w) => ({
-        day_of_week: w.day_of_week,
-        start_minute: w.start_minute,
-        end_minute: w.end_minute,
-      }))}
-      blocks={blocks.map((b) => ({
-        id: b.id,
-        start_at: b.start_at?.toISOString() ?? "",
-        end_at: b.end_at?.toISOString() ?? "",
-      }))}
-      overrides={overrides.map((o) => ({
-        id: o.id,
-        date: String(o.date).slice(0, 10),
-        start_minute: o.start_minute,
-        end_minute: o.end_minute,
-      }))}
-      timezone={userRow?.timezone ?? "UTC"}
-    />
+    <div>
+      <h1 className="text-2xl font-bold text-white">Availability</h1>
+      <div className="mt-6">
+        <AvailabilityManager
+          windows={windows.map((w) => ({
+            day_of_week: w.day_of_week,
+            start_minute: w.start_minute,
+            end_minute: w.end_minute,
+          }))}
+          blocks={blocks.map((b) => ({
+            id: b.id,
+            start_at: b.start_at?.toISOString() ?? "",
+            end_at: b.end_at?.toISOString() ?? "",
+          }))}
+          overrides={overrides.map((o) => ({
+            id: o.id,
+            date: String(o.date).slice(0, 10),
+            start_minute: o.start_minute,
+            end_minute: o.end_minute,
+          }))}
+          timezone={userRow?.timezone ?? "UTC"}
+        />
+      </div>
+    </div>
   );
 }

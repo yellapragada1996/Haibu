@@ -1,9 +1,39 @@
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { bookings, creatorProfiles, ledgerEntries, reviews } from "@/db/schema";
+import { bookings, creatorProfiles, ledgerEntries, reviews, users, offerings, participantEvents } from "@/db/schema";
 import { eq, and, lt, lte, sql, count } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { createOrGetRoom } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
+import { isPgErrorCode } from "@/lib/pg-errors";
+import { sendBookingReminder, type ReminderWindow } from "@/lib/email";
+import { evaluateSessionOutcome, holdPeriodMs, computePresence, needsCreatorReview, proportionalRefund } from "@/lib/session-policy";
+
+const fanUser = alias(users, "fanUser");
+
+// Loads the joined data needed to render a reminder email for a booking.
+async function getReminderData(bookingId: string) {
+  const [row] = await db
+    .select({
+      id: bookings.id,
+      status: bookings.status,
+      start_at: bookings.start_at,
+      offering_title: offerings.title,
+      fan_name: fanUser.display_name,
+      fan_email: fanUser.email,
+      fan_timezone: fanUser.timezone,
+      creator_name: users.display_name,
+      creator_email: users.email,
+      creator_timezone: users.timezone,
+    })
+    .from(bookings)
+    .innerJoin(offerings, eq(offerings.id, bookings.offering_id))
+    .innerJoin(fanUser, eq(fanUser.id, bookings.fan_id))
+    .innerJoin(creatorProfiles, eq(creatorProfiles.id, bookings.creator_id))
+    .innerJoin(users, eq(users.id, creatorProfiles.user_id))
+    .where(eq(bookings.id, bookingId));
+  return row;
+}
 
 // ---------------------------------------------------------------------------
 // Step 6: Room creation on booking confirmed
@@ -22,6 +52,7 @@ export const handleBookingConfirmed = inngest.createFunction(
       .select({
         id: bookings.id,
         daily_room_name: bookings.daily_room_name,
+        start_at: bookings.start_at,
         end_at: bookings.end_at,
       })
       .from(bookings)
@@ -47,7 +78,110 @@ export const handleBookingConfirmed = inngest.createFunction(
       });
     }
 
+    // Booking reminders. A reminder is only scheduled if it would fire at
+    // least 5 minutes from now (startAt - offset > now + 5min). Bookings made
+    // with less than 15 minutes before start skip the scheduled reminders and
+    // instead send the imminent emails immediately.
+    if (booking.start_at) {
+      const startMs = new Date(booking.start_at).getTime();
+      const nowMs = Date.now();
+      const reminder1hMs = parseInt(process.env.REMINDER_1H_MS ?? "3600000", 10);
+      const reminder15mMs = parseInt(process.env.REMINDER_15M_MS ?? "900000", 10);
+
+      if (startMs - nowMs < 15 * 60 * 1000) {
+        // Imminent — send immediately, not as a scheduled event.
+        const data = await getReminderData(bookingId);
+        if (data && data.status === "confirmed") {
+          await sendBookingReminder({
+            window: "imminent",
+            bookingId,
+            offeringTitle: data.offering_title,
+            creator: {
+              name: data.creator_name,
+              email: data.creator_email,
+              timezone: data.creator_timezone,
+            },
+            guest: {
+              name: data.fan_name,
+              email: data.fan_email,
+              timezone: data.fan_timezone,
+            },
+            startAt: new Date(data.start_at),
+          });
+        }
+      } else {
+        const reminders: {
+          id: string;
+          name: string;
+          data: { bookingId: string; window: string };
+          ts: number;
+        }[] = [];
+        if (startMs - reminder1hMs > nowMs + 5 * 60 * 1000) {
+          reminders.push({
+            id: `reminder-1h-${bookingId}`,
+            name: "booking/reminder",
+            data: { bookingId, window: "1h" },
+            ts: startMs - reminder1hMs,
+          });
+        }
+        if (startMs - reminder15mMs > nowMs + 5 * 60 * 1000) {
+          reminders.push({
+            id: `reminder-15m-${bookingId}`,
+            name: "booking/reminder",
+            data: { bookingId, window: "15m" },
+            ts: startMs - reminder15mMs,
+          });
+        }
+        if (reminders.length > 0) {
+          await inngest.send(reminders);
+        }
+      }
+    }
+
     return { message: "room created", roomName: room.name };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Step 14: Booking reminders (1h and 15m before start, guest + creator)
+// ---------------------------------------------------------------------------
+
+export const handleBookingReminder = inngest.createFunction(
+  { id: "booking-reminder", retries: 3, triggers: [{ event: "booking/reminder" }] },
+  async ({ event }) => {
+    const { bookingId, window } = event.data as { bookingId: string; window: string };
+    const reminderWindow: ReminderWindow = window === "15m" ? "15m" : "1h";
+
+    const booking = await getReminderData(bookingId);
+
+    if (!booking) return { message: "booking not found" };
+    if (booking.status !== "confirmed") {
+      return { message: `skipped: booking status is ${booking.status}` };
+    }
+
+    // Sanity check — a reminder that fires late (after start) must not send.
+    if (new Date(booking.start_at).getTime() <= Date.now()) {
+      return { message: "skipped: session already started" };
+    }
+
+    await sendBookingReminder({
+      window: reminderWindow,
+      bookingId,
+      offeringTitle: booking.offering_title,
+      creator: {
+        name: booking.creator_name,
+        email: booking.creator_email,
+        timezone: booking.creator_timezone,
+      },
+      guest: {
+        name: booking.fan_name,
+        email: booking.fan_email,
+        timezone: booking.fan_timezone,
+      },
+      startAt: new Date(booking.start_at),
+    });
+
+    return { message: `sent ${reminderWindow} reminders` };
   },
 );
 
@@ -118,12 +252,14 @@ export const sweepEligiblePayouts = inngest.createFunction(
         id: bookings.id,
         creator_id: bookings.creator_id,
         creator_payout_cents: bookings.creator_payout_cents,
+        effective_payout_cents: bookings.effective_payout_cents,
         stripe_payment_intent_id: bookings.stripe_payment_intent_id,
       })
       .from(bookings)
       .where(
         and(
           sql`${bookings.status} IN ('completed', 'no_show_fan')`,
+          eq(bookings.needs_review, false),
           lte(bookings.payout_eligible_at, sql`NOW()`),
         ),
       );
@@ -150,8 +286,12 @@ export const sweepEligiblePayouts = inngest.createFunction(
 
         if (!profile?.stripe_account_id) continue;
 
+        // Pay the effective amount (reduced after a proportional refund).
+        const payoutCents = b.effective_payout_cents ?? b.creator_payout_cents;
+        if (payoutCents <= 0) continue;
+
         const transfer = await stripe.transfers.create({
-          amount: b.creator_payout_cents,
+          amount: payoutCents,
           currency: "usd",
           destination: profile.stripe_account_id,
           metadata: { booking_id: b.id },
@@ -160,7 +300,7 @@ export const sweepEligiblePayouts = inngest.createFunction(
         await db.insert(ledgerEntries).values({
           booking_id: b.id,
           type: "creator_payout",
-          amount_cents: -b.creator_payout_cents,
+          amount_cents: -payoutCents,
           stripe_reference: transfer.id,
         });
 
@@ -194,25 +334,10 @@ export async function runEvaluation(bookingId: string) {
   const fanJoined = booking.fan_joined_at !== null;
   const creatorJoined = booking.creator_joined_at !== null;
 
-  let outcome: string;
-  let refund: boolean;
-
-  if (fanJoined && creatorJoined) {
-    outcome = "completed";
-    refund = false;
-  } else if (!fanJoined && creatorJoined) {
-    outcome = "no_show_fan";
-    refund = false;
-  } else if (fanJoined && !creatorJoined) {
-    outcome = "no_show_creator";
-    refund = true;
-  } else {
-    // neither joined — treat as creator cancel for money flow,
-    // but mark cancelled_by = 'system' so future admin logic
-    // can distinguish real creator cancellations from mutual no-shows.
-    outcome = "cancelled_creator";
-    refund = true;
-  }
+  // Binary no-show decision — centralized in session-policy.ts (§5). This is
+  // the seam the proportional model will later replace.
+  const { status: outcome, refund, cancelled_by, cancel_reason } =
+    evaluateSessionOutcome(fanJoined, creatorJoined);
 
   // Count prior successful sessions for hold-period tier
   // Fix #3: count by end_at ordering, include both completed + no_show_fan
@@ -227,26 +352,90 @@ export async function runEvaluation(bookingId: string) {
       ),
     );
   const priorCompleted = priorRow?.cnt ?? 0;
-  const holdMs = priorCompleted < 5 ? 7 * 86400000 : 72 * 3600000;
+  const holdMs = holdPeriodMs(priorCompleted);
   const payoutEligibleAt = new Date(Date.now() + holdMs);
 
+  // Phase 4 — compute the creator's presence and flag partial delivery for
+  // admin review (the binary model can't see "joined but left early").
+  let needsReview = false;
+  let undeliveredPercent = 0;
+  if (booking.daily_room_name && booking.start_at && booking.end_at) {
+    const [creatorProfile] = await db
+      .select({ user_id: creatorProfiles.user_id })
+      .from(creatorProfiles)
+      .where(eq(creatorProfiles.id, booking.creator_id));
+    const creatorUserId = creatorProfile?.user_id;
+    if (creatorUserId) {
+      const leftEvents = await db
+        .select({
+          joined_at: participantEvents.joined_at,
+          duration_seconds: participantEvents.duration_seconds,
+        })
+        .from(participantEvents)
+        .where(
+          and(
+            eq(participantEvents.room_name, booking.daily_room_name),
+            eq(participantEvents.user_id, `creator:${creatorUserId}`),
+            eq(participantEvents.event_type, "left"),
+          ),
+        );
+      const sessions = leftEvents
+        .filter((e) => e.duration_seconds != null)
+        .map((e) => ({
+          joinedAtMs: e.joined_at.getTime(),
+          durationMs: Math.round(e.duration_seconds! * 1000),
+        }));
+      const startMs = new Date(booking.start_at).getTime();
+      const endMs = new Date(booking.end_at).getTime();
+      const presence = computePresence(sessions, startMs, endMs);
+      undeliveredPercent = presence.undeliveredPercent;
+      needsReview = needsCreatorReview(presence, endMs - startMs);
+    }
+  }
+
+  // Phase 5 — for a completed session where the creator partially delivered,
+  // auto-issue a proportional refund and reduce the payout. (A no_show_fan with
+  // a partially-present creator stays flagged for admin — ambiguous, since the
+  // guest never showed but the creator also left early.)
+  let effectivePayoutCents: number | null = null;
+  let partialRefund: {
+    refundCents: number;
+    feeReversalCents: number;
+  } | null = null;
+  if (outcome === "completed" && needsReview) {
+    const money = proportionalRefund(
+      booking.price_cents,
+      booking.platform_fee_cents,
+      undeliveredPercent,
+    );
+    effectivePayoutCents = money.effectivePayoutCents;
+    partialRefund = {
+      refundCents: money.refundCents,
+      feeReversalCents: money.feeReversalCents,
+    };
+    needsReview = false;
+  }
+
   // Update booking status with guard
-  const extra = outcome === "cancelled_creator" && !fanJoined && !creatorJoined
-    ? { cancelled_by: "system" as const, cancel_reason: "neither party joined" }
-    : outcome === "no_show_creator"
-      ? { cancelled_by: "system" as const, cancel_reason: "creator did not join" }
+  const extra =
+    cancelled_by && cancel_reason
+      ? { cancelled_by, cancel_reason }
       : {};
 
   await db
     .update(bookings)
     .set({
-      status: outcome as typeof booking.status,
+      status: outcome,
       payout_eligible_at: payoutEligibleAt,
+      needs_review: needsReview,
+      ...(effectivePayoutCents != null
+        ? { effective_payout_cents: effectivePayoutCents }
+        : {}),
       ...extra,
     })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
 
-  // Refund if applicable
+  // Full refund — no-show / mutual no-show (unchanged).
   if (refund && booking.stripe_payment_intent_id) {
     await stripe.refunds.create({
       payment_intent: booking.stripe_payment_intent_id,
@@ -263,7 +452,7 @@ export async function runEvaluation(bookingId: string) {
         note: `refund: session ${outcome}`,
       });
     } catch (e: unknown) {
-      if ((e as { code?: string }).code !== "23505") throw e;
+      if (!isPgErrorCode(e, "23505")) throw e;
     }
 
     try {
@@ -275,7 +464,40 @@ export async function runEvaluation(bookingId: string) {
         note: `fee reversal: session ${outcome}`,
       });
     } catch (e: unknown) {
-      if ((e as { code?: string }).code !== "23505") throw e;
+      if (!isPgErrorCode(e, "23505")) throw e;
+    }
+  }
+
+  // Partial refund — creator partially delivered a completed session (Phase 5).
+  if (partialRefund && booking.stripe_payment_intent_id) {
+    await stripe.refunds.create({
+      payment_intent: booking.stripe_payment_intent_id,
+      amount: partialRefund.refundCents,
+      reason: "requested_by_customer" as const,
+    });
+
+    try {
+      await db.insert(ledgerEntries).values({
+        booking_id: bookingId,
+        type: "refund" as const,
+        amount_cents: -partialRefund.refundCents,
+        stripe_reference: `${booking.stripe_payment_intent_id}:partial`,
+        note: `proportional refund: creator delivered ${Math.round((1 - undeliveredPercent) * 100)}%`,
+      });
+    } catch (e: unknown) {
+      if (!isPgErrorCode(e, "23505")) throw e;
+    }
+
+    try {
+      await db.insert(ledgerEntries).values({
+        booking_id: bookingId,
+        type: "platform_fee" as const,
+        amount_cents: -partialRefund.feeReversalCents,
+        stripe_reference: `${booking.stripe_payment_intent_id}:partial_fee_reversal`,
+        note: `proportional fee reversal`,
+      });
+    } catch (e: unknown) {
+      if (!isPgErrorCode(e, "23505")) throw e;
     }
   }
 }

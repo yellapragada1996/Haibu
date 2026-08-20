@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db";
 import {
@@ -20,14 +19,17 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_creator, timezone")
-    .eq("id", user.id)
-    .single();
+  const [row] = await db
+    .select({
+      timezone: users.timezone,
+      profileId: creatorProfiles.id,
+    })
+    .from(users)
+    .leftJoin(creatorProfiles, eq(creatorProfiles.user_id, users.id))
+    .where(eq(users.id, user.id));
 
-  const isCreator = profile?.is_creator ?? false;
-  const timezone = profile?.timezone ?? null;
+  const isCreator = !!row?.profileId;
+  const timezone = row?.timezone ?? null;
 
   // All guest bookings, newest first, with the guest's review (if any).
   const rows = await db
@@ -103,41 +105,34 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="max-w-[900px] mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-6">Dashboard</h1>
+    <div>
+      <h1 className="text-2xl font-bold text-white">
+        {isCreator ? "Booked by me" : "Home"}
+      </h1>
 
-      {/* Role-based card */}
-      {isCreator ? (
-        <Card className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-white">Creator Studio</p>
-              <p className="text-sm text-text-secondary mt-1">
-                Manage your profile, offerings, and availability
-              </p>
-            </div>
-            <ButtonLink href="/creator/profile" size="small">
-              Open Studio
-            </ButtonLink>
-          </div>
-        </Card>
-      ) : (
-        <Card className="mb-8">
-          <div className="flex items-center justify-between">
+      {!isCreator && (
+        <Card className="mt-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-semibold text-white">Become a Creator</p>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="mt-1 text-sm text-text-secondary">
                 Share your talent, set your schedule, and earn money
               </p>
             </div>
-            <ButtonLink href="/creator/profile" size="small">
+            <ButtonLink
+              href="/creator/profile"
+              size="small"
+              className="w-full sm:w-auto"
+            >
               Get started
             </ButtonLink>
           </div>
         </Card>
       )}
 
-      <SessionList upcoming={upcoming} past={past} timezone={timezone} />
+      <div className="mt-6">
+        <SessionList upcoming={upcoming} past={past} timezone={timezone} />
+      </div>
     </div>
   );
 }

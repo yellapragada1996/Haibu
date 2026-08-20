@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   date,
+  doublePrecision,
   uniqueIndex,
   index,
   check,
@@ -303,6 +304,9 @@ export const bookings = pgTable(
     price_cents: integer("price_cents").notNull(),
     platform_fee_cents: integer("platform_fee_cents").notNull(),
     creator_payout_cents: integer("creator_payout_cents").notNull(),
+    // Phase 5 — the creator's actual payout after a proportional refund. NULL
+    // means "no adjustment" (sweep pays creator_payout_cents in full).
+    effective_payout_cents: integer("effective_payout_cents"),
     stripe_payment_intent_id: text("stripe_payment_intent_id"),
     daily_room_name: text("daily_room_name"),
     daily_room_url: text("daily_room_url"),
@@ -314,6 +318,10 @@ export const bookings = pgTable(
     payout_eligible_at: timestamp("payout_eligible_at", {
       withTimezone: true,
     }),
+    // Phase 4 — set true when the creator partially delivered (present, but
+    // missed more than the grace window). The payout sweep skips these until an
+    // admin resolves them.
+    needs_review: boolean("needs_review").default(false).notNull(),
     cancelled_by: cancelActorEnum("cancelled_by"),
     cancel_reason: text("cancel_reason"),
     created_at: timestamp("created_at", { withTimezone: true })
@@ -503,5 +511,42 @@ export const adminActions = pgTable(
   (table) => [
     index("idx_admin_actions_booking").on(table.booking_id),
     index("idx_admin_actions_created").on(table.created_at),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 12. participant_events  (append-only presence log — Phase 4)
+// ---------------------------------------------------------------------------
+// One row per Daily webhook (participant.joined / participant.left). `session_id`
+// is Daily's per-join id: a participant who leaves and rejoins gets a new one.
+// The unique (session_id, event_type) index is the idempotency key — Daily may
+// deliver duplicates (roughly, and with a different event `id`), so dedupe on
+// type + session_id as Daily recommends.
+
+export const participantEvents = pgTable(
+  "participant_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    room_name: text("room_name").notNull(),
+    // "fan:<uuid>" or "creator:<uuid>" (matches the meeting token's user_id).
+    user_id: text("user_id").notNull(),
+    session_id: text("session_id").notNull(),
+    // "joined" | "left"
+    event_type: text("event_type").notNull(),
+    // Event time (payload.joined_at), NOT webhook send time.
+    joined_at: timestamp("joined_at", { withTimezone: true }).notNull(),
+    // payload.duration (seconds), present on left events only.
+    duration_seconds: doublePrecision("duration_seconds"),
+    event_ts: timestamp("event_ts", { withTimezone: true }),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_participant_events_session_type").on(
+      table.session_id,
+      table.event_type,
+    ),
+    index("idx_participant_events_room").on(table.room_name),
   ],
 );

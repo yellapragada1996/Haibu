@@ -1,16 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Pill";
-import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Textarea";
-import { submitReview } from "@/app/(protected)/actions/reviews";
-import { REVIEW_PLACEHOLDER, REVIEW_WINDOW_MS } from "@/lib/review-tags";
+import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
 
 export type SessionItem = {
   id: string;
@@ -26,8 +21,6 @@ export type SessionItem = {
   category: string;
   review: { rating: number; text: string | null; tags: string[] } | null;
 };
-
-const MAX_TEXT = 500;
 
 function sessionBadge(status: string): { label: string; className: string } {
   switch (status) {
@@ -74,47 +67,9 @@ export function SessionList({
   past: SessionItem[];
   timezone?: string | null;
 }) {
-  const router = useRouter();
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
-  const [reviewing, setReviewing] = useState<SessionItem | null>(null);
-  const [viewing, setViewing] = useState<SessionItem | null>(null);
-
-  // Review form state
-  const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
-  const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function openReview(s: SessionItem) {
-    setReviewing(s);
-    setRating(0);
-    setHover(0);
-    setText("");
-    setError(null);
-  }
-
-  async function submit() {
-    if (!reviewing) return;
-    if (rating === 0) {
-      setError("Select a rating");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const result = await submitReview(reviewing.id, rating, text);
-    if ("error" in result) {
-      setError(result.error);
-      setLoading(false);
-    } else {
-      setReviewing(null);
-      setLoading(false);
-      router.refresh();
-    }
-  }
 
   const list = tab === "upcoming" ? upcoming : past;
-  const activeStars = hover || rating;
   const pendingCount = past.filter(
     (s) =>
       s.status === "completed" &&
@@ -184,141 +139,52 @@ export function SessionList({
               );
             }
 
-            // Past session row
+            // Past session row — links to the session detail page.
             return (
-              <Card
-                key={s.id}
-                className={`flex items-center gap-4 ${
-                  s.review || (completed && withinWindow)
-                    ? "cursor-pointer hover:bg-bg-card-hover"
-                    : ""
-                }`}
-                onClick={() => {
-                  if (s.review) setViewing(s);
-                  else if (completed && withinWindow) openReview(s);
-                }}
-              >
-                <Link
-                  href={`/creators/${s.creator_profile_id}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
+              <Link key={s.id} href={`/bookings/${s.id}`}>
+                <Card hover className="flex items-center gap-4">
                   <Avatar src={s.creator_avatar} name={s.creator_name} size={44} />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium text-white">{s.creator_name}</span>
-                    <span className={`rounded-pill px-2 py-0.5 text-xs ${badge.className}`}>
-                      {badge.label}
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-white">{s.creator_name}</span>
+                      <span className={`rounded-pill px-2 py-0.5 text-xs ${badge.className}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-text-secondary">
+                      {s.offering_title} · {s.duration_minutes} min
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-tertiary">
+                      {sessionTime(s.start_at, s.end_at, timezone)}
+                    </p>
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-text-secondary">
-                    {s.offering_title} · {s.duration_minutes} min
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-tertiary">
-                    {sessionTime(s.start_at, s.end_at, timezone)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <span className="text-sm text-text-secondary">
-                    ${((s.price_cents ?? 0) / 100).toFixed(2)}
-                  </span>
-                  {completed && !s.review && withinWindow && (
-                    <span className="flex items-center gap-1 text-xs font-medium text-rating">
-                      <span aria-hidden>★</span> Rate
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="text-sm text-text-secondary">
+                      ${((s.price_cents ?? 0) / 100).toFixed(2)}
                     </span>
-                  )}
-                  {completed && !s.review && !withinWindow && (
-                    <span className="text-xs text-text-tertiary">Review period expired</span>
-                  )}
-                  {completed && s.review && (
-                    <span
-                      className="text-xs text-rating"
-                      aria-label={`${s.review.rating} stars`}
-                    >
-                      {"★".repeat(s.review.rating)}
-                    </span>
-                  )}
-                </div>
-              </Card>
+                    {completed && !s.review && withinWindow && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-rating">
+                        <span aria-hidden>★</span> Rate
+                      </span>
+                    )}
+                    {completed && !s.review && !withinWindow && (
+                      <span className="text-xs text-text-tertiary">Review period expired</span>
+                    )}
+                    {completed && s.review && (
+                      <span
+                        className="text-xs text-rating"
+                        aria-label={`${s.review.rating} stars`}
+                      >
+                        {"★".repeat(s.review.rating)}
+                      </span>
+                    )}
+                  </div>
+                </Card>
+              </Link>
             );
           })}
         </div>
       )}
-
-      {/* Review form modal */}
-      <Modal
-        open={!!reviewing}
-        onClose={() => !loading && setReviewing(null)}
-        title="Leave a review"
-      >
-        <div className="flex gap-1" aria-label="Rating">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              aria-label={`${n} star${n === 1 ? "" : "s"}`}
-              onClick={() => setRating(n)}
-              onMouseEnter={() => setHover(n)}
-              onMouseLeave={() => setHover(0)}
-              className={`text-2xl leading-none transition-transform ${
-                n <= activeStars ? "text-rating" : "text-text-tertiary"
-              } hover:scale-110`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-
-        <Textarea
-          className="mt-4"
-          placeholder={reviewing ? REVIEW_PLACEHOLDER : ""}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          maxLength={MAX_TEXT}
-        />
-
-        {error && <p className="mt-2 text-sm text-error">{error}</p>}
-
-        <div className="mt-4 flex gap-2">
-          <Button onClick={submit} disabled={loading}>
-            {loading ? "Submitting…" : "Submit review"}
-          </Button>
-          <Button variant="secondary" onClick={() => setReviewing(null)} disabled={loading}>
-            Cancel
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Read-only review modal */}
-      <Modal
-        open={!!viewing}
-        onClose={() => setViewing(null)}
-        title="Your review"
-      >
-        {viewing?.review && (
-          <div>
-            <div className="flex items-center gap-2">
-              <span
-                className="text-rating"
-                aria-label={`${viewing.review.rating} stars`}
-              >
-                {"★".repeat(viewing.review.rating)}
-              </span>
-              <span className="text-sm text-text-secondary">
-                {viewing.review.rating}/5
-              </span>
-            </div>
-
-            {viewing.review.text ? (
-              <p className="mt-3 text-sm text-text-secondary">{viewing.review.text}</p>
-            ) : (
-              <p className="mt-2 text-sm text-text-tertiary">
-                No written review — rating only.
-              </p>
-            )}
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

@@ -22,16 +22,21 @@ export default async function CreatorProfilePage() {
     .where(eq(users.id, user.id));
 
   return (
-    <ProfileForm
-      existingBio={profile?.bio ?? ""}
-      hasProfile={!!profile}
-      stripeAccountId={profile?.stripe_account_id ?? null}
-      stripeOnboardingComplete={profile?.stripe_onboarding_complete ?? false}
-      identityVerified={profile?.identity_verified ?? false}
-      isPublished={profile?.is_published ?? false}
-      avatarUrl={userRow?.avatar_url ?? null}
-      bannerUrl={profile?.banner_url ?? null}
-      displayName={userRow?.display_name ?? user.email ?? ""}
-    />
+    <div>
+      <h1 className="text-2xl font-bold text-white">Profile</h1>
+      <div className="mt-6">
+        <ProfileForm
+          existingBio={profile?.bio ?? ""}
+          hasProfile={!!profile}
+          stripeAccountId={profile?.stripe_account_id ?? null}
+          stripeOnboardingComplete={profile?.stripe_onboarding_complete ?? false}
+          identityVerified={profile?.identity_verified ?? false}
+          isPublished={profile?.is_published ?? false}
+          avatarUrl={userRow?.avatar_url ?? null}
+          bannerUrl={profile?.banner_url ?? null}
+          displayName={userRow?.display_name ?? user.email ?? ""}
+        />
+      </div>
+    </div>
   );
 }

@@ -3,7 +3,8 @@ type BadgeVariant =
   | "confirmed"
   | "pending"
   | "cancelled"
-  | "completed";
+  | "completed"
+  | "error";
 
 const styles: Record<BadgeVariant, string> = {
   live: "bg-live text-black",
@@ -11,6 +12,7 @@ const styles: Record<BadgeVariant, string> = {
   pending: "border border-text-secondary text-text-secondary",
   cancelled: "border border-text-tertiary text-text-tertiary",
   completed: "border border-white text-white",
+  error: "border border-error text-error",
 };
 
 export function Badge({

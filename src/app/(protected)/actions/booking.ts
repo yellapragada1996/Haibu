@@ -6,8 +6,10 @@ import { db } from "@/db";
 import { bookings, offerings, creatorProfiles, blocks, ledgerEntries } from "@/db/schema";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
+import { inngest } from "@/lib/inngest";
 import { addMinutes } from "date-fns";
 import { revalidatePath } from "next/cache";
+import { isPgErrorCode } from "@/lib/pg-errors";
 
 // Mark a reserved booking as PAID immediately after client-side
 // confirmPayment succeeds, so the booking page shows the confirmed UI
@@ -59,11 +61,27 @@ export async function markBookingPaid(bookingId: string, paymentIntentId: string
   } catch (e: unknown) {
     // Unique violation on (stripe_reference, type) = the webhook already
     // recorded it — genuine idempotency, not a failure.
-    if ((e as { code?: string }).code === "23505") return { ok: true };
+    // (Drizzle 0.45 wraps the pg error; the SQLSTATE lives at e.cause.code.)
+    if (isPgErrorCode(e, "23505")) return { ok: true };
     throw e;
   }
   revalidatePath(`/bookings/${bookingId}`);
   revalidatePath("/", "layout");
+
+  // Kick off the async side effects (Daily room creation + booking reminders).
+  // markBookingPaid is the fast client-side confirmation path; the Stripe
+  // webhook may not have arrived yet (and it no-ops once it sees 'confirmed'),
+  // so this must fire the same event the webhook normally would. The handler is
+  // idempotent — it no-ops if the room already exists.
+  try {
+    await inngest.send({ name: "booking/confirmed", data: { bookingId } });
+  } catch (e) {
+    console.error(
+      `[booking] CRITICAL: Inngest send failed for booking ${bookingId}. ` +
+        `Room creation and reminders will not fire. Error: ${e instanceof Error ? e.message : String(e)}`,
+    );
+  }
+
   return { ok: true };
 }
 
@@ -157,8 +175,10 @@ export async function reserveSlot(offeringId: string, startAtIso: string) {
       .returning({ id: bookings.id });
     bookingId = inserted.id;
   } catch (e: unknown) {
-    const err = e as { code?: string };
-    if (err.code === "23505") {
+    // Unique violation on (creator_id, start_at) = the slot was just taken by
+    // someone else. Drizzle 0.45 wraps the pg error — the SQLSTATE (23505)
+    // lives at e.cause.code, not e.code, so check both.
+    if (isPgErrorCode(e, "23505")) {
       return { error: "slot_taken" as const };
     }
     return { error: "invalid_slot" as const };

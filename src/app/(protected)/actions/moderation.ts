@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { bookings, creatorProfiles, reports, blocks } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { isPgErrorCode } from "@/lib/pg-errors";
 
 // Report + block are safety actions available to either party of a booking.
 // The target is always the *other* party: a guest reports/blocks the creator;
@@ -79,7 +80,7 @@ export async function blockUser(
       blocked_id: parties.otherUserId,
     });
   } catch (e: unknown) {
-    if ((e as { code?: string }).code === "23505") {
+    if (isPgErrorCode(e, "23505")) {
       return { error: "This user is already blocked" };
     }
     throw e;

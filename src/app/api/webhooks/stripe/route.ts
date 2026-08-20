@@ -5,6 +5,7 @@ import { creatorProfiles, bookings, ledgerEntries } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import Stripe from "stripe";
+import { isPgErrorCode } from "@/lib/pg-errors";
 
 export async function POST(request: Request) {
   const sig = request.headers.get("stripe-signature");
@@ -116,7 +117,7 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
     } catch (e: unknown) {
       // Unique violation on (stripe_reference, type) means refund already logged.
       // This is genuine idempotency, not a silent failure.
-      if ((e as { code?: string }).code === "23505") return;
+      if (isPgErrorCode(e, "23505")) return;
       throw e;
     }
     return;

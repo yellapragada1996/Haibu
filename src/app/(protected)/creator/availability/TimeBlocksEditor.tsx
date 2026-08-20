@@ -68,7 +68,7 @@ export function TimeBlocksEditor({
           <select
             value={block.start_minute}
             onChange={(e) => updateBlock(index, "start_minute", Number(e.target.value))}
-            className="bg-bg-base border border-border-subtle rounded-input pl-2 pr-8 py-1.5 text-sm text-white outline-none focus:border-primary"
+            className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-white outline-none focus:border-primary"
           >
             {MINUTE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -80,7 +80,7 @@ export function TimeBlocksEditor({
           <select
             value={block.end_minute}
             onChange={(e) => updateBlock(index, "end_minute", Number(e.target.value))}
-            className="bg-bg-base border border-border-subtle rounded-input pl-2 pr-8 py-1.5 text-sm text-white outline-none focus:border-primary"
+            className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-white outline-none focus:border-primary"
           >
             {MINUTE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -91,7 +91,7 @@ export function TimeBlocksEditor({
           <button
             type="button"
             onClick={() => removeBlock(index)}
-            className="text-text-tertiary hover:text-error transition-colors text-lg leading-none"
+            className="flex h-9 w-9 shrink-0 items-center justify-center text-text-tertiary transition-colors hover:text-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             aria-label="Remove time block"
           >
             ×

@@ -2,6 +2,7 @@ import { db } from "@/db";
 import {
   adminActions,
   bookings,
+  creatorProfiles,
   ledgerEntries,
   reports,
   users,
@@ -9,6 +10,8 @@ import {
 import { asc, count, desc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Card } from "@/components/ui/Card";
+import { getReliabilityFlags, RELIABILITY_WINDOW_MS } from "@/lib/reliability";
+import { ReviewActions } from "./ReviewActions";
 
 const reportedUser = alias(users, "reportedUser");
 const adminUser = alias(users, "adminUser");
@@ -97,6 +100,26 @@ export default async function AdminOverviewPage() {
     .orderBy(desc(adminActions.created_at))
     .limit(8);
 
+  // Creators flagged for reliability review (§4) — cancellations/no-shows in a
+  // rolling window. Flag-for-review only; no auto-action.
+  const reliabilityFlags = await getReliabilityFlags();
+  const reliabilityDays = Math.round(RELIABILITY_WINDOW_MS / 86400000);
+
+  // Sessions where the creator partially delivered (Phase 4) — needs_review,
+  // skipped by the payout sweep until an admin resolves them.
+  const reviewRows = await db
+    .select({
+      id: bookings.id,
+      start_at: bookings.start_at,
+      creator_name: users.display_name,
+    })
+    .from(bookings)
+    .innerJoin(creatorProfiles, eq(creatorProfiles.id, bookings.creator_id))
+    .innerJoin(users, eq(users.id, creatorProfiles.user_id))
+    .where(eq(bookings.needs_review, true))
+    .orderBy(asc(bookings.start_at))
+    .limit(20);
+
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold text-white">Overview</h1>
@@ -180,6 +203,59 @@ export default async function AdminOverviewPage() {
           )}
         </section>
       </div>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-white">
+          Creator reliability flags
+        </h2>
+        {reliabilityFlags.length === 0 ? (
+          <p className="text-sm text-text-secondary">
+            No creators have crossed the reliability threshold.
+          </p>
+        ) : (
+          <Card padding={false} className="divide-y divide-border-subtle">
+            {reliabilityFlags.map((f) => (
+              <div key={f.creator_id} className="px-4 py-3">
+                <p className="text-sm text-white">
+                  {f.display_name}{" "}
+                  <span className="text-text-secondary">· {f.email}</span>
+                </p>
+                <p className="mt-1 text-xs text-text-tertiary">
+                  {f.count} cancellations/no-shows in the last {reliabilityDays} days
+                </p>
+              </div>
+            ))}
+          </Card>
+        )}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-white">
+          Sessions needing review
+        </h2>
+        {reviewRows.length === 0 ? (
+          <p className="text-sm text-text-secondary">
+            No sessions flagged for review.
+          </p>
+        ) : (
+          <Card padding={false} className="divide-y divide-border-subtle">
+            {reviewRows.map((r) => (
+              <div key={r.id} className="px-4 py-3">
+                <p className="text-sm text-white">
+                  {r.creator_name}{" "}
+                  <span className="text-text-secondary">· {r.id.slice(0, 8)}</span>
+                </p>
+                <p className="mt-1 text-xs text-text-tertiary">
+                  {r.start_at ? new Date(r.start_at).toLocaleString("en-US", { timeZone: "UTC" }) : "—"} UTC · creator partially delivered
+                </p>
+                <div className="mt-2">
+                  <ReviewActions bookingId={r.id} />
+                </div>
+              </div>
+            ))}
+          </Card>
+        )}
+      </section>
     </div>
   );
 }

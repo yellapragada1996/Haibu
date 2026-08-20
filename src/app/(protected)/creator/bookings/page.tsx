@@ -2,13 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { bookings as bookingsTable, offerings, creatorProfiles, users, reviews } from "@/db/schema";
+import { bookings as bookingsTable, offerings, creatorProfiles, users } from "@/db/schema";
 import { eq, and, or, gte, desc } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { statusLabel } from "@/lib/status";
-import { CreatorReviewButton } from "../CreatorReviewButton";
-import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
 
 function badgeFor(status: string): "live" | "confirmed" | "pending" | "cancelled" | "completed" {
   switch (status) {
@@ -81,7 +79,7 @@ export default async function CreatorBookingsPage() {
     .orderBy(desc(bookingsTable.start_at))
     .limit(50);
 
-  // Completed sessions — where the creator reviews the guest.
+  // Completed sessions.
   const past = await db
     .select({
       id: bookingsTable.id,
@@ -91,18 +89,10 @@ export default async function CreatorBookingsPage() {
       price_cents: bookingsTable.price_cents,
       fan_name: users.display_name,
       offering_title: offerings.title,
-      reviewed: reviews.id,
     })
     .from(bookingsTable)
     .innerJoin(offerings, eq(offerings.id, bookingsTable.offering_id))
     .innerJoin(users, eq(users.id, bookingsTable.fan_id))
-    .leftJoin(
-      reviews,
-      and(
-        eq(reviews.booking_id, bookingsTable.id),
-        eq(reviews.reviewer_role, "creator"),
-      ),
-    )
     .where(
       and(
         eq(bookingsTable.creator_id, profile.id),
@@ -114,7 +104,7 @@ export default async function CreatorBookingsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-white">Your bookings</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-white">Booked by guests</h1>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-white">Upcoming</h2>
@@ -154,32 +144,24 @@ export default async function CreatorBookingsPage() {
           <p className="text-sm text-text-secondary">No completed sessions yet.</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {past.map((b) => {
-              const withinWindow =
-                b.end_at != null &&
-                Date.now() <= new Date(b.end_at).getTime() + REVIEW_WINDOW_MS;
-              return (
-                <Card key={b.id} className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-text-secondary">Guest</span>
-                      <span className="font-medium text-white">{b.fan_name}</span>
-                      <Badge variant="completed" label="Completed" />
-                    </div>
-                    <p className="mt-1 text-xs text-text-secondary">
-                      {b.offering_title} ·{" "}
-                      {b.start_at ? `${fmtDate(new Date(b.start_at), profile.timezone)} · ${fmtTime(new Date(b.start_at), profile.timezone)}` : ""}
-                    </p>
+            {past.map((b) => (
+              <Card key={b.id} className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-text-secondary">Guest</span>
+                    <span className="font-medium text-white">{b.fan_name}</span>
+                    <Badge variant="completed" label="Completed" />
                   </div>
-                  <CreatorReviewButton
-                    bookingId={b.id}
-                    fanName={b.fan_name}
-                    reviewed={!!b.reviewed}
-                    canReview={withinWindow}
-                  />
-                </Card>
-              );
-            })}
+                  <p className="mt-1 text-xs text-text-secondary">
+                    {b.offering_title} ·{" "}
+                    {b.start_at ? `${fmtDate(new Date(b.start_at), profile.timezone)} · ${fmtTime(new Date(b.start_at), profile.timezone)}` : ""}
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm text-text-secondary">
+                  ${((b.price_cents ?? 0) / 100).toFixed(2)}
+                </span>
+              </Card>
+            ))}
           </div>
         )}
       </section>

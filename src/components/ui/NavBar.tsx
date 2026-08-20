@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Button, ButtonLink } from "./Button";
+import { ButtonLink } from "./Button";
 import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
@@ -23,17 +23,19 @@ export function NavBar({
   userName = "",
   avatarUrl = null,
 }: NavBarProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const avatarRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
-  const [searchQuery, setSearchQuery] = useState("");
 
   function goSearch(queryOverride?: string) {
     const raw = (queryOverride ?? searchQuery).trim();
     if (!raw) return;
+    setSearchOpen(false);
     router.push(`/search?q=${encodeURIComponent(raw)}`);
   }
 
@@ -47,112 +49,106 @@ export function NavBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchInputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [searchOpen]);
+
+  const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
+  const signupHref = `/login?tab=signup&redirect=${encodeURIComponent(pathname)}`;
+
   return (
-    <nav className="sticky top-0 z-40 border-b border-border-subtle bg-bg-surface">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4">
-        <button
-          type="button"
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="hidden items-center justify-center w-9 h-9 rounded-input hover:bg-bg-card-hover text-white"
-        >
-          {menuOpen ? (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          )}
-        </button>
+    <>
+      <nav className="sticky top-0 z-40 border-b border-border-subtle bg-bg-surface">
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4">
+          <Link href="/" className="flex-shrink-0">
+            <Logo />
+          </Link>
 
-        <Link href="/" className="flex-shrink-0">
-          <Logo />
-        </Link>
-
-        <div className="flex flex-1 justify-center max-w-[560px] mx-auto">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="Search creators"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") goSearch();
-              }}
-              className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-white placeholder-text-secondary outline-none focus:border-primary"
-            />
-            <button
-              type="button"
-              aria-label="Search"
-              onClick={() => goSearch()}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-bg-card-hover flex items-center justify-center text-text-secondary"
-            >
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="2" />
-                <path d="M13 13l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
+          {/* Desktop search */}
+          <div className="hidden flex-1 justify-center max-w-[560px] mx-auto md:flex">
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search creators"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") goSearch();
+                }}
+                className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-white placeholder-text-secondary outline-none focus:border-primary"
+              />
+              <button
+                type="button"
+                aria-label="Search"
+                onClick={() => goSearch()}
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-bg-card-hover flex items-center justify-center text-text-secondary"
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                  <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="2" />
+                  <path d="M13 13l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 ml-auto">
-          {isLoggedIn ? (
-            <>
-              {isCreator ? (
-                <>
-                  <Link
-                    href="/creator/profile"
-                    className="hidden sm:inline-flex h-9 items-center rounded-pill bg-bg-card-hover px-4 text-sm font-semibold text-white hover:bg-border-subtle transition-colors"
-                  >
-                    Creator Studio
-                  </Link>
-                  <Link
-                    href="/creator/bookings"
-                    className="hidden sm:inline-flex h-9 items-center rounded-pill bg-bg-card-hover px-4 text-sm font-semibold text-white hover:bg-border-subtle transition-colors"
-                  >
-                    Bookings
-                  </Link>
-                </>
-              ) : (
-                <ButtonLink href="/creator/profile" size="small" className="inline-flex">
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Desktop-only (md+) */}
+            <div className="hidden items-center gap-2 md:flex">
+              {isLoggedIn && (
+                <Link
+                  href={isCreator ? "/creator" : "/dashboard"}
+                  className="inline-flex h-9 items-center rounded-pill bg-bg-card-hover px-4 text-sm font-semibold text-white hover:bg-border-subtle transition-colors"
+                >
+                  Dashboard
+                </Link>
+              )}
+              {isLoggedIn && !isCreator && (
+                <ButtonLink href="/creator/profile" size="small">
                   Become a Creator
                 </ButtonLink>
               )}
-              {/* Notification bell removed — it was a dead placeholder (no
-                  handler). Email reminders (Step 14) cover this need. */}
+              {!isLoggedIn && (
+                <>
+                  <ButtonLink href={loginHref} size="small" variant="ghost">
+                    Log in
+                  </ButtonLink>
+                  <ButtonLink href={signupHref} size="small">
+                    Sign up
+                  </ButtonLink>
+                </>
+              )}
+            </div>
+
+            {/* Mobile search trigger */}
+            <button
+              type="button"
+              aria-label="Search"
+              onClick={() => setSearchOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:text-white md:hidden"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+            </button>
+
+            {isLoggedIn ? (
               <div className="relative" ref={avatarRef}>
-                <button
-                  onClick={() => setAvatarOpen(!avatarOpen)}
-                  className="flex items-center"
-                >
+                <button onClick={() => setAvatarOpen(!avatarOpen)} className="flex items-center">
                   <Avatar src={avatarUrl} name={userName} size={32} />
                 </button>
                 {avatarOpen && (
                   <div className="absolute right-0 top-full mt-2 w-48 rounded-card bg-bg-card border border-border-subtle py-1 shadow-lg z-50">
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setAvatarOpen(false)}
-                      className="block px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/settings"
-                      onClick={() => setAvatarOpen(false)}
-                      className="block px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
-                    >
-                      Settings
-                    </Link>
-                    {isCreator && (
-                      <Link
-                        href="/creator/profile"
-                        onClick={() => setAvatarOpen(false)}
-                        className="block px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
-                      >
-                        Creator Studio
-                      </Link>
-                    )}
                     {isAdmin && (
                       <Link
                         href="/admin"
@@ -166,28 +162,24 @@ export function NavBar({
                       onClick={async () => {
                         setAvatarOpen(false);
                         await supabase.auth.signOut();
-                        // Clear any booking intent so /login doesn't show a
-                        // stale "Almost there" context after logout.
                         try {
                           sessionStorage.removeItem("pendingBooking");
                         } catch {
                           /* ignore */
                         }
-                        // Stay on the current page when it's public (e.g. a
-                        // creator profile), else land on the home page.
-                        const pathname =
+                        const currentPath =
                           typeof window !== "undefined"
                             ? window.location.pathname
                             : "/";
                         const publicPath =
-                          pathname === "/" ||
-                          pathname.startsWith("/@") ||
-                          pathname.startsWith("/creators") ||
-                          pathname.startsWith("/browse") ||
-                          pathname.startsWith("/search") ||
-                          pathname.startsWith("/slot") ||
-                          pathname.startsWith("/dev");
-                        router.push(publicPath ? pathname : "/");
+                          currentPath === "/" ||
+                          currentPath.startsWith("/@") ||
+                          currentPath.startsWith("/creators") ||
+                          currentPath.startsWith("/browse") ||
+                          currentPath.startsWith("/search") ||
+                          currentPath.startsWith("/slot") ||
+                          currentPath.startsWith("/dev");
+                        router.push(publicPath ? currentPath : "/");
                         router.refresh();
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:text-white hover:bg-bg-card-hover"
@@ -197,79 +189,52 @@ export function NavBar({
                   </div>
                 )}
               </div>
-            </>
-          ) : (
-            <>
-              <ButtonLink
-                href={`/login?redirect=${encodeURIComponent(pathname)}`}
-                size="small"
-                variant="ghost"
+            ) : (
+              <Link
+                href={loginHref}
+                className="px-2 text-sm font-semibold text-white md:hidden"
               >
                 Log in
-              </ButtonLink>
-              <ButtonLink
-                href={`/login?tab=signup&redirect=${encodeURIComponent(pathname)}`}
-                size="small"
-              >
-                Sign up
-              </ButtonLink>
-            </>
-          )}
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
+      </nav>
 
-      {menuOpen && (
-        <div className="sm:hidden border-t border-border-subtle bg-bg-surface px-4 py-4 space-y-3">
-          <input
-            type="text"
-            placeholder="Search creators"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                goSearch();
-                setMenuOpen(false);
-              }
-            }}
-            className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 text-sm text-white placeholder-text-secondary outline-none"
-          />
-          {isCreator ? (
-            <Link
-              href="/creator/profile"
-              className="block rounded-pill bg-bg-card-hover px-4 py-2 text-sm font-semibold text-white text-center"
-              onClick={() => setMenuOpen(false)}
+      {/* Full-screen search (mobile) */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-50 bg-bg-base md:hidden" role="dialog" aria-label="Search">
+          <div className="flex items-center gap-2 px-3 py-3">
+            <button
+              type="button"
+              aria-label="Back"
+              onClick={() => setSearchOpen(false)}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white hover:bg-bg-card-hover"
             >
-              Creator Studio
-            </Link>
-          ) : (
-            <Link
-              href="/creator/profile"
-              className="block rounded-pill bg-primary px-4 py-2 text-sm font-semibold text-on-primary text-center"
-              onClick={() => setMenuOpen(false)}
-            >
-              Become a Creator
-            </Link>
-          )}
-          {isLoggedIn && (
-            <Link
-              href="/dashboard"
-              className="block rounded-pill px-4 py-2 text-sm text-text-secondary text-center hover:text-white"
-              onClick={() => setMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
-          )}
-          {isLoggedIn && isAdmin && (
-            <Link
-              href="/admin"
-              className="block rounded-pill px-4 py-2 text-sm text-text-secondary text-center hover:text-white"
-              onClick={() => setMenuOpen(false)}
-            >
-              Admin
-            </Link>
-          )}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div className="flex flex-1 items-center gap-2 rounded-pill bg-bg-card border border-border-subtle px-4 h-10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search creators by name or category"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") goSearch();
+                }}
+                className="w-full bg-transparent text-sm text-white placeholder-text-secondary outline-none"
+              />
+            </div>
+          </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }

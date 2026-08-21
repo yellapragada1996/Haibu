@@ -588,12 +588,6 @@ body.haibu-call-theme {
     display: none !important;
   }
 
-  /* On mobile we render our own React control bar — hide Daily's native
-     tray entirely (its mobile DOM doesn't match the desktop re-skin). */
-  .tray {
-    display: none !important;
-  }
-
   /* Keep the stage full width even while chat is open (Daily narrows it to
      88px to make room for a side panel; we overlay chat as a bottom sheet). */
   .speaker {

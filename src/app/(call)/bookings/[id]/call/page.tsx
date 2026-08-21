@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { MobileCallControls } from "@/components/call/MobileCallControls";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 declare global {
@@ -22,10 +21,6 @@ interface DailyCall {
   setActiveSpeakerMode: (enabled: boolean) => void;
   loadCss: (opts: { bodyClass?: string; cssText?: string }) => void;
   participantCounts: () => { present: number };
-  localAudio: () => boolean;
-  localVideo: () => boolean;
-  setLocalAudio: (enabled: boolean) => void;
-  setLocalVideo: (enabled: boolean) => void;
 }
 
 function loadDailyScript(): Promise<void> {
@@ -83,8 +78,6 @@ export default function CallPage() {
   const [hasRemote, setHasRemote] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [error, setError] = useState("");
-  const [cameraOn, setCameraOn] = useState(true);
-  const [micOn, setMicOn] = useState(true);
   const isMobile = useMediaQuery("(max-width: 640px)");
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<DailyCall | null>(null);
@@ -140,7 +133,16 @@ export default function CallPage() {
       // is unmistakable in screenshots. Inert without the query param.
       const debugLayout =
         new URLSearchParams(window.location.search).has("debug-layout");
-      const cssText = debugLayout ? DAILY_CSS + DAILY_DEBUG_CSS : DAILY_CSS;
+      // Mobile uses Daily's default UI as-is: the desktop re-skin (DAILY_CSS)
+      // targets Daily's desktop DOM class names, which don't exist in Daily's
+      // mobile layout — injecting it there breaks the controls. Empty cssText
+      // lets Daily's native mobile controls render and work.
+      const mobile = window.matchMedia("(max-width: 640px)").matches;
+      const cssText = mobile
+        ? ""
+        : debugLayout
+          ? DAILY_CSS + DAILY_DEBUG_CSS
+          : DAILY_CSS;
       // Keep the composed cssText for the auto-hide loadCss calls.
       cssTextRef.current = cssText;
 
@@ -189,8 +191,6 @@ export default function CallPage() {
       // engine sizes the tiles — large main tile for the active speaker,
       // smaller self-view. No forced CSS tile sizing.
       frame.setActiveSpeakerMode(true);
-      setCameraOn(frame.localVideo());
-      setMicOn(frame.localAudio());
       setPhase("in_call");
 
       // Self-view only exists when there's a remote participant (with just
@@ -288,7 +288,9 @@ export default function CallPage() {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (phase !== "in_call") return;
+    // Desktop-only auto-hide. On mobile, Daily's own UI handles controls
+    // (and the empty cssText means our `body.idle` rules don't exist).
+    if (phase !== "in_call" || isMobile) return;
 
     const bodyClass = (idle: boolean) =>
       "haibu-call-theme" +
@@ -320,13 +322,11 @@ export default function CallPage() {
     show();
 
     window.addEventListener("mousemove", show);
-    window.addEventListener("touchstart", show);
     window.addEventListener("blur", hide);
 
     return () => {
       clearTimeout(idleTimerRef.current);
       window.removeEventListener("mousemove", show);
-      window.removeEventListener("touchstart", show);
       window.removeEventListener("blur", hide);
       if (hiddenRef.current) {
         hiddenRef.current = false;
@@ -339,7 +339,7 @@ export default function CallPage() {
         });
       }
     };
-  }, [phase]);
+  }, [phase, isMobile]);
 
   // Track browser fullscreen state so the injected Daily CSS can hide the
   // self-view in fullscreen (applied as a body class, not html:fullscreen).
@@ -402,22 +402,6 @@ export default function CallPage() {
     frameRef.current?.leave();
   };
 
-  const toggleCamera = () => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const next = !cameraOn;
-    frame.setLocalVideo(next);
-    setCameraOn(next);
-  };
-
-  const toggleMic = () => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const next = !micOn;
-    frame.setLocalAudio(next);
-    setMicOn(next);
-  };
-
   const backButton = (
     <Button variant="secondary" onClick={() => router.push(`/bookings/${bookingId}`)}>
       Back to booking
@@ -465,12 +449,10 @@ export default function CallPage() {
     // Full viewport — this route has NO site NavBar (minimal call layout);
     // the Daily tray pins to the real bottom edge, safe-area aware.
     <div className="flex h-dvh flex-col overflow-hidden bg-bg-base">
-      {/* Minimal chrome header */}
-      <header
-        className={`flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4 transition-opacity duration-300 ${
-          isMobile && controlsHidden ? "pointer-events-none opacity-0" : "opacity-100"
-        }`}
-      >
+      {/* Minimal chrome header (desktop only — Daily's own mobile UI provides
+          the topbar and controls on small screens) */}
+      {!isMobile && (
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{sessionTitle || "Session"}</p>
           <p className="text-xs text-text-secondary">
@@ -487,7 +469,8 @@ export default function CallPage() {
             </Button>
           )}
         </div>
-      </header>
+        </header>
+      )}
 
       {(phase === "ready" || phase === "loading") && (
         <div className="flex flex-1 items-center justify-center">
@@ -502,7 +485,7 @@ export default function CallPage() {
           layer lives as a SIBLING overlay instead. */}
       <div className={phase === "in_call" ? "relative flex-1 min-h-0" : "hidden"}>
         <div ref={containerRef} className="absolute inset-0" />
-        {phase === "in_call" && (
+        {phase === "in_call" && !isMobile && (
           <div
             className="absolute inset-0 z-10"
             style={{ pointerEvents: controlsHidden ? "auto" : "none" }}
@@ -542,16 +525,6 @@ export default function CallPage() {
               </svg>
             )}
           </button>
-        )}
-        {phase === "in_call" && isMobile && (
-          <MobileCallControls
-            cameraOn={cameraOn}
-            micOn={micOn}
-            onToggleCamera={toggleCamera}
-            onToggleMic={toggleMic}
-            onLeave={handleLeave}
-            hidden={controlsHidden}
-          />
         )}
       </div>
     </div>

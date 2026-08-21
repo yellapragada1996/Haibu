@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { markdownToHtml } from "@/lib/markdown";
+import { TERMS_OF_SERVICE_MARKDOWN } from "@/content/terms-of-service";
 
 // Strips non-user-facing artifacts (title, draft notice, last-updated
 // placeholder, and the Contents jump-list) so the modal renders a clean,
@@ -23,8 +22,6 @@ function prepareTermsMarkdown(markdown: string): string {
 }
 
 export async function GET() {
-  const file = path.join(process.cwd(), "src", "content", "haibu-terms-of-service-combined.md");
-  const markdown = readFileSync(file, "utf8");
-  const html = markdownToHtml(prepareTermsMarkdown(markdown));
+  const html = markdownToHtml(prepareTermsMarkdown(TERMS_OF_SERVICE_MARKDOWN));
   return NextResponse.json({ html });
 }

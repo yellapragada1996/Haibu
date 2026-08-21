@@ -15,6 +15,7 @@ export interface DailyCall {
   localVideo: () => boolean;
   localAudio: () => boolean;
   participants: () => Record<string, DailyParticipant>;
+  sendAppMessage: (data: unknown, to?: string | string[]) => void;
 }
 
 export interface DailyParticipant {

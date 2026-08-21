@@ -64,7 +64,12 @@ export default function CallPage() {
   const [hasRemote, setHasRemote] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [error, setError] = useState("");
-  const isMobile = useMediaQuery("(max-width: 640px)");
+  // Robust mobile/tablet detection: small viewport OR a touch device up to
+  // 1024px (covers phones + iPads in any orientation — a narrow 640px query
+  // alone lets portrait tablets fall through to the desktop Prebuilt UI).
+  const isMobile = useMediaQuery(
+    "(max-width: 768px), (pointer: coarse) and (max-width: 1024px)",
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<DailyCall | null>(null);
   const cssTextRef = useRef<string>(DAILY_CSS);

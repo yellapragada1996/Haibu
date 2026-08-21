@@ -7,10 +7,8 @@ import { initialsAvatarDataUrl } from "@/lib/daily-ui";
 import { DailyCall, DailyParticipant } from "@/lib/daily-types";
 
 // ---------------------------------------------------------------------------
-// Mobile custom call UI (call-object mode). Daily's Prebuilt iframe UI is NOT
-// used here — we render our own tiles and controls from Daily's documented
-// track API, so the layout and controls are fully under our control and don't
-// depend on Daily's internal DOM/class names.
+// Mobile custom call UI (call-object mode) — media-first.
+// Creator full-bleed, dismissible self-view, chat, tap-to-focus.
 // ---------------------------------------------------------------------------
 
 type Phase = "loading" | "too_early" | "in_call" | "ended" | "error";
@@ -19,6 +17,11 @@ interface TrackEvent {
   participant?: DailyParticipant | null;
   track: MediaStreamTrack;
   type: string;
+}
+
+interface ChatMessage {
+  from: "me" | "them";
+  text: string;
 }
 
 function loadDailyScript(): Promise<void> {
@@ -64,13 +67,16 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [cameraOn, setCameraOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
+  const [showSelfView, setShowSelfView] = useState(true);
   const [hasRemote, setHasRemote] = useState(false);
   const [remoteHasVideo, setRemoteHasVideo] = useState(false);
   const [remoteName, setRemoteName] = useState("");
-  const [localName, setLocalName] = useState("");
-  const [localAvatar, setLocalAvatar] = useState("");
   const [remoteAvatar, setRemoteAvatar] = useState("");
+  const [localAvatar, setLocalAvatar] = useState("");
   const [cleanView, setCleanView] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
 
   const callRef = useRef<DailyCall | null>(null);
@@ -79,6 +85,7 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const startedRef = useRef(false);
+  const chatRef = useRef<HTMLInputElement | null>(null);
 
   const router = useRouter();
 
@@ -125,7 +132,6 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
       }
 
       setSessionTitle(data.session_title ?? "Session");
-      setLocalName(data.display_name ?? "User");
       setLocalAvatar(data.avatar_url || initialsAvatarDataUrl(data.display_name || "User"));
       if (data.session_end_at) {
         setSessionEndAt(new Date(data.session_end_at).getTime());
@@ -188,7 +194,7 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
       call.on("participant-updated", (e) => {
         const p = e as { participant?: DailyParticipant };
         if (p.participant && !p.participant.local) {
-          setRemoteName(p.participant.user_name || remoteName || "Guest");
+          setRemoteName(p.participant.user_name || "Guest");
         }
       });
 
@@ -202,6 +208,16 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         }
       });
 
+      call.on("app-message", (e) => {
+        const ev = e as { data?: { message?: string } };
+        const text = ev.data?.message;
+        if (typeof text === "string" && text.trim()) {
+          setMessages((m) => [...m, { from: "them", text: text.trim() }]);
+          setChatOpen(true);
+          setCleanView(false);
+        }
+      });
+
       call.on("left-meeting", () => {
         setPhase("ended");
       });
@@ -211,14 +227,12 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         setError(err.errorMsg ?? "Call error");
       });
 
-      // Render the video tiles BEFORE joining so the <video> refs exist when
+      // Render the tiles BEFORE joining so the <video> refs exist when
       // track-started fires (otherwise the remote/local tracks are dropped).
       setPhase("in_call");
 
       await call.join();
 
-      // Track the existing participants (covers the case where the remote
-      // joined before us and track events already fired).
       const participants = call.participants();
       const remote = Object.values(participants).find((p) => !p.local);
       if (remote) {
@@ -255,7 +269,6 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     };
   }, [startCall]);
 
-  // Time-remaining ticker.
   useEffect(() => {
     if (phase !== "in_call" || !sessionEndAt) return;
     const tick = () => {
@@ -286,6 +299,15 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     const next = !micOn;
     call.setLocalAudio(next);
     setMicOn(next);
+  };
+
+  const sendChat = () => {
+    const call = callRef.current;
+    const text = draft.trim();
+    if (!call || !text) return;
+    call.sendAppMessage({ message: text });
+    setMessages((m) => [...m, { from: "me", text }]);
+    setDraft("");
   };
 
   const leave = () => {
@@ -344,61 +366,40 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     );
   }
 
+  const pipVisible = hasRemote && showSelfView && !cleanView;
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg-base">
       {/* Stage + self-view */}
       <div className="relative flex-1 min-h-0">
-        {/* Remote participant: full-bleed stage when present. The <video> is
-            always mounted so its ref exists when track-started fires; the
-            avatar overlays it while the remote's camera is off. */}
+        {/* Remote participant: full-bleed stage when present */}
         <div className={`absolute inset-0 bg-black ${hasRemote ? "" : "hidden"}`}>
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="h-full w-full object-contain"
-          />
+          <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
           {!remoteHasVideo && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <img
-                src={remoteAvatar}
-                alt=""
-                className="h-28 w-28 rounded-full border-2 border-white/10 object-cover"
-              />
+              <img src={remoteAvatar} alt="" className="h-28 w-28 rounded-full border-2 border-white/10 object-cover" />
               <p className="text-sm text-text-secondary">{remoteName || "Guest"}</p>
             </div>
           )}
-          {/* Name tag */}
           <div className="absolute bottom-4 left-4 rounded-pill bg-black/55 px-3 py-1 text-xs text-white">
             {remoteName || "Guest"}
           </div>
         </div>
 
-        {/* Local video: full-bleed stage when solo, PiP when a remote is
-            present. Always mounted for the same track-timing reason. */}
+        {/* Local video: full-bleed stage when solo, PiP when a remote is present */}
         <div
-          className={
-            hasRemote
-              ? "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
-              : "absolute inset-0 bg-black"
-          }
+          className={`${hasRemote
+            ? "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+            : "absolute inset-0 bg-black"} ${hasRemote && !pipVisible ? "hidden" : ""}`}
         >
-          <video
-            ref={selfVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`h-full w-full ${hasRemote ? "object-cover" : "object-contain"}`}
-          />
+          <video ref={selfVideoRef} autoPlay playsInline muted className={`h-full w-full ${hasRemote ? "object-cover" : "object-contain"}`} />
           {!cameraOn && (
             <div className="absolute inset-0 flex items-center justify-center">
               <img src={localAvatar} alt="" className="h-full w-full object-cover" />
             </div>
           )}
           {hasRemote && (
-            <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">
-              You
-            </div>
+            <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">You</div>
           )}
         </div>
 
@@ -416,48 +417,31 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
 
       {/* Header */}
       <div
-        className={`absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent px-4 pt-[calc(12px+env(safe-area-inset-top,0px))] pb-6 transition-opacity duration-300 ${
-          cleanView ? "pointer-events-none opacity-0" : "opacity-100"
-        }`}
+        className={`absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent px-4 pt-[calc(12px+env(safe-area-inset-top,0px))] pb-6 transition-opacity duration-300 ${cleanView ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{sessionTitle}</p>
-          <p className="text-xs text-text-secondary">
-            {sessionEndAt ? `Live · ${timeLeft}` : "Live"}
-          </p>
+          <p className="text-xs text-text-secondary">{sessionEndAt ? `Live · ${timeLeft}` : "Live"}</p>
         </div>
-        <Button size="small" variant="secondary" onClick={leave}>
-          Leave
-        </Button>
       </div>
 
       {/* Control bar */}
       <div
-        className={`absolute inset-x-0 bottom-0 z-30 flex justify-center pb-[calc(20px+env(safe-area-inset-bottom,0px))] transition-opacity duration-300 ${
-          cleanView ? "pointer-events-none opacity-0" : "opacity-100"
-        }`}
+        className={`absolute inset-x-0 bottom-0 z-30 flex justify-center pb-[calc(20px+env(safe-area-inset-bottom,0px))] transition-opacity duration-300 ${cleanView ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         <div className="flex items-center gap-2.5 rounded-pill border border-border-subtle bg-bg-surface/95 px-4 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.55)]">
-          <button
-            type="button"
-            onClick={toggleCamera}
-            aria-label={cameraOn ? "Turn camera off" : "Turn camera on"}
-            className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-              cameraOn ? "bg-bg-card-hover text-white" : "bg-white text-on-primary"
-            }`}
-          >
-            <CameraIcon />
-          </button>
-          <button
-            type="button"
-            onClick={toggleMic}
-            aria-label={micOn ? "Mute microphone" : "Unmute microphone"}
-            className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-              micOn ? "bg-bg-card-hover text-white" : "bg-white text-on-primary"
-            }`}
-          >
+          <ControlButton on={micOn} onClick={toggleMic} label={micOn ? "Mute microphone" : "Unmute microphone"}>
             <MicIcon />
-          </button>
+          </ControlButton>
+          <ControlButton on={cameraOn} onClick={toggleCamera} label={cameraOn ? "Turn camera off" : "Turn camera on"}>
+            <CameraIcon />
+          </ControlButton>
+          <ControlButton on={showSelfView} onClick={() => setShowSelfView((v) => !v)} label={showSelfView ? "Hide self-view" : "Show self-view"}>
+            <EyeIcon />
+          </ControlButton>
+          <ControlButton on={chatOpen} onClick={() => { setChatOpen((v) => !v); setCleanView(false); }} label="Open chat">
+            <ChatIcon />
+          </ControlButton>
           <button
             type="button"
             onClick={leave}
@@ -468,7 +452,70 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
           </button>
         </div>
       </div>
+
+      {/* Chat sheet */}
+      {chatOpen && !cleanView && (
+        <div className="absolute inset-x-0 bottom-0 z-40 flex h-[55%] flex-col rounded-t-2xl border-t border-border-subtle bg-bg-surface px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold text-text-secondary">Chat</p>
+            <button
+              type="button"
+              onClick={() => setChatOpen(false)}
+              aria-label="Close chat"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex flex-1 flex-col gap-2 overflow-y-auto pb-2">
+            {messages.length === 0 && (
+              <p className="mt-4 text-center text-xs text-text-secondary">No messages yet</p>
+            )}
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed ${m.from === "me" ? "self-end bg-brand text-white" : "self-start bg-bg-card-hover text-white"}`}
+              >
+                {m.text}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              ref={chatRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } }}
+              placeholder="Message…"
+              aria-label="Chat message"
+              className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-sm text-white placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            />
+            <button
+              type="button"
+              onClick={sendChat}
+              aria-label="Send message"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <SendIcon />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function ControlButton({ on, onClick, label, children }: { on: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={on}
+      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${on ? "bg-bg-card-hover text-white" : "bg-white text-on-primary"}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -490,11 +537,37 @@ function MicIcon() {
   );
 }
 
+function EyeIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+    </svg>
+  );
+}
+
 function LeaveIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
       <line x1="22" y1="2" x2="2" y2="22" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m22 2-7 20-4-9-9-4Z" />
+      <path d="M22 2 11 13" />
     </svg>
   );
 }

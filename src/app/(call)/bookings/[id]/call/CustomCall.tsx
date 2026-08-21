@@ -433,7 +433,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } }}
           placeholder="Message…"
           aria-label="Chat message"
-          className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-sm text-white placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-base text-white placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         />
         <button
           type="button"

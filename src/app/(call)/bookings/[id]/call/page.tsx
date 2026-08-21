@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { MobileCallControls } from "@/components/call/MobileCallControls";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 declare global {
   interface Window {
@@ -20,13 +22,17 @@ interface DailyCall {
   setActiveSpeakerMode: (enabled: boolean) => void;
   loadCss: (opts: { bodyClass?: string; cssText?: string }) => void;
   participantCounts: () => { present: number };
+  localAudio: () => boolean;
+  localVideo: () => boolean;
+  setLocalAudio: (enabled: boolean) => void;
+  setLocalVideo: (enabled: boolean) => void;
 }
 
 function loadDailyScript(): Promise<void> {
   if (window.DailyIframe) return Promise.resolve();
   return new Promise((resolve) => {
     const script = document.createElement("script");
-    script.src = "https://unpkg.com/@daily-co/daily-js";
+    script.src = "https://unpkg.com/@daily-co/daily-js@0.92.2";
     script.onload = () => resolve();
     document.head.appendChild(script);
   });
@@ -77,6 +83,9 @@ export default function CallPage() {
   const [hasRemote, setHasRemote] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [error, setError] = useState("");
+  const [cameraOn, setCameraOn] = useState(true);
+  const [micOn, setMicOn] = useState(true);
+  const isMobile = useMediaQuery("(max-width: 640px)");
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<DailyCall | null>(null);
   const cssTextRef = useRef<string>(DAILY_CSS);
@@ -180,6 +189,8 @@ export default function CallPage() {
       // engine sizes the tiles — large main tile for the active speaker,
       // smaller self-view. No forced CSS tile sizing.
       frame.setActiveSpeakerMode(true);
+      setCameraOn(frame.localVideo());
+      setMicOn(frame.localAudio());
       setPhase("in_call");
 
       // Self-view only exists when there's a remote participant (with just
@@ -309,11 +320,13 @@ export default function CallPage() {
     show();
 
     window.addEventListener("mousemove", show);
+    window.addEventListener("touchstart", show);
     window.addEventListener("blur", hide);
 
     return () => {
       clearTimeout(idleTimerRef.current);
       window.removeEventListener("mousemove", show);
+      window.removeEventListener("touchstart", show);
       window.removeEventListener("blur", hide);
       if (hiddenRef.current) {
         hiddenRef.current = false;
@@ -389,6 +402,22 @@ export default function CallPage() {
     frameRef.current?.leave();
   };
 
+  const toggleCamera = () => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const next = !cameraOn;
+    frame.setLocalVideo(next);
+    setCameraOn(next);
+  };
+
+  const toggleMic = () => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const next = !micOn;
+    frame.setLocalAudio(next);
+    setMicOn(next);
+  };
+
   const backButton = (
     <Button variant="secondary" onClick={() => router.push(`/bookings/${bookingId}`)}>
       Back to booking
@@ -437,7 +466,11 @@ export default function CallPage() {
     // the Daily tray pins to the real bottom edge, safe-area aware.
     <div className="flex h-dvh flex-col overflow-hidden bg-bg-base">
       {/* Minimal chrome header */}
-      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4">
+      <header
+        className={`flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border-subtle bg-bg-surface px-4 transition-opacity duration-300 ${
+          isMobile && controlsHidden ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      >
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{sessionTitle || "Session"}</p>
           <p className="text-xs text-text-secondary">
@@ -478,7 +511,7 @@ export default function CallPage() {
             onTouchStart={() => wakeRef.current()}
           />
         )}
-        {phase === "in_call" && hasRemote && !isFullscreen && (
+        {phase === "in_call" && !isMobile && hasRemote && !isFullscreen && (
           <button
             type="button"
             onClick={toggleSelfView}
@@ -491,7 +524,7 @@ export default function CallPage() {
             {selfViewHidden ? <SelfViewOffIcon /> : <SelfViewOnIcon />}
           </button>
         )}
-        {phase === "in_call" && (!isFullscreen || !controlsHidden) && (
+        {phase === "in_call" && !isMobile && (!isFullscreen || !controlsHidden) && (
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -509,6 +542,16 @@ export default function CallPage() {
               </svg>
             )}
           </button>
+        )}
+        {phase === "in_call" && isMobile && (
+          <MobileCallControls
+            cameraOn={cameraOn}
+            micOn={micOn}
+            onToggleCamera={toggleCamera}
+            onToggleMic={toggleMic}
+            onLeave={handleLeave}
+            hidden={controlsHidden}
+          />
         )}
       </div>
     </div>

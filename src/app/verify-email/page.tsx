@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { isSafeRedirectPath } from "@/lib/safe-redirect";
 
+// Auth pages must not be statically prerendered — the Supabase browser client
+// needs NEXT_PUBLIC_* env vars that aren't present in the build environment.
+export const dynamic = "force-dynamic";
+
 export default function VerifyEmailPage() {
   const supabase = createClient();
   const router = useRouter();

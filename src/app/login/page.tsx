@@ -11,6 +11,10 @@ import { isSafeRedirectPath } from "@/lib/safe-redirect";
 import { checkEmailStatus } from "@/app/login/actions";
 import { TermsOfServiceModal } from "@/components/TermsOfServiceModal";
 
+// Auth pages must not be statically prerendered — the Supabase browser client
+// needs NEXT_PUBLIC_* env vars that aren't present in the build environment.
+export const dynamic = "force-dynamic";
+
 type Mode =
   | "login"
   | "signup"

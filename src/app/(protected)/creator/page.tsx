@@ -170,7 +170,7 @@ export default async function CreatorHomePage({
               </p>
             </Card>
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {upcoming.map((b) => (
                 <Link key={b.id} href={`/bookings/${b.id}`}>
                   <Card className="flex items-center justify-between gap-4">

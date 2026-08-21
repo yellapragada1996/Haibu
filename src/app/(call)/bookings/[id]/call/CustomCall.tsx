@@ -332,9 +332,13 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     setDraft("");
   };
 
-  const openChat = () => {
-    setChatOpen(true);
-    setHasUnread(false);
+  const toggleChat = () => {
+    if (chatOpen) {
+      setChatOpen(false);
+    } else {
+      setChatOpen(true);
+      setHasUnread(false);
+    }
   };
 
   const leave = () => {
@@ -525,7 +529,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
           </ControlButton>
           <button
             type="button"
-            onClick={openChat}
+            onClick={toggleChat}
             aria-label={hasUnread ? "Open chat (new message)" : "Open chat"}
             className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-white transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >

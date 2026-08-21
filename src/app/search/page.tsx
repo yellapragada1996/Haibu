@@ -8,6 +8,9 @@ import { eq, and, asc, isNull, sql } from "drizzle-orm";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 
+// Reads a live DB — render on demand, never prerender at build time.
+export const dynamic = "force-dynamic";
+
 export default async function SearchPage({
   searchParams,
 }: {

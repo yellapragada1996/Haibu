@@ -15,6 +15,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { getAvailableTodayCreatorIds } from "@/lib/availability";
 
+// Reads a live DB — render on demand, never prerender at build time.
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Browse creators — Haibu" };
 
 

@@ -16,6 +16,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { getAvailableTodayCreatorIds } from "@/lib/availability";
 
+// Reads a live DB — render on demand, never prerender at build time
+// (the build environment has no database).
+export const dynamic = "force-dynamic";
+
 // 2 rows × 5 on desktop (2 rows × 2 on mobile) — "View more" expands.
 const ROWS = 10;
 

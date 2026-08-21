@@ -159,7 +159,9 @@ export default function CallPage() {
         token: data.token,
         showLeaveButton: true,
         showFullscreenButton: false,
-        theme: DAILY_THEME,
+        // Mobile uses Daily's vanilla skin (no theme) — our accent red would
+        // otherwise tint Daily's default mobile controls.
+        theme: mobile ? undefined : DAILY_THEME,
         bodyClass: "haibu-call-theme",
         cssText,
         // Camera-off avatar (photo if set, initials-on-accent otherwise) —

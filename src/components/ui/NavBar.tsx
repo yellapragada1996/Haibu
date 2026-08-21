@@ -65,6 +65,10 @@ export function NavBar({
 
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
   const signupHref = `/login?tab=signup&redirect=${encodeURIComponent(pathname)}`;
+  // The creator onboarding wizard lives under /creator — hide the
+  // "Become a Creator" CTA while the user is already in that flow.
+  const isOnCreatorPath =
+    pathname === "/creator" || pathname.startsWith("/creator/");
 
   return (
     <>
@@ -112,7 +116,7 @@ export function NavBar({
                   Dashboard
                 </Link>
               )}
-              {isLoggedIn && !isCreator && (
+              {isLoggedIn && !isCreator && !isOnCreatorPath && (
                 <ButtonLink href="/creator" size="small">
                   Become a Creator
                 </ButtonLink>

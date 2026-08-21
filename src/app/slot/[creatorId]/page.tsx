@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { SlotPicker } from "@/components/SlotPicker";
+import { generateAvailableSlots } from "@/lib/availability";
 
 // Screen 2 — PUBLIC slot picker (deferred auth): guests pick a date + time
 // BEFORE authenticating. No login required to reach this screen.
@@ -56,20 +57,21 @@ export default async function SlotPage({
     : offeringRows[0];
   if (!offering) notFound();
 
-  // Availability is generated on demand (public API).
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  // Availability is generated directly (same code the /api/availability route
+  // uses). Avoid a server-to-server fetch that breaks when NEXT_PUBLIC_APP_URL
+  // is unset/wrong in the deployed environment.
   const now = new Date();
   const to = new Date(now.getTime() + 30 * 86400000);
   let slots: { start_at: string; end_at: string }[] = [];
   try {
-    const res = await fetch(
-      `${base}/api/availability?creator_id=${creatorId}&offering_id=${offering.id}&from=${now.toISOString()}&to=${to.toISOString()}`,
-      { cache: "no-store" },
-    );
-    const data = await res.json();
-    slots = (data.slots ?? []) as { start_at: string; end_at: string }[];
-  } catch {
-    /* no slots */
+    slots = await generateAvailableSlots({
+      creator_id: creatorId,
+      offering_id: offering.id,
+      from: now,
+      to,
+    });
+  } catch (err) {
+    console.error("[slots] generateAvailableSlots failed", err);
   }
 
   return (

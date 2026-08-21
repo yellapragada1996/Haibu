@@ -394,9 +394,16 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         >
           <video ref={selfVideoRef} autoPlay playsInline muted className={`h-full w-full ${hasRemote ? "object-cover" : "object-contain"}`} />
           {!cameraOn && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <img src={localAvatar} alt="" className="h-full w-full object-cover" />
-            </div>
+            hasRemote ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img src={localAvatar} alt="" className="h-full w-full object-cover" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <img src={localAvatar} alt="" className="h-28 w-28 rounded-full border-2 border-white/10 object-cover" />
+                <p className="text-sm text-text-secondary">You</p>
+              </div>
+            )
           )}
           {hasRemote && (
             <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">You</div>

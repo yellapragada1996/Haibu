@@ -172,22 +172,25 @@ export default async function CreatorHomePage({
           ) : (
             <div className="space-y-2">
               {upcoming.map((b) => (
-                <Card key={b.id} className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-white">
-                      {fmtTime(new Date(b.start_at!), tz)}
-                      <span className="ml-2 font-normal text-text-secondary">
-                        {fmtDay(new Date(b.start_at!), tz)}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-secondary">
-                      {b.guest} · {b.offering} · {b.duration} min
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-xs text-text-secondary">
-                    {countdown(new Date(b.start_at!))}
-                  </span>
-                </Card>
+                <Link key={b.id} href={`/bookings/${b.id}`}>
+                  <Card className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {fmtTime(new Date(b.start_at!), tz)} –{" "}
+                        {fmtTime(new Date(b.end_at!), tz)}
+                        <span className="ml-2 font-normal text-text-secondary">
+                          {fmtDay(new Date(b.start_at!), tz)}
+                        </span>
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-secondary">
+                        {b.guest} · {b.offering} · {b.duration} min
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs text-text-secondary">
+                      {countdown(new Date(b.start_at!))}
+                    </span>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}

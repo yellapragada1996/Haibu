@@ -359,3 +359,286 @@ export async function sendBookingReminder(
 
   return { sent, errors };
 }
+
+
+// ---------------------------------------------------------------------------
+// Cancellation emails — 6 templates (3 scenarios × 2 roles).
+//
+// Fired from cancel.ts (guest/creator cancellation) and admin/actions.ts
+// (force-cancel, no-show refund override, review refund) only AFTER the status
+// transition has committed. Same branded shell as the reminders.
+//
+// Templates:
+//   1. guest cancelled → guest      (REFUND_TEXT)
+//   2. guest cancelled → creator    (COMPENSATION_TEXT)
+//   3. creator cancelled → guest    (full refund, fixed)
+//   4. creator cancelled → creator  (confirmation, no money info)
+//   5. admin cancelled → guest      (REFUND_TEXT)
+//   6. admin cancelled → creator    (neutral, no-blame)
+// ---------------------------------------------------------------------------
+
+export type CancellationScenario =
+  | "guest_cancelled"
+  | "creator_cancelled"
+  | "admin_cancelled";
+
+export interface CancellationParty {
+  name: string;
+  email: string;
+  timezone: string;
+}
+
+export interface CancellationInput {
+  scenario: CancellationScenario;
+  bookingId: string;
+  offeringTitle: string;
+  creator: CancellationParty;
+  guest: CancellationParty;
+  startAt: Date;
+  priceCents: number;
+  creatorPayoutCents: number;
+  refundPercent: number; // 0..1; guest-cancel tier, else 1.0
+}
+
+function money(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+// §3 — the guest's refund tier, rendered in their own words.
+function refundText(refundPercent: number, priceCents: number): string {
+  const amount = money(Math.round(priceCents * refundPercent));
+  if (refundPercent >= 1) return `You'll receive a full refund of ${amount}.`;
+  if (refundPercent > 0) {
+    return `You'll receive a ${Math.round(refundPercent * 100)}% refund of ${amount}.`;
+  }
+  return "No refund applies at this stage.";
+}
+
+// §3 — the creator's mirror of the guest's tier.
+function compensationText(
+  refundPercent: number,
+  creatorPayoutCents: number,
+): string {
+  if (refundPercent >= 1) return "No compensation — the guest was fully refunded.";
+  const amount = money(Math.round(creatorPayoutCents * (1 - refundPercent)));
+  if (refundPercent > 0) {
+    return `You'll receive ${amount} as compensation (${Math.round(refundPercent * 100)}% of the session was refunded to the guest).`;
+  }
+  return `You'll receive the full payout of ${amount} (minus the platform fee).`;
+}
+
+function infoBox(text: string): string {
+  return (
+    '              <div style="background-color:#121212;border-radius:12px;padding:20px 24px;border:1px solid #2A2A2A;">\n' +
+    `                <p style="margin:0;font-size:15px;color:#FFFFFF;line-height:1.7;">${text}</p>\n` +
+    "              </div>\n"
+  );
+}
+
+function para(text: string, bottom = true): string {
+  const margin = bottom ? "0 0 24px" : "0";
+  return `              <p style="margin:${margin};font-size:15px;color:#8A8A8A;line-height:1.7;">${text}</p>\n`;
+}
+
+function smallNote(text: string, top = true): string {
+  return `              <p style="margin:${top ? "20px 0 0" : "0"};font-size:13px;color:#5A5A5A;line-height:1.7;">${text}</p>\n`;
+}
+
+interface CancellationVars {
+  offering: string;
+  creator: string;
+  guest: string;
+  start: string;
+}
+
+function bodyGuestCancelledGuest(v: CancellationVars, refund: string): string {
+  return (
+    para(`You cancelled your ${v.offering} session with ${v.creator} that was scheduled for ${v.start}.`) +
+    infoBox(refund)
+  );
+}
+
+function bodyGuestCancelledCreator(v: CancellationVars, compensation: string): string {
+  return (
+    para(`Your ${v.offering} session with ${v.guest}, scheduled for ${v.start}, was cancelled by the guest.`) +
+    infoBox(compensation)
+  );
+}
+
+function bodyCreatorCancelledGuest(v: CancellationVars, amount: string): string {
+  return (
+    para(`${v.creator} cancelled your ${v.offering} session that was scheduled for ${v.start}.`) +
+    infoBox(`You will receive a full refund of ${amount}.`)
+  );
+}
+
+function bodyCreatorCancelledCreator(v: CancellationVars): string {
+  return para(
+    `You cancelled your ${v.offering} session with ${v.guest} that was scheduled for ${v.start}. The guest has been fully refunded.`,
+    false,
+  );
+}
+
+function bodyAdminCancelledGuest(v: CancellationVars, refund: string): string {
+  return (
+    para(`Your ${v.offering} session with ${v.creator} that was scheduled for ${v.start} was cancelled by Haibu.`) +
+    infoBox(refund) +
+    smallNote("If you have questions about this, reply to this email and we will help.")
+  );
+}
+
+function bodyAdminCancelledCreator(v: CancellationVars): string {
+  return (
+    para(`Your ${v.offering} session with ${v.guest} that was scheduled for ${v.start} was cancelled by Haibu.`) +
+    smallNote(
+      "If this affects your payout, we will follow up separately with details. Reply to this email if you have questions.",
+      false,
+    )
+  );
+}
+
+interface CancellationEmail {
+  to: string;
+  subject: string;
+  title: string;
+  heading: string;
+  body: string;
+}
+
+export function buildCancellationEmails(
+  input: CancellationInput,
+): CancellationEmail[] {
+  const offering = escapeHtml(input.offeringTitle);
+  const creatorName = escapeHtml(input.creator.name);
+  const guestName = escapeHtml(input.guest.name);
+  const guestStart = escapeHtml(
+    formatStartTime(input.startAt, input.guest.timezone),
+  );
+  const creatorStart = escapeHtml(
+    formatStartTime(input.startAt, input.creator.timezone),
+  );
+  const refund = refundText(input.refundPercent, input.priceCents);
+  const compensation = compensationText(
+    input.refundPercent,
+    input.creatorPayoutCents,
+  );
+  const amount = money(input.priceCents);
+
+  const emails: CancellationEmail[] = [];
+
+  if (input.scenario === "guest_cancelled") {
+    emails.push({
+      to: input.guest.email,
+      subject: `Your session with ${input.creator.name} was cancelled`,
+      title: "Your session was cancelled",
+      heading: "Your session was cancelled",
+      body: bodyGuestCancelledGuest(
+        { offering, creator: creatorName, guest: guestName, start: guestStart },
+        refund,
+      ),
+    });
+    emails.push({
+      to: input.creator.email,
+      subject: "A session was cancelled by the guest",
+      title: "A session was cancelled",
+      heading: "A session was cancelled",
+      body: bodyGuestCancelledCreator(
+        { offering, creator: creatorName, guest: guestName, start: creatorStart },
+        compensation,
+      ),
+    });
+  } else if (input.scenario === "creator_cancelled") {
+    emails.push({
+      to: input.guest.email,
+      subject: `Your session with ${input.creator.name} was cancelled`,
+      title: "Your session was cancelled",
+      heading: "Your session was cancelled",
+      body: bodyCreatorCancelledGuest(
+        { offering, creator: creatorName, guest: guestName, start: guestStart },
+        amount,
+      ),
+    });
+    emails.push({
+      to: input.creator.email,
+      subject: "You cancelled a session",
+      title: "You cancelled a session",
+      heading: "You cancelled a session",
+      body: bodyCreatorCancelledCreator({
+        offering,
+        creator: creatorName,
+        guest: guestName,
+        start: creatorStart,
+      }),
+    });
+  } else {
+    emails.push({
+      to: input.guest.email,
+      subject: `Your session with ${input.creator.name} was cancelled`,
+      title: "Your session was cancelled",
+      heading: "Your session was cancelled",
+      body: bodyAdminCancelledGuest(
+        { offering, creator: creatorName, guest: guestName, start: guestStart },
+        refund,
+      ),
+    });
+    emails.push({
+      to: input.creator.email,
+      subject: "A session was cancelled by Haibu",
+      title: "A session was cancelled",
+      heading: "A session was cancelled",
+      body: bodyAdminCancelledCreator({
+        offering,
+        creator: creatorName,
+        guest: guestName,
+        start: creatorStart,
+      }),
+    });
+  }
+
+  return emails;
+}
+
+export async function sendCancellationEmails(
+  input: CancellationInput,
+): Promise<{ sent: number; errors: string[] }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    const message =
+      "[email] RESEND_API_KEY is not set; cancellation emails skipped";
+    console.error(message);
+    return { sent: 0, errors: [message] };
+  }
+
+  const resend = new Resend(apiKey);
+  const emails = buildCancellationEmails(input);
+  let sent = 0;
+  const errors: string[] = [];
+
+  for (const e of emails) {
+    const html = document(e.title, e.heading, e.body);
+    try {
+      const { data, error } = await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: e.to,
+        subject: e.subject,
+        html,
+      });
+      if (error) {
+        const message = `[email] failed to send cancellation email for booking ${input.bookingId}: ${error.message}`;
+        console.error(message);
+        errors.push(message);
+      } else {
+        console.log(
+          `[email] sent cancellation email for booking ${input.bookingId} to ${e.to} (${data?.id ?? "no id"})`,
+        );
+        sent++;
+      }
+    } catch (err) {
+      const message = `[email] exception sending cancellation email for booking ${input.bookingId}: ${err instanceof Error ? err.message : String(err)}`;
+      console.error(message);
+      errors.push(message);
+    }
+  }
+
+  return { sent, errors };
+}

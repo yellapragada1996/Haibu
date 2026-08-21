@@ -2,13 +2,14 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { isSafeRedirectPath } from "@/lib/safe-redirect";
 import { checkEmailStatus } from "@/app/login/actions";
+import { TermsOfServiceModal } from "@/components/TermsOfServiceModal";
 
 type Mode =
   | "login"
@@ -46,6 +47,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [tosOpen, setTosOpen] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
+  const consentRef = useRef<HTMLInputElement>(null);
   const [booking, setBooking] = useState<{
     creatorName: string;
     avatarUrl: string | null;
@@ -142,6 +147,63 @@ export default function LoginPage() {
     startResend();
   };
 
+  // Consent gate: an account can only be created after the Terms of Service
+  // checkbox is ticked. Applies to email signup, booking signup, and Google.
+  const requireConsent = (): boolean => {
+    if (agreed) return true;
+    setConsentError("Please accept the Terms of Service to continue.");
+    setLoading(false);
+    consentRef.current?.focus();
+    return false;
+  };
+
+  const renderConsent = () => (
+    <div className="space-y-1">
+      <label className="flex cursor-pointer items-start gap-2.5">
+        <input
+          ref={consentRef}
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => {
+            setAgreed(e.target.checked);
+            if (e.target.checked) setConsentError(null);
+          }}
+          className="peer sr-only"
+        />
+        <span
+          aria-hidden="true"
+          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-bg-base transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary"
+        >
+          <svg
+            className={`h-3.5 w-3.5 text-on-primary transition-opacity ${
+              agreed ? "opacity-100" : "opacity-0"
+            }`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </span>
+        <span className="text-xs leading-relaxed text-text-secondary">
+          I agree to the{" "}
+          <button
+            type="button"
+            onClick={() => setTosOpen(true)}
+            className="font-medium text-white underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Terms of Service
+          </button>
+          .
+        </span>
+      </label>
+      {consentError && <p className="text-xs text-error">{consentError}</p>}
+    </div>
+  );
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -179,6 +241,7 @@ export default function LoginPage() {
       // /dashboard instead of the intended page.
       window.location.assign(redirectTo);
     } else if (mode === "signup") {
+      if (!requireConsent()) return;
       // Duplicate-email guard: GoTrue's signUp never errors on an existing
       // email — it silently re-sends a confirmation and (for unconfirmed
       // users) rotates the stored token while emailing the stale code, i.e. a
@@ -316,6 +379,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-3">
+              {renderConsent()}
               <GoogleButton loading={loading} onClick={handleGoogleLogin} />
               {!showEmailForm ? (
                 <Button
@@ -410,6 +474,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              {renderConsent()}
               {message && <p className="text-center text-sm text-text-secondary">{message}</p>}
               <Button type="submit" disabled={loading} className="w-full">Create account</Button>
             </form>
@@ -498,6 +563,11 @@ export default function LoginPage() {
           </>
         )}
       </Card>
+
+      <TermsOfServiceModal
+        open={tosOpen}
+        onClose={() => setTosOpen(false)}
+      />
     </div>
   );
 
@@ -507,6 +577,7 @@ export default function LoginPage() {
   async function handleBookingEmail(e: FormEvent) {
     e.preventDefault();
     if (!booking) return;
+    if (!requireConsent()) return;
     setLoading(true);
     setMessage("");
     const status = await checkEmailStatus(email).catch(() => null);
@@ -543,6 +614,7 @@ export default function LoginPage() {
   }
 
   function handleGoogleLogin() {
+    if ((!!booking || mode === "signup") && !requireConsent()) return;
     setLoading(true);
     (async () => {
       const target = booking

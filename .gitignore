@@ -20,3 +20,12 @@ next-env.d.ts
 # OS junk
 .DS_Store
 .aider*
+
+# non-code artifacts — kept locally, not committed
+wireframes/
+documents/
+scripts/
+assets/
+test-screenshots/
+test_pictures/
+Legal Documents/

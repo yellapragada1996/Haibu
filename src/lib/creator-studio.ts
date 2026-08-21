@@ -31,7 +31,10 @@ export type EarningsSession = {
 };
 
 export async function getCreatorEarnings(profileId: string) {
-  const doneStatuses = sql`${bookings.status} IN ('completed', 'no_show_fan')`;
+  // "Done" = sessions the creator actually earned money for. Guest cancellations
+  // are included because cancel.ts stores the creator's non-refunded share in
+  // effective_payout_cents and the sweep pays it out (policy §3).
+  const doneStatuses = sql`${bookings.status} IN ('completed', 'no_show_fan', 'cancelled_fan')`;
 
   const [earnedRow] = await db
     .select({
@@ -120,6 +123,7 @@ export async function getCreatorUpcoming(profileId: string, limit = 3) {
     .select({
       id: bookings.id,
       start_at: bookings.start_at,
+      end_at: bookings.end_at,
       offering: offerings.title,
       guest: fan.display_name,
       duration: offerings.duration_minutes,

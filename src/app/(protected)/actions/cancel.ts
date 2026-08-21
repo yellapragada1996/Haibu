@@ -3,12 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { bookings, creatorProfiles, ledgerEntries } from "@/db/schema";
+import { bookings, creatorProfiles, ledgerEntries, offerings, users } from "@/db/schema";
 import { eq, and, lt, count, sql } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
 import { revalidatePath } from "next/cache";
 import { isPgErrorCode } from "@/lib/pg-errors";
 import { cancellationRefundPercent, holdPeriodMs } from "@/lib/session-policy";
+import { sendCancellationEmails } from "@/lib/email";
 
 async function computeHoldPeriod(creatorId: string, endAt: Date): Promise<Date> {
   const [prior] = await db
@@ -40,6 +41,7 @@ export async function cancelBooking(
       id: bookings.id,
       fan_id: bookings.fan_id,
       creator_user_id: creatorProfiles.user_id,
+      offering_id: bookings.offering_id,
       status: bookings.status,
       start_at: bookings.start_at,
       end_at: bookings.end_at,
@@ -109,12 +111,67 @@ export async function cancelBooking(
       cancel_reason: actor === "fan"
         ? `guest cancelled (${Math.round(refundPercent * 100)}% refund)`
         : "creator cancelled",
+      // The creator's net payout after this cancellation. The sweep reads this
+      // (in place of creator_payout_cents) to actually transfer it later.
+      effective_payout_cents: creatorPayoutFromCancellation,
       ...(payoutEligibleAt ? { payout_eligible_at: payoutEligibleAt } : {}),
     })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
 
   if (result.rowCount === 0) {
     return { error: "Booking already processed" };
+  }
+
+  // Send cancellation emails — only after the status transition has committed.
+  // Any email failure is logged, never allowed to roll back the cancellation.
+  try {
+    const [offering] = await db
+      .select({ title: offerings.title })
+      .from(offerings)
+      .where(eq(offerings.id, booking.offering_id));
+    const [guestUser] = await db
+      .select({
+        name: users.display_name,
+        email: users.email,
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(eq(users.id, booking.fan_id));
+    const [creatorUser] = await db
+      .select({
+        name: users.display_name,
+        email: users.email,
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(eq(users.id, booking.creator_user_id));
+
+    if (offering && guestUser?.email && creatorUser?.email && booking.start_at) {
+      await sendCancellationEmails({
+        scenario: actor === "fan" ? "guest_cancelled" : "creator_cancelled",
+        bookingId,
+        offeringTitle: offering.title,
+        creator: {
+          name: creatorUser.name ?? "The creator",
+          email: creatorUser.email,
+          timezone: creatorUser.timezone ?? "UTC",
+        },
+        guest: {
+          name: guestUser.name ?? "The guest",
+          email: guestUser.email,
+          timezone: guestUser.timezone ?? "UTC",
+        },
+        startAt: booking.start_at,
+        priceCents: booking.price_cents,
+        creatorPayoutCents: booking.creator_payout_cents,
+        refundPercent,
+      });
+    }
+  } catch (e) {
+    console.error(
+      `[email] cancellation email setup failed for booking ${bookingId}`,
+      e,
+    );
   }
 
   // Refund via Stripe
@@ -148,21 +205,9 @@ export async function cancelBooking(
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
     }
-
-    // Creator's non-refunded share (if partial refund)
-    if (creatorPayoutFromCancellation > 0) {
-      try {
-        await db.insert(ledgerEntries).values({
-          booking_id: bookingId,
-          type: "creator_payout",
-          amount_cents: -creatorPayoutFromCancellation,
-          stripe_reference: `${booking.stripe_payment_intent_id}:cancellation_share`,
-          note: `creator share from ${actor} cancellation (${100 - Math.round(refundPercent * 100)}% non-refunded)`,
-        });
-      } catch (e: unknown) {
-        if (!isPgErrorCode(e, "23505")) throw e;
-      }
-    }
+    // The creator's cancellation share is NOT ledgered here — it's stored as
+    // effective_payout_cents on the booking and paid out by the payout sweep,
+    // so the money movement stays in one place.
   }
 
   revalidatePath(`/bookings/${bookingId}`);

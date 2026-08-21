@@ -6,10 +6,13 @@ import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Pill";
 import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
+import { bookingLabel } from "@/lib/status";
 
 export type SessionItem = {
   id: string;
   status: string;
+  cancelled_by: string | null;
+  needs_review: boolean;
   start_at: string;
   end_at: string;
   price_cents: number;
@@ -22,18 +25,16 @@ export type SessionItem = {
   review: { rating: number; text: string | null; tags: string[] } | null;
 };
 
-function sessionBadge(status: string): { label: string; className: string } {
+function sessionBadgeClassName(status: string): string {
   switch (status) {
     case "completed":
-      return { label: "Completed", className: "border border-white text-white" };
+      return "border border-white text-white";
     case "confirmed":
-      return { label: "Upcoming", className: "border border-live text-live" };
+      return "border border-live text-live";
     case "reserved":
-      return { label: "Reserved", className: "border border-text-secondary text-text-secondary" };
-    case "expired":
-      return { label: "Expired", className: "border border-text-tertiary text-text-tertiary" };
+      return "border border-text-secondary text-text-secondary";
     default:
-      return { label: "Cancelled", className: "border border-text-tertiary text-text-tertiary" };
+      return "border border-text-tertiary text-text-tertiary";
   }
 }
 
@@ -110,7 +111,12 @@ export function SessionList({
       ) : (
         <div className="flex flex-col gap-3">
           {list.map((s) => {
-            const badge = sessionBadge(s.status);
+            const badgeLabel = bookingLabel(
+              s.status,
+              { cancelled_by: s.cancelled_by, needs_review: s.needs_review },
+              "guest",
+            );
+            const badgeClass = sessionBadgeClassName(s.status);
             const completed = s.status === "completed";
             const withinWindow =
               Date.now() <= new Date(s.end_at).getTime() + REVIEW_WINDOW_MS;
@@ -123,8 +129,8 @@ export function SessionList({
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-text-secondary">With</span>
                         <span className="truncate font-medium text-white">{s.creator_name}</span>
-                        <span className={`rounded-pill px-2 py-0.5 text-xs ${badge.className}`}>
-                          {badge.label}
+                        <span className={`rounded-pill px-2 py-0.5 text-xs ${badgeClass}`}>
+                          {badgeLabel}
                         </span>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-text-secondary">
@@ -147,8 +153,8 @@ export function SessionList({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium text-white">{s.creator_name}</span>
-                      <span className={`rounded-pill px-2 py-0.5 text-xs ${badge.className}`}>
-                        {badge.label}
+                      <span className={`rounded-pill px-2 py-0.5 text-xs ${badgeClass}`}>
+                        {badgeLabel}
                       </span>
                     </div>
                     <p className="mt-0.5 truncate text-sm text-text-secondary">

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { ButtonLink } from "@/components/ui/Button";
 import { ShareButton } from "@/components/ui/ShareButton";
+import { FaqAccordion } from "@/components/FaqAccordion";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { db } from "@/db";
 import { creatorProfiles, users, offerings, reviews, bookings } from "@/db/schema";
@@ -247,6 +248,9 @@ export default async function CreatorHandlePage({
             </div>
           )}
         </section>
+
+        {/* FAQ — collapsible accordion, between offerings and reviews */}
+        <FaqAccordion />
 
         {/* Recent reviews — inline previews (2) */}
         <section className="mt-6">

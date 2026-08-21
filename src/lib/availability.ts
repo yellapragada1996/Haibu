@@ -59,7 +59,7 @@ export async function generateAvailableSlots(params: {
 
   const timezone = profile.timezone;
   const duration = profile.duration_minutes;
-  if (![15, 30, 45, 60].includes(duration)) return [];
+  if (![5, 15, 30, 45, 60].includes(duration)) return [];
 
   const windows = await db
     .select()

@@ -11,7 +11,7 @@ type Draft = {
   price_dollars: string;
 };
 
-const DURATIONS = [15, 30, 45, 60];
+const DURATIONS = [5, 15, 30, 45, 60];
 
 export type WizardOfferingStepHandle = {
   submit: () => Promise<void>;

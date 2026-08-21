@@ -36,6 +36,8 @@ export default async function DashboardPage() {
     .select({
       id: bookingsTable.id,
       status: bookingsTable.status,
+      cancelled_by: bookingsTable.cancelled_by,
+      needs_review: bookingsTable.needs_review,
       start_at: bookingsTable.start_at,
       end_at: bookingsTable.end_at,
       reservation_expires_at: bookingsTable.reservation_expires_at,
@@ -71,6 +73,9 @@ export default async function DashboardPage() {
   const past: SessionItem[] = [];
 
   for (const r of rows) {
+    // Abandoned checkouts aren't real sessions — keep them out of the list.
+    if (r.status === "expired") continue;
+
     const isActiveUpcoming =
       r.end_at != null &&
       r.end_at >= now &&
@@ -82,6 +87,8 @@ export default async function DashboardPage() {
     const item: SessionItem = {
       id: r.id,
       status: r.status,
+      cancelled_by: r.cancelled_by ?? null,
+      needs_review: r.needs_review ?? false,
       start_at: r.start_at ? r.start_at.toISOString() : "",
       end_at: r.end_at ? r.end_at.toISOString() : "",
       price_cents: r.price_cents,

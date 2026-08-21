@@ -4,11 +4,12 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { adminActions, bookings, creatorProfiles, ledgerEntries, participantEvents, reports, users } from "@/db/schema";
+import { adminActions, bookings, creatorProfiles, ledgerEntries, offerings, participantEvents, reports, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
 import { computePresence, proportionalRefund } from "@/lib/session-policy";
+import { sendCancellationEmails } from "@/lib/email";
 
 // ---------------------------------------------------------------------------
 // Admin server actions. Every action re-checks role_admin (defense in depth —
@@ -32,6 +33,75 @@ async function requireAdmin(): Promise<string | null> {
     .where(eq(users.id, user.id));
 
   return row?.role_admin === true ? user.id : null;
+}
+
+// Sends the admin-cancellation emails (guest + creator) after a booking has
+// been moved to cancelled_admin. Admin refunds are currently always full, so
+// refundPercent is fixed at 1 — but the email layer supports all three tiers.
+async function sendAdminCancellationEmails(bookingId: string): Promise<void> {
+  try {
+    const [booking] = await db
+      .select({
+        fan_id: bookings.fan_id,
+        creator_user_id: creatorProfiles.user_id,
+        offering_id: bookings.offering_id,
+        start_at: bookings.start_at,
+        price_cents: bookings.price_cents,
+        creator_payout_cents: bookings.creator_payout_cents,
+      })
+      .from(bookings)
+      .innerJoin(creatorProfiles, eq(creatorProfiles.id, bookings.creator_id))
+      .where(eq(bookings.id, bookingId));
+    if (!booking) return;
+
+    const [offering] = await db
+      .select({ title: offerings.title })
+      .from(offerings)
+      .where(eq(offerings.id, booking.offering_id));
+    const [guestUser] = await db
+      .select({
+        name: users.display_name,
+        email: users.email,
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(eq(users.id, booking.fan_id));
+    const [creatorUser] = await db
+      .select({
+        name: users.display_name,
+        email: users.email,
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(eq(users.id, booking.creator_user_id));
+
+    if (offering && guestUser?.email && creatorUser?.email && booking.start_at) {
+      await sendCancellationEmails({
+        scenario: "admin_cancelled",
+        bookingId,
+        offeringTitle: offering.title,
+        creator: {
+          name: creatorUser.name ?? "The creator",
+          email: creatorUser.email,
+          timezone: creatorUser.timezone ?? "UTC",
+        },
+        guest: {
+          name: guestUser.name ?? "The guest",
+          email: guestUser.email,
+          timezone: guestUser.timezone ?? "UTC",
+        },
+        startAt: booking.start_at,
+        priceCents: booking.price_cents,
+        creatorPayoutCents: booking.creator_payout_cents,
+        refundPercent: 1,
+      });
+    }
+  } catch (e) {
+    console.error(
+      `[email] admin cancellation email setup failed for booking ${bookingId}`,
+      e,
+    );
+  }
 }
 
 export async function setReportStatus(
@@ -86,6 +156,8 @@ export async function adminForceCancel(
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
 
   if (result.rowCount === 0) return { error: "Booking already processed" };
+
+  await sendAdminCancellationEmails(booking.id);
 
   // Full refund + ledger (mirrors the shapes used in actions/cancel.ts).
   // Ordering intentionally matches cancel.ts: terminal status first, then
@@ -234,6 +306,8 @@ export async function noShowOverride(
       );
     if (result.rowCount === 0) return { error: "Booking already processed" };
 
+    await sendAdminCancellationEmails(booking.id);
+
     // Full refund + ledger (mirrors adminForceCancel). Skipped when there is
     // no payment intent (as with the manual test bookings in this dev DB).
     if (booking.price_cents > 0 && booking.stripe_payment_intent_id) {
@@ -335,6 +409,8 @@ export async function resolveNeedsReview(
         effective_payout_cents: null,
       })
       .where(eq(bookings.id, bookingId));
+
+    await sendAdminCancellationEmails(booking.id);
 
     if (booking.price_cents > 0 && booking.stripe_payment_intent_id) {
       await stripe.refunds.create({

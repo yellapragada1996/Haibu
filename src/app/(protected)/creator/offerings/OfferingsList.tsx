@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Pill } from "@/components/ui/Pill";
 import { useActionState } from "react";
 
-const durations = [15, 30, 45, 60];
+const durations = [5, 15, 30, 45, 60];
 
 type CategoryOption = { value: string; label: string };
 

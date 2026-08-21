@@ -41,6 +41,10 @@ export async function POST(request: Request) {
       case "payment_intent.canceled":
         await handlePaymentIntentCanceled(event);
         break;
+      case "charge.dispute.created":
+      case "charge.dispute.funds_withdrawn":
+        await handleChargeDispute(event);
+        break;
       default:
         // Other event types Stripe sends that we don't handle yet —
         // log for visibility, return 200 so Stripe doesn't retry.
@@ -162,4 +166,53 @@ async function handlePaymentIntentCanceled(event: Stripe.Event) {
     .update(bookings)
     .set({ status: "expired" })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "reserved")));
+}
+
+// ---------------------------------------------------------------------------
+// Chargeback / dispute (policy §7, §11) — a guest's bank reversed the charge.
+// Cancel any pending payout and record the money movement so the ledger
+// reconciles. Session status is left untouched (this is a money event).
+// ---------------------------------------------------------------------------
+
+async function handleChargeDispute(event: Stripe.Event) {
+  const dispute = event.data.object as Stripe.Dispute;
+  const chargeId = dispute.charge as string | undefined;
+  if (!chargeId) return;
+
+  // dispute → charge → payment_intent → booking.
+  let paymentIntentId: string | null = null;
+  try {
+    const charge = await stripe.charges.retrieve(chargeId);
+    paymentIntentId =
+      typeof charge.payment_intent === "string" ? charge.payment_intent : null;
+  } catch (e) {
+    console.error(`[stripe] charge lookup failed for dispute ${dispute.id}`, e);
+    return;
+  }
+  if (!paymentIntentId) return;
+
+  const [booking] = await db
+    .select()
+    .from(bookings)
+    .where(eq(bookings.stripe_payment_intent_id, paymentIntentId));
+  if (!booking) return;
+
+  // Cancel the pending payout so the sweep won't release funds already clawed back.
+  await db
+    .update(bookings)
+    .set({ payout_eligible_at: null, needs_review: false })
+    .where(eq(bookings.id, booking.id));
+
+  const amountCents = dispute.amount ?? booking.price_cents;
+  try {
+    await db.insert(ledgerEntries).values({
+      booking_id: booking.id,
+      type: "chargeback",
+      amount_cents: -amountCents,
+      stripe_reference: dispute.id,
+      note: `chargeback: dispute ${dispute.status}`,
+    });
+  } catch (e: unknown) {
+    if (!isPgErrorCode(e, "23505")) throw e;
+  }
 }

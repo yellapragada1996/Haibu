@@ -176,7 +176,7 @@ export const offerings = pgTable(
   (table) => [
     check(
       "chk_offering_duration",
-      sql`${table.duration_minutes} IN (15, 30, 45, 60)`,
+      sql`${table.duration_minutes} IN (5, 15, 30, 45, 60)`,
     ),
     check(
       "chk_offering_price",

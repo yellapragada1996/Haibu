@@ -43,6 +43,20 @@ function fmtDate(iso: string) {
   });
 }
 
+// Today's calendar date (YYYY-MM-DD) in the creator's timezone.
+function todayInTimezone(tz: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
 export type AvailabilityManagerHandle = {
   save: () => Promise<void>;
 };
@@ -62,6 +76,8 @@ export const AvailabilityManager = forwardRef<
   ref,
 ) {
   const router = useRouter();
+  // Hide specific dates / block ranges that are entirely in the past.
+  const todayStr = todayInTimezone(timezone);
   const [days, setDays] = useState<DayState[]>(() => {
     const initial: DayState[] = Array.from({ length: 7 }, () => ({
       enabled: false,
@@ -76,14 +92,17 @@ export const AvailabilityManager = forwardRef<
     return initial;
   });
   const [blockRanges, setBlockRanges] = useState<{ start: string; end: string }[]>(() =>
-    blocks.map((b) => ({
-      start: new Date(b.start_at).toISOString().slice(0, 10),
-      end: new Date(b.end_at).toISOString().slice(0, 10),
-    })),
+    blocks
+      .map((b) => ({
+        start: new Date(b.start_at).toISOString().slice(0, 10),
+        end: new Date(b.end_at).toISOString().slice(0, 10),
+      }))
+      .filter((r) => r.end >= todayStr),
   );
   const [overrideMap, setOverrideMap] = useState<Map<string, TimeBlock[]>>(() => {
     const map = new Map<string, TimeBlock[]>();
     for (const o of overrides) {
+      if (o.date < todayStr) continue; // past date — no longer relevant
       const existing = map.get(o.date) ?? [];
       existing.push({ start_minute: o.start_minute, end_minute: o.end_minute });
       map.set(o.date, existing);
@@ -442,6 +461,7 @@ export const AvailabilityManager = forwardRef<
               <Input
                 type="date"
                 value={blockStart}
+                min={todayStr}
                 onChange={(e) => setBlockStart(e.target.value)}
                 className="[color-scheme:dark]"
                 aria-label="Block start date"
@@ -450,6 +470,7 @@ export const AvailabilityManager = forwardRef<
               <Input
                 type="date"
                 value={blockEnd}
+                min={todayStr}
                 onChange={(e) => setBlockEnd(e.target.value)}
                 className="[color-scheme:dark]"
                 aria-label="Block end date"
@@ -480,6 +501,7 @@ export const AvailabilityManager = forwardRef<
             <Input
               type="date"
               value={overrideDate}
+              min={todayStr}
               onChange={(e) => setOverrideDate(e.target.value)}
               className="[color-scheme:dark]"
               aria-label="Custom hours date"

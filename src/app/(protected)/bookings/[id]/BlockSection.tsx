@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
 import { Modal } from "@/components/ui/Modal";
 import { blockUser } from "@/app/(protected)/actions/moderation";
 
@@ -43,13 +44,9 @@ export function BlockSection({
 
   return (
     <div>
-      <Button
-        variant="ghost"
-        size="small"
-        onClick={() => setOpen(true)}
-      >
+      <Pill type="button" onClick={() => setOpen(true)}>
         Block {targetName}
-      </Button>
+      </Pill>
       <Modal
         open={open}
         onClose={() => !loading && setOpen(false)}

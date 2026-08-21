@@ -21,6 +21,7 @@
 | Status | Meaning | Money state |
 |---|---|---|
 | `reserved` | Slot is held, payment is processing | Payment captured but not settled to creator |
+| `expired` | Reservation abandoned — payment never completed. Nothing happened. | No charge, no payout |
 | `confirmed` | Payment succeeded, session is scheduled | Guest has been charged, creator payout is pending |
 | `completed` | Both parties joined and the session met the minimum presence threshold | Creator payout scheduled (after hold period) |
 | `no_show_fan` | Guest never joined | Creator receives full payout (they showed up and waited) |

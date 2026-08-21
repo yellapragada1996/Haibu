@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
 import { reportBooking } from "@/app/(protected)/actions/moderation";
@@ -49,13 +50,9 @@ export function ReportSection({
 
   return (
     <div>
-      <Button
-        variant="ghost"
-        size="small"
-        onClick={() => setOpen(true)}
-      >
+      <Pill type="button" onClick={() => setOpen(true)}>
         Report
-      </Button>
+      </Pill>
       <Modal
         open={open}
         onClose={() => !loading && setOpen(false)}

@@ -83,7 +83,7 @@ export async function createOffering(formData: FormData) {
   if (!title || title.trim().length === 0) return { error: "Title required" };
   const categorySlugs = (await getCategories()).map((c) => c.slug);
   if (!categorySlugs.includes(category)) return { error: "Invalid category" };
-  if (![15, 30, 45, 60].includes(durationMinutes)) return { error: "Invalid duration" };
+  if (![5, 15, 30, 45, 60].includes(durationMinutes)) return { error: "Invalid duration" };
   if (isNaN(priceDollars) || priceDollars < 5 || priceDollars > 500) {
     return { error: "Price must be between $5.00 and $500.00" };
   }
@@ -135,7 +135,7 @@ export async function createOfferings(
     const title = item.title?.trim();
     if (!title) return { error: "Title required" };
     if (!categorySlugs.includes(item.category)) return { error: "Invalid category" };
-    if (![15, 30, 45, 60].includes(item.duration_minutes)) return { error: "Invalid duration" };
+    if (![5, 15, 30, 45, 60].includes(item.duration_minutes)) return { error: "Invalid duration" };
     if (isNaN(item.price_dollars) || item.price_dollars < 5 || item.price_dollars > 500) {
       return { error: "Price must be between $5.00 and $500.00" };
     }

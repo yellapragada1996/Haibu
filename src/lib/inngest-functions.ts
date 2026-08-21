@@ -1,7 +1,7 @@
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { bookings, creatorProfiles, ledgerEntries, reviews, users, offerings, participantEvents } from "@/db/schema";
-import { eq, and, lt, lte, sql, count } from "drizzle-orm";
+import { eq, and, or, lt, lte, sql, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { createOrGetRoom } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
@@ -258,7 +258,15 @@ export const sweepEligiblePayouts = inngest.createFunction(
       .from(bookings)
       .where(
         and(
-          sql`${bookings.status} IN ('completed', 'no_show_fan')`,
+          or(
+            sql`${bookings.status} IN ('completed', 'no_show_fan', 'cancelled_fan')`,
+            // A partial no_show (creator joined but missed >50%) is labeled
+            // no_show_creator for tracking but still has a non-zero payout.
+            and(
+              eq(bookings.status, "no_show_creator"),
+              sql`${bookings.effective_payout_cents} IS NOT NULL`,
+            ),
+          ),
           eq(bookings.needs_review, false),
           lte(bookings.payout_eligible_at, sql`NOW()`),
         ),
@@ -334,8 +342,8 @@ export async function runEvaluation(bookingId: string) {
   const fanJoined = booking.fan_joined_at !== null;
   const creatorJoined = booking.creator_joined_at !== null;
 
-  // Binary no-show decision — centralized in session-policy.ts (§5). This is
-  // the seam the proportional model will later replace.
+  // Binary no-show decision — centralized in session-policy.ts (§5). The
+  // proportional >50%-missed relabel is applied below once presence is known.
   const { status: outcome, refund, cancelled_by, cancel_reason } =
     evaluateSessionOutcome(fanJoined, creatorJoined);
 
@@ -402,6 +410,11 @@ export async function runEvaluation(bookingId: string) {
     refundCents: number;
     feeReversalCents: number;
   } | null = null;
+  // §5 "Status vs. refund": the refund is continuous, but the status label uses
+  // a discrete >50%-missed line. A creator who joined but missed >50% of the
+  // session is labeled no_show_creator for tracking/review-eligibility, while
+  // the refund stays proportional (not 100%).
+  let finalStatus: "completed" | "no_show_fan" | "no_show_creator" | "cancelled_creator" = outcome;
   if (outcome === "completed" && needsReview) {
     const money = proportionalRefund(
       booking.price_cents,
@@ -413,6 +426,9 @@ export async function runEvaluation(bookingId: string) {
       refundCents: money.refundCents,
       feeReversalCents: money.feeReversalCents,
     };
+    if (undeliveredPercent > 0.5) {
+      finalStatus = "no_show_creator";
+    }
     needsReview = false;
   }
 
@@ -425,7 +441,7 @@ export async function runEvaluation(bookingId: string) {
   await db
     .update(bookings)
     .set({
-      status: outcome,
+      status: finalStatus,
       payout_eligible_at: payoutEligibleAt,
       needs_review: needsReview,
       ...(effectivePayoutCents != null

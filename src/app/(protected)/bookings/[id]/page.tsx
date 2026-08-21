@@ -21,22 +21,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
 import { Avatar } from "@/components/ui/Avatar";
-import { statusLabel } from "@/lib/status";
+import { bookingBadgeVariant, bookingLabel } from "@/lib/status";
 
 const fanUser = alias(users, "fanUser");
-
-function badgeFor(status: string): "live" | "confirmed" | "pending" | "cancelled" | "completed" {
-  switch (status) {
-    case "reserved":
-      return "pending";
-    case "confirmed":
-      return "confirmed";
-    case "completed":
-      return "completed";
-    default:
-      return "cancelled";
-  }
-}
 
 export default async function BookingPage({
   params,
@@ -60,6 +47,9 @@ export default async function BookingPage({
       fan_id: bookingsTable.fan_id,
       creator_user_id: creatorProfiles.user_id,
       status: bookingsTable.status,
+      cancelled_by: bookingsTable.cancelled_by,
+      needs_review: bookingsTable.needs_review,
+      created_at: bookingsTable.created_at,
       start_at: bookingsTable.start_at,
       end_at: bookingsTable.end_at,
       price_cents: bookingsTable.price_cents,
@@ -180,7 +170,17 @@ export default async function BookingPage({
           {detail("Price", `$${(booking.price_cents / 100).toFixed(2)}`)}
           <div className="flex items-center justify-between gap-4">
             <span className="shrink-0 text-sm text-text-secondary">Status</span>
-            <Badge variant={badgeFor(booking.status)} label={statusLabel(booking.status)} />
+            <Badge
+              variant={bookingBadgeVariant(booking.status)}
+              label={bookingLabel(
+                booking.status,
+                {
+                  cancelled_by: booking.cancelled_by,
+                  needs_review: booking.needs_review,
+                },
+                isFan ? "guest" : "creator",
+              )}
+            />
           </div>
         </div>
 
@@ -211,6 +211,9 @@ export default async function BookingPage({
           <CancelSection
             bookingId={booking.id}
             startAt={booking.start_at!.toISOString()}
+            createdAt={
+              booking.created_at ? new Date(booking.created_at).toISOString() : null
+            }
             priceCents={booking.price_cents}
             role={isFan ? "fan" : "creator"}
           />
@@ -237,9 +240,9 @@ export default async function BookingPage({
 
       {/* Report/Block only AFTER the session — nothing to report before it. */}
       {booking.status === "completed" && (
-        <div className="mt-6">
-          <p className="mb-2 text-xs font-medium text-text-tertiary">Need help?</p>
-          <div className="flex flex-wrap items-center gap-4">
+        <Card className="mt-6 space-y-3">
+          <p className="text-xs font-medium text-text-tertiary">Need help?</p>
+          <div className="flex flex-wrap items-center gap-2">
             <ReportSection bookingId={booking.id} targetName={otherName} />
             <BlockSection
               bookingId={booking.id}
@@ -247,7 +250,7 @@ export default async function BookingPage({
               alreadyBlocked={!!existingBlock}
             />
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

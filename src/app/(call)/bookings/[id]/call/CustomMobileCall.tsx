@@ -64,6 +64,7 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [cameraOn, setCameraOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
+  const [hasRemote, setHasRemote] = useState(false);
   const [remoteHasVideo, setRemoteHasVideo] = useState(false);
   const [remoteName, setRemoteName] = useState("");
   const [localName, setLocalName] = useState("");
@@ -176,6 +177,7 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
       call.on("participant-joined", (e) => {
         const p = e as { participant?: DailyParticipant };
         if (p.participant && !p.participant.local) {
+          setHasRemote(true);
           setRemoteName(p.participant.user_name || "Guest");
           setRemoteAvatar(
             p.participant.userData?.avatar || initialsAvatarDataUrl(p.participant.user_name || "Guest"),
@@ -190,6 +192,16 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         }
       });
 
+      call.on("participant-left", (e) => {
+        const p = e as { participant?: DailyParticipant };
+        if (p.participant && !p.participant.local) {
+          setHasRemote(false);
+          setRemoteHasVideo(false);
+          setRemoteName("");
+          setRemoteAvatar("");
+        }
+      });
+
       call.on("left-meeting", () => {
         setPhase("ended");
       });
@@ -199,6 +211,10 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         setError(err.errorMsg ?? "Call error");
       });
 
+      // Render the video tiles BEFORE joining so the <video> refs exist when
+      // track-started fires (otherwise the remote/local tracks are dropped).
+      setPhase("in_call");
+
       await call.join();
 
       // Track the existing participants (covers the case where the remote
@@ -206,6 +222,7 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
       const participants = call.participants();
       const remote = Object.values(participants).find((p) => !p.local);
       if (remote) {
+        setHasRemote(true);
         setRemoteName(remote.user_name || "Guest");
         setRemoteAvatar(
           remote.userData?.avatar || initialsAvatarDataUrl(remote.user_name || "Guest"),
@@ -213,7 +230,6 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
       }
       setCameraOn(call.localVideo());
       setMicOn(call.localAudio());
-      setPhase("in_call");
 
       const now = Date.now();
       const endMs =
@@ -332,17 +348,18 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     <div className="flex h-dvh flex-col overflow-hidden bg-bg-base">
       {/* Stage + self-view */}
       <div className="relative flex-1 min-h-0">
-        {/* Remote stage tile */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black">
-          {remoteHasVideo ? (
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+        {/* Remote participant: full-bleed stage when present. The <video> is
+            always mounted so its ref exists when track-started fires; the
+            avatar overlays it while the remote's camera is off. */}
+        <div className={`absolute inset-0 bg-black ${hasRemote ? "" : "hidden"}`}>
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="h-full w-full object-contain"
+          />
+          {!remoteHasVideo && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <img
                 src={remoteAvatar}
                 alt=""
@@ -357,24 +374,32 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
           </div>
         </div>
 
-        {/* Self-view PiP */}
-        <div className="absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]">
-          {cameraOn ? (
-            <video
-              ref={selfVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
+        {/* Local video: full-bleed stage when solo, PiP when a remote is
+            present. Always mounted for the same track-timing reason. */}
+        <div
+          className={
+            hasRemote
+              ? "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+              : "absolute inset-0 bg-black"
+          }
+        >
+          <video
+            ref={selfVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`h-full w-full ${hasRemote ? "object-cover" : "object-contain"}`}
+          />
+          {!cameraOn && (
+            <div className="absolute inset-0 flex items-center justify-center">
               <img src={localAvatar} alt="" className="h-full w-full object-cover" />
             </div>
           )}
-          <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">
-            You
-          </div>
+          {hasRemote && (
+            <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">
+              You
+            </div>
+          )}
         </div>
 
         {/* Hidden audio element for remote audio */}

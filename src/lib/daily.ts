@@ -26,7 +26,7 @@ export async function createRoom(name: string) {
       properties: {
         start_audio_off: true,
         start_video_off: true,
-        enable_people_ui: false,
+        enable_people_ui: true,
         enable_pip_ui: false,
         enable_prejoin_ui: false,
         enable_chat: true,

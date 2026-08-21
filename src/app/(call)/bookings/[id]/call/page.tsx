@@ -158,7 +158,9 @@ export default function CallPage() {
         url: data.room_url,
         token: data.token,
         showLeaveButton: true,
-        showFullscreenButton: false,
+        // Mobile: show Daily's fullscreen button (Desktop uses our own React
+        // fullscreen overlay, so keep Daily's hidden there to avoid a duplicate).
+        showFullscreenButton: mobile,
         // Mobile uses Daily's vanilla skin — omit `theme` entirely (passing
         // `undefined` is rejected as "unsupported theme configuration").
         ...(mobile ? {} : { theme: DAILY_THEME }),

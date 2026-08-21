@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { initialsAvatarDataUrl } from "@/lib/daily-ui";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { DailyCall, DailyParticipant } from "@/lib/daily-types";
 
 // ---------------------------------------------------------------------------
-// Mobile custom call UI (call-object mode) — media-first.
-// Creator full-bleed, dismissible self-view, chat, tap-to-focus.
+// Custom call UI (call-object mode) — media-first, responsive.
+// Creator full-bleed, dismissible self-view, chat (non-interrupting
+// notification), tap-to-focus. Desktop adds a real fullscreen button and a
+// side chat panel; mobile uses a bottom chat sheet. No Daily Prebuilt iframe.
 // ---------------------------------------------------------------------------
 
 type Phase = "loading" | "too_early" | "in_call" | "ended" | "error";
@@ -59,7 +62,9 @@ function removeTrackFrom(el: HTMLVideoElement | HTMLAudioElement | null, track: 
   stream.removeTrack(track);
 }
 
-export function CustomMobileCall({ bookingId }: { bookingId: string }) {
+export function CustomCall({ bookingId }: { bookingId: string }) {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
   const [phase, setPhase] = useState<Phase>("loading");
   const [countdown, setCountdown] = useState("");
   const [sessionTitle, setSessionTitle] = useState("");
@@ -75,17 +80,20 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
   const [localAvatar, setLocalAvatar] = useState("");
   const [cleanView, setCleanView] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState("");
 
   const callRef = useRef<DailyCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const selfVideoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const startedRef = useRef(false);
-  const chatRef = useRef<HTMLInputElement | null>(null);
+  const chatInputRef = useRef<HTMLInputElement | null>(null);
 
   const router = useRouter();
 
@@ -213,8 +221,7 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         const text = ev.data?.message;
         if (typeof text === "string" && text.trim()) {
           setMessages((m) => [...m, { from: "them", text: text.trim() }]);
-          setChatOpen(true);
-          setCleanView(false);
+          setHasUnread(true);
         }
       });
 
@@ -285,6 +292,13 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     return () => clearInterval(iv);
   }, [phase, sessionEndAt]);
 
+  // Desktop fullscreen state.
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
   const toggleCamera = () => {
     const call = callRef.current;
     if (!call) return;
@@ -301,6 +315,14 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     setMicOn(next);
   };
 
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      rootRef.current?.requestFullscreen().catch(() => {});
+    }
+  };
+
   const sendChat = () => {
     const call = callRef.current;
     const text = draft.trim();
@@ -308,6 +330,11 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
     call.sendAppMessage({ message: text });
     setMessages((m) => [...m, { from: "me", text }]);
     setDraft("");
+  };
+
+  const openChat = () => {
+    setChatOpen(true);
+    setHasUnread(false);
   };
 
   const leave = () => {
@@ -368,8 +395,56 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
 
   const pipVisible = hasRemote && showSelfView && !cleanView;
 
+  const chatBody = (
+    <>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold text-text-secondary">Chat</p>
+        <button
+          type="button"
+          onClick={() => setChatOpen(false)}
+          aria-label="Close chat"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto pb-2">
+        {messages.length === 0 && (
+          <p className="mt-4 text-center text-xs text-text-secondary">No messages yet</p>
+        )}
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed ${m.from === "me" ? "self-end bg-brand text-white" : "self-start bg-bg-card-hover text-white"}`}
+          >
+            {m.text}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          ref={chatInputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } }}
+          placeholder="Message…"
+          aria-label="Chat message"
+          className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-sm text-white placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        />
+        <button
+          type="button"
+          onClick={sendChat}
+          aria-label="Send message"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <SendIcon />
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-bg-base">
+    <div ref={rootRef} className="flex h-dvh flex-col overflow-hidden bg-bg-base">
       {/* Stage + self-view */}
       <div className="relative flex-1 min-h-0">
         {/* Remote participant: full-bleed stage when present */}
@@ -389,7 +464,9 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         {/* Local video: full-bleed stage when solo, PiP when a remote is present */}
         <div
           className={`${hasRemote
-            ? "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+            ? isDesktop
+              ? "absolute top-4 right-4 z-20 h-[100px] w-[178px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
+              : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
             : "absolute inset-0 bg-black"} ${hasRemote && !pipVisible ? "hidden" : ""}`}
         >
           <video ref={selfVideoRef} autoPlay playsInline muted className={`h-full w-full ${hasRemote ? "object-cover" : "object-contain"}`} />
@@ -446,9 +523,22 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
           <ControlButton on={showSelfView} onClick={() => setShowSelfView((v) => !v)} label={showSelfView ? "Hide self-view" : "Show self-view"}>
             <EyeIcon />
           </ControlButton>
-          <ControlButton on={chatOpen} onClick={() => { setChatOpen((v) => !v); setCleanView(false); }} label="Open chat">
+          <button
+            type="button"
+            onClick={openChat}
+            aria-label={hasUnread ? "Open chat (new message)" : "Open chat"}
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-white transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
             <ChatIcon />
-          </ControlButton>
+            {hasUnread && !chatOpen && (
+              <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-brand ring-2 ring-bg-surface" />
+            )}
+          </button>
+          {isDesktop && (
+            <ControlButton on={isFullscreen} onClick={toggleFullscreen} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+              <FullscreenIcon />
+            </ControlButton>
+          )}
           <button
             type="button"
             onClick={leave}
@@ -460,53 +550,17 @@ export function CustomMobileCall({ bookingId }: { bookingId: string }) {
         </div>
       </div>
 
-      {/* Chat sheet */}
+      {/* Chat: side panel on desktop, bottom sheet on mobile */}
       {chatOpen && !cleanView && (
-        <div className="absolute inset-x-0 bottom-0 z-40 flex h-[55%] flex-col rounded-t-2xl border-t border-border-subtle bg-bg-surface px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-text-secondary">Chat</p>
-            <button
-              type="button"
-              onClick={() => setChatOpen(false)}
-              aria-label="Close chat"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              ✕
-            </button>
+        isDesktop ? (
+          <div className="absolute bottom-0 right-0 top-0 z-40 flex w-[320px] flex-col border-l border-border-subtle bg-bg-surface px-4 py-4">
+            {chatBody}
           </div>
-          <div className="flex flex-1 flex-col gap-2 overflow-y-auto pb-2">
-            {messages.length === 0 && (
-              <p className="mt-4 text-center text-xs text-text-secondary">No messages yet</p>
-            )}
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed ${m.from === "me" ? "self-end bg-brand text-white" : "self-start bg-bg-card-hover text-white"}`}
-              >
-                {m.text}
-              </div>
-            ))}
+        ) : (
+          <div className="absolute inset-x-0 bottom-0 z-40 flex h-[55%] flex-col rounded-t-2xl border-t border-border-subtle bg-bg-surface px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">
+            {chatBody}
           </div>
-          <div className="flex gap-2">
-            <input
-              ref={chatRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } }}
-              placeholder="Message…"
-              aria-label="Chat message"
-              className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-sm text-white placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            />
-            <button
-              type="button"
-              onClick={sendChat}
-              aria-label="Send message"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <SendIcon />
-            </button>
-          </div>
-        </div>
+        )
       )}
     </div>
   );
@@ -557,6 +611,14 @@ function ChatIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+    </svg>
+  );
+}
+
+function FullscreenIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
     </svg>
   );
 }

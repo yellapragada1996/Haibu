@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-// Reactive CSS media-query match. SSR-safe: returns false on the server and
-// resolves to the real value after hydration.
-export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+// Reactive CSS media-query match. SSR-safe: returns null until the media
+// query is evaluated on the client (after mount), so callers can distinguish
+// "unknown" from a definite true/false and avoid rendering the wrong layout.
+export function useMediaQuery(query: string): boolean | null {
+  const [matches, setMatches] = useState<boolean | null>(null);
 
   useEffect(() => {
     const mql = window.matchMedia(query);

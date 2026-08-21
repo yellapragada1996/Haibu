@@ -4,24 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { CustomMobileCall } from "./CustomMobileCall";
+import { DailyCall } from "@/lib/daily-types";
 
-declare global {
-  interface Window {
-    DailyIframe?: {
-      createFrame: (container: HTMLElement | null, opts: Record<string, unknown>) => DailyCall;
-    };
-  }
-}
-
-interface DailyCall {
-  on: (event: string, cb: (data?: unknown) => void) => void;
-  join: () => Promise<void>;
-  leave: () => void;
-  destroy: () => void;
-  setActiveSpeakerMode: (enabled: boolean) => void;
-  loadCss: (opts: { bodyClass?: string; cssText?: string }) => void;
-  participantCounts: () => { present: number };
-}
+// DailyCall + window.DailyIframe types live in @/lib/daily-types.
 
 function loadDailyScript(): Promise<void> {
   if (window.DailyIframe) return Promise.resolve();
@@ -239,12 +225,14 @@ export default function CallPage() {
   }
 
   useEffect(() => {
+    // Desktop-only: on mobile the CustomMobileCall component owns the call.
+    if (isMobile !== false) return;
     startCall();
     return () => {
       clearTimeout(endTimerRef.current);
       frameRef.current?.destroy();
     };
-  }, [startCall]);
+  }, [startCall, isMobile]);
 
   // Live "time remaining" ticker while in call
   useEffect(() => {
@@ -405,6 +393,20 @@ export default function CallPage() {
   const handleLeave = () => {
     frameRef.current?.leave();
   };
+
+  // Wait for the media query to resolve before choosing a layout.
+  if (isMobile === null) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
+        <p className="font-medium text-text-secondary">Loading…</p>
+      </div>
+    );
+  }
+
+  // Mobile: fully custom call UI (call-object mode).
+  if (isMobile) {
+    return <CustomMobileCall bookingId={bookingId} />;
+  }
 
   const backButton = (
     <Button variant="secondary" onClick={() => router.push(`/bookings/${bookingId}`)}>

@@ -30,6 +30,12 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Path-boundary matcher: a protected/auth path must be an exact match or a
+  // real sub-path ("/creator" or "/creator/x"), NOT a prefix of a longer word.
+  // Otherwise "/creator" wrongly matches the PUBLIC "/creators/..." route.
+  const matchesPath = (pathname: string, path: string) =>
+    pathname === path || pathname.startsWith(path + "/");
+
   // Protected routes — redirect to /login if unauthenticated, carrying the
   // original path (including query params, e.g. a booking's ?offering=&slot=)
   // so the user returns to exactly where they were after login.
@@ -42,13 +48,13 @@ export async function updateSession(request: NextRequest) {
     "/api/protected",
   ];
   const isProtected = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path),
+    matchesPath(request.nextUrl.pathname, path),
   );
 
   // Auth pages — redirect to the intended page if already authenticated
   const authPaths = ["/login", "/signup"];
   const isAuthPage = authPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path),
+    matchesPath(request.nextUrl.pathname, path),
   );
 
   if (isProtected && !user) {

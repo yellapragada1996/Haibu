@@ -7,6 +7,7 @@ import { eq, and, sql, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCategories } from "@/lib/categories";
+import { generateUniqueSlug } from "@/lib/slug";
 import { stripe } from "@/lib/stripe";
 import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
 import { STRIPE_EXPRESS_COUNTRY_CODES } from "@/lib/stripe-countries";
@@ -26,24 +27,36 @@ export async function upsertCreatorProfile(formData: FormData) {
   const displayName = (formData.get("display_name") as string | null)?.trim() ?? null;
 
   const existing = await db
-    .select({ id: creatorProfiles.id })
+    .select({ id: creatorProfiles.id, slug: creatorProfiles.slug })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.user_id, user.id));
 
+  // Public handle is derived from the display name (fallback: the email's
+  // local part). See lib/slug.ts — lowercased, hyphenated, de-duplicated.
+  const nameForSlug =
+    displayName && displayName.length >= 2
+      ? displayName
+      : (user.email?.split("@")[0] ?? "creator");
+
   if (existing.length > 0) {
+    const updates: Record<string, unknown> = { bio: bio ?? undefined };
+    // Backfill: profiles created before slug generation had no slug.
+    if (!existing[0].slug) {
+      updates.slug = await generateUniqueSlug(nameForSlug);
+    }
     await db
       .update(creatorProfiles)
-      .set({
-        bio: bio ?? undefined,
-      })
+      .set(updates)
       .where(eq(creatorProfiles.user_id, user.id));
   } else {
+    const slug = await generateUniqueSlug(nameForSlug);
     await db.insert(creatorProfiles).values({
       user_id: user.id,
       bio: bio ?? null,
       // Category is no longer chosen at profile creation — it's derived
       // from offerings (see Offerings tab). Default until an offering exists.
       category: "casual_talk",
+      slug,
     });
   }
 

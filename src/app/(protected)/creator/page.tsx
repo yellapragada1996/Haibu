@@ -14,11 +14,13 @@ import {
 } from "@/db/schema";
 import { and, eq, isNotNull, isNull, sql, count } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
+import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Kpi } from "@/components/ui/Kpi";
+import { ShareButton } from "@/components/ui/ShareButton";
 import { SetupWizard } from "./SetupWizard";
 import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
-import { getCategories } from "@/lib/categories";
+import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import {
   formatCents,
   getCreatorEarnings,
@@ -69,6 +71,7 @@ export default async function CreatorHomePage({
       bio: creatorProfiles.bio,
       banner_url: creatorProfiles.banner_url,
       category: creatorProfiles.category,
+      slug: creatorProfiles.slug,
     })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.user_id, user.id));
@@ -120,9 +123,83 @@ export default async function CreatorHomePage({
     const rating = Number(ratingRow?.avg ?? 0);
     const reviewCount = Number(ratingRow?.n ?? 0);
 
+    // Category pills — derived from active offerings (same as the public profile).
+    const offeringCats = await db
+      .select({ category: offerings.category })
+      .from(offerings)
+      .where(
+        and(
+          eq(offerings.creator_id, profile.id),
+          eq(offerings.is_active, true),
+          isNull(offerings.deleted_at),
+        ),
+      );
+    const distinctCategories = Array.from(
+      new Set(offeringCats.map((o) => o.category)),
+    );
+    const visibleCategories = distinctCategories.slice(0, 3);
+    const extraCategories = Math.max(0, distinctCategories.length - 3);
+    const categoryLabels = categoriesToLabelMap(await getCategories());
+
     return (
       <div>
-        <h1 className="text-2xl font-bold text-white">Overview</h1>
+        {/* Banner — only when the creator has one (mirrors the public profile) */}
+        {profile.banner_url ? (
+          <div className="relative">
+            <img
+              src={profile.banner_url}
+              alt=""
+              aria-hidden="true"
+              className="h-36 w-full rounded-card object-cover"
+            />
+            <div className="absolute -bottom-8 left-6">
+              <Avatar
+                src={userRow?.avatar_url ?? null}
+                name={userRow?.display_name ?? user.email ?? ""}
+                size={72}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Identity: avatar (when no banner) + name */}
+        <div
+          className={`flex items-center gap-3 ${profile.banner_url ? "mt-10" : "mt-4"}`}
+        >
+          {!profile.banner_url && (
+            <Avatar
+              src={userRow?.avatar_url ?? null}
+              name={userRow?.display_name ?? user.email ?? ""}
+              size={48}
+            />
+          )}
+          <h1 className="text-2xl font-bold text-white">
+            {userRow?.display_name ?? user.email ?? ""}
+          </h1>
+          {profile.slug && (
+            <ShareButton
+              path={`/@${profile.slug}`}
+              name={userRow?.display_name ?? user.email ?? ""}
+            />
+          )}
+        </div>
+
+        {/* Category pills (derived from active offerings) */}
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {visibleCategories.map((cat) => (
+            <span
+              key={cat}
+              className="inline-flex items-center rounded-pill bg-brand px-2.5 py-1 text-xs font-semibold text-white"
+            >
+              {categoryLabels[cat] ?? cat}
+            </span>
+          ))}
+          {extraCategories > 0 && (
+            <span className="inline-flex items-center rounded-pill border border-border-subtle bg-bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+              +{extraCategories}
+            </span>
+          )}
+        </div>
 
         {/* Money strip */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

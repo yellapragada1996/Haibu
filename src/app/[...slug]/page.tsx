@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -140,10 +139,7 @@ export default async function CreatorHandlePage({
             />
           )}
           <h1 className="text-2xl font-bold text-white">{creator.display_name}</h1>
-          <ShareButton
-            url={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://haibu.live"}/@${slug}`}
-            name={creator.display_name}
-          />
+          <ShareButton path={`/@${slug}`} name={creator.display_name} />
         </div>
 
         {/* Category pills — brand red, max 3 + "+N" */}
@@ -286,14 +282,6 @@ export default async function CreatorHandlePage({
                 );
               })}
             </div>
-          )}
-          {reviewCount > 2 && (
-            <Link
-              href={`/creators/${creator.id}`}
-              className="mt-3 inline-block text-sm text-text-secondary hover:text-white"
-            >
-              View all {reviewCount} reviews →
-            </Link>
           )}
         </section>
       </main>

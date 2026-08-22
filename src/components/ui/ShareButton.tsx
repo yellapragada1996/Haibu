@@ -5,16 +5,19 @@ import { useState } from "react";
 // Share button for the creator profile — navigator.share() on mobile (native
 // sheet), copy-link fallback on desktop. Appends ?ref=<referrer-host> for
 // funnel attribution. Icon-only, aria-labelled.
-export function ShareButton({ url, name }: { url: string; name: string }) {
+export function ShareButton({ path, name }: { path: string; name: string }) {
   const [copied, setCopied] = useState(false);
 
   const share = async () => {
-    let shareUrl = url;
+    // Build the link from the CURRENT origin so it works on localhost, staging,
+    // and production alike (a hard-coded NEXT_PUBLIC_APP_URL pointed elsewhere).
+    const base = window.location.origin + path;
+    let shareUrl = base;
     try {
       const ref = document.referrer
         ? new URL(document.referrer).hostname.replace(/^www\./, "")
         : "direct";
-      shareUrl = url + (url.includes("?") ? "&" : "?") + "ref=" + encodeURIComponent(ref);
+      shareUrl = base + (base.includes("?") ? "&" : "?") + "ref=" + encodeURIComponent(ref);
     } catch {
       /* keep bare url */
     }

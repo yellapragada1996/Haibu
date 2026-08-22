@@ -73,6 +73,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const [cameraOn, setCameraOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [showSelfView, setShowSelfView] = useState(true);
+  const [swapped, setSwapped] = useState(false);
   const [hasRemote, setHasRemote] = useState(false);
   const [remoteHasVideo, setRemoteHasVideo] = useState(false);
   const [remoteName, setRemoteName] = useState("");
@@ -213,6 +214,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
           setRemoteHasVideo(false);
           setRemoteName("");
           setRemoteAvatar("");
+          setSwapped(false);
         }
       });
 
@@ -323,6 +325,10 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     }
   };
 
+  const toggleSwap = () => {
+    if (hasRemote) setSwapped((v) => !v);
+  };
+
   const sendChat = () => {
     const call = callRef.current;
     const text = draft.trim();
@@ -397,7 +403,20 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     );
   }
 
-  const pipVisible = hasRemote && showSelfView && !cleanView;
+  // Tile placement: tapping the PiP swaps which participant is the full-bleed
+  // stage vs the small picture-in-picture tile.
+  const remoteIsStage = hasRemote && !swapped;
+  const localIsStage = !hasRemote || swapped;
+  const localIsPip = hasRemote && !swapped && showSelfView && !cleanView;
+  const remoteIsPip = hasRemote && swapped && !cleanView;
+
+  const stageClass = "absolute inset-0 bg-black";
+  const pipClass = isDesktop
+    ? "absolute top-4 right-4 z-20 h-[100px] w-[178px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer"
+    : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer";
+
+  const remoteClass = !hasRemote ? "hidden" : remoteIsStage ? stageClass : remoteIsPip ? pipClass : "hidden";
+  const localClass = localIsStage ? stageClass : localIsPip ? pipClass : "hidden";
 
   const chatBody = (
     <>
@@ -451,42 +470,44 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     <div ref={rootRef} className="flex h-dvh flex-col overflow-hidden bg-bg-base">
       {/* Stage + self-view */}
       <div className="relative flex-1 min-h-0">
-        {/* Remote participant: full-bleed stage when present */}
-        <div className={`absolute inset-0 bg-black ${hasRemote ? "" : "hidden"}`}>
-          <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
+        {/* Remote participant — stage or PiP depending on swap */}
+        <div className={remoteClass} onClick={toggleSwap}>
+          <video ref={remoteVideoRef} autoPlay playsInline className={`h-full w-full ${remoteIsStage ? "object-contain" : "object-cover"}`} />
           {!remoteHasVideo && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <img src={remoteAvatar} alt="" className="h-28 w-28 rounded-full border-2 border-white/10 object-cover" />
-              <p className="text-sm text-text-secondary">{remoteName || "Guest"}</p>
-            </div>
-          )}
-          <div className="absolute bottom-4 left-4 rounded-pill bg-black/55 px-3 py-1 text-xs text-white">
-            {remoteName || "Guest"}
-          </div>
-        </div>
-
-        {/* Local video: full-bleed stage when solo, PiP when a remote is present */}
-        <div
-          className={`${hasRemote
-            ? isDesktop
-              ? "absolute top-4 right-4 z-20 h-[100px] w-[178px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
-              : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)]"
-            : "absolute inset-0 bg-black"} ${hasRemote && !pipVisible ? "hidden" : ""}`}
-        >
-          <video ref={selfVideoRef} autoPlay playsInline muted className={`h-full w-full ${hasRemote ? "object-cover" : "object-contain"}`} />
-          {!cameraOn && (
-            hasRemote ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <img src={localAvatar} alt="" className="h-full w-full object-cover" />
+            remoteIsStage ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <img src={remoteAvatar} alt="" className="h-28 w-28 rounded-full border-2 border-white/10 object-cover" />
+                <p className="text-sm text-text-secondary">{remoteName || "Guest"}</p>
               </div>
             ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img src={remoteAvatar} alt="" className="h-full w-full object-cover" />
+              </div>
+            )
+          )}
+          {remoteIsStage && (
+            <div className="absolute bottom-4 left-4 rounded-pill bg-black/55 px-3 py-1 text-xs text-white">
+              {remoteName || "Guest"}
+            </div>
+          )}
+        </div>
+
+        {/* Local participant — stage or PiP depending on swap */}
+        <div className={localClass} onClick={toggleSwap}>
+          <video ref={selfVideoRef} autoPlay playsInline muted className={`h-full w-full ${localIsStage ? "object-contain" : "object-cover"}`} />
+          {!cameraOn && (
+            localIsStage ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                 <img src={localAvatar} alt="" className="h-28 w-28 rounded-full border-2 border-white/10 object-cover" />
                 <p className="text-sm text-text-secondary">You</p>
               </div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img src={localAvatar} alt="" className="h-full w-full object-cover" />
+              </div>
             )
           )}
-          {hasRemote && (
+          {localIsPip && (
             <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">You</div>
           )}
         </div>
@@ -547,7 +568,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             type="button"
             onClick={leave}
             aria-label="Leave call"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-on-primary transition-colors hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <LeaveIcon />
           </button>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 function HomeIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 10.5 12 3l9 7.5" />
       <path d="M5 9.5V21h14V9.5" />
     </svg>
@@ -14,7 +14,7 @@ function HomeIcon() {
 
 function DashboardIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="3" width="7" height="7" rx="1" />
       <rect x="14" y="3" width="7" height="7" rx="1" />
       <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -25,7 +25,7 @@ function DashboardIcon() {
 
 function SignUpIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="9" cy="8" r="4" />
       <path d="M3 21v-1a6 6 0 0 1 12 0v1" />
       <path d="M19 8v6" />
@@ -72,7 +72,7 @@ export function BottomNav({
         <Link
           href="/"
           aria-current={pathname === "/" ? "page" : undefined}
-          className={`${tab} ${pathname === "/" ? "text-white" : "text-text-tertiary"}`}
+          className={`${tab} ${pathname === "/" ? "text-white" : "text-text-secondary"}`}
         >
           <HomeIcon />
           Home
@@ -80,7 +80,7 @@ export function BottomNav({
         <Link
           href={secondHref}
           aria-current={secondActive ? "page" : undefined}
-          className={`${tab} ${secondActive ? "text-white" : "text-text-tertiary"}`}
+          className={`${tab} ${secondActive ? "text-white" : "text-text-secondary"}`}
         >
           {secondIcon}
           {secondLabel}

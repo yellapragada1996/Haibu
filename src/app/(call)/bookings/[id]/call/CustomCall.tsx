@@ -96,6 +96,13 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Reset the "auto-hide the control tray" timer — called on any interaction.
+  const resetAutoHide = useCallback(() => {
+    clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setCleanView(true), 4000);
+  }, []);
   const startedRef = useRef(false);
   const chatInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -301,6 +308,12 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     return () => clearInterval(iv);
   }, [phase, sessionEndAt]);
 
+  // Auto-hide the control tray after a few seconds of inactivity.
+  useEffect(() => {
+    if (phase === "in_call") resetAutoHide();
+    return () => clearTimeout(hideTimerRef.current);
+  }, [phase, resetAutoHide]);
+
   // Desktop fullscreen state.
   useEffect(() => {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
@@ -314,6 +327,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     const next = !cameraOn;
     call.setLocalVideo(next);
     setCameraOn(next);
+    resetAutoHide();
   };
 
   const toggleMic = () => {
@@ -322,6 +336,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     const next = !micOn;
     call.setLocalAudio(next);
     setMicOn(next);
+    resetAutoHide();
   };
 
   const toggleFullscreen = () => {
@@ -330,10 +345,12 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     } else {
       rootRef.current?.requestFullscreen().catch(() => {});
     }
+    resetAutoHide();
   };
 
   const toggleSwap = () => {
     if (hasRemote) setSwapped((v) => !v);
+    resetAutoHide();
   };
 
   const sendChat = () => {
@@ -353,6 +370,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       setHasUnread(false);
       setPeopleOpen(false);
     }
+    resetAutoHide();
   };
 
   const togglePeople = () => {
@@ -362,6 +380,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       setPeopleOpen(true);
       setChatOpen(false);
     }
+    resetAutoHide();
   };
 
   const leave = () => {
@@ -457,8 +476,8 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   // stage vs the small picture-in-picture tile.
   const remoteIsStage = hasRemote && !swapped;
   const localIsStage = !hasRemote || swapped;
-  const localIsPip = hasRemote && !swapped && showSelfView && !cleanView;
-  const remoteIsPip = hasRemote && swapped && !cleanView;
+  const localIsPip = hasRemote && !swapped && showSelfView;
+  const remoteIsPip = hasRemote && swapped;
 
   const stageClass = "absolute inset-0 bg-black";
   const pipClass = isDesktop
@@ -571,7 +590,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
               </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <img src={remoteAvatar} alt="" className="h-full w-full object-cover" />
+                <img src={remoteAvatar} alt="" className="h-12 w-12 rounded-full border-2 border-white/10 object-cover" />
               </div>
             )
           )}
@@ -615,7 +634,10 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             // behavior); otherwise the tap toggles the auto-hiding controls.
             if (chatOpen) setChatOpen(false);
             else if (peopleOpen) setPeopleOpen(false);
-            else setCleanView((v) => !v);
+            else {
+              setCleanView(false);
+              resetAutoHide();
+            }
           }}
         />
       </div>

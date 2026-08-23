@@ -6,7 +6,7 @@ export interface DailyCall {
   on: (event: string, cb: (data?: unknown) => void) => void;
   join: () => Promise<void>;
   leave: () => void;
-  destroy: () => void;
+  destroy: () => void | Promise<void>;
   setActiveSpeakerMode: (enabled: boolean) => void;
   loadCss: (opts: { bodyClass?: string; cssText?: string }) => void;
   participantCounts: () => { present: number };

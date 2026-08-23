@@ -86,6 +86,9 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const [draft, setDraft] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState("");
+  const [endedByTimer, setEndedByTimer] = useState(false);
+  const [remoteLeftName, setRemoteLeftName] = useState<string | null>(null);
+  const [peopleOpen, setPeopleOpen] = useState(false);
 
   const callRef = useRef<DailyCall | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -150,7 +153,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       const DailyIframe = window.DailyIframe!;
 
       if (callRef.current) {
-        callRef.current.destroy();
+        await callRef.current.destroy();
         callRef.current = null;
       }
 
@@ -193,6 +196,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         const p = e as { participant?: DailyParticipant };
         if (p.participant && !p.participant.local) {
           setHasRemote(true);
+          setRemoteLeftName(null);
           setRemoteName(p.participant.user_name || "Guest");
           setRemoteAvatar(
             p.participant.userData?.avatar || initialsAvatarDataUrl(p.participant.user_name || "Guest"),
@@ -210,6 +214,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       call.on("participant-left", (e) => {
         const p = e as { participant?: DailyParticipant };
         if (p.participant && !p.participant.local) {
+          setRemoteLeftName(p.participant.user_name || "The other person");
           setHasRemote(false);
           setRemoteHasVideo(false);
           setRemoteName("");
@@ -228,6 +233,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       });
 
       call.on("left-meeting", () => {
+        setEndedByTimer(false);
         setPhase("ended");
       });
 
@@ -262,6 +268,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       const joinEnd = endMs + 5 * 60 * 1000;
       endTimerRef.current = setTimeout(() => {
         callRef.current?.leave();
+        setEndedByTimer(true);
         setPhase("ended");
       }, joinEnd - now);
     } catch (e) {
@@ -344,12 +351,29 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     } else {
       setChatOpen(true);
       setHasUnread(false);
+      setPeopleOpen(false);
+    }
+  };
+
+  const togglePeople = () => {
+    if (peopleOpen) {
+      setPeopleOpen(false);
+    } else {
+      setPeopleOpen(true);
+      setChatOpen(false);
     }
   };
 
   const leave = () => {
     callRef.current?.leave();
+    setEndedByTimer(false);
     setPhase("ended");
+  };
+
+  const rejoin = () => {
+    startedRef.current = false;
+    setPhase("loading");
+    void startCall();
   };
 
   const backButton = (
@@ -370,11 +394,37 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   }
 
   if (phase === "ended") {
+    const otherName = remoteName || remoteLeftName || "the other person";
     return (
       <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
-        <div className="text-center">
-          <p className="text-lg text-white">Session ended</p>
-          <div className="mt-4">{backButton}</div>
+        <div className="w-full max-w-xs text-center">
+          {endedByTimer && (
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-live/40 bg-live/10">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+          )}
+          <h1 className="text-xl font-bold text-white">
+            {endedByTimer ? "Session complete" : "You left the call"}
+          </h1>
+          <p className="mt-2 text-sm text-text-secondary">
+            {endedByTimer
+              ? `Your session with ${otherName} is over.`
+              : `Your session with ${otherName} is still running — you can rejoin.`}
+          </p>
+          {!endedByTimer && (
+            <Button className="mt-6 w-full" onClick={rejoin}>
+              Rejoin
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            className="mt-3 w-full"
+            onClick={() => router.push(`/bookings/${bookingId}`)}
+          >
+            Back to booking
+          </Button>
         </div>
       </div>
     );
@@ -466,6 +516,46 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     </>
   );
 
+  const peopleBody = (
+    <>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold text-text-secondary">People</p>
+        <button
+          type="button"
+          onClick={() => setPeopleOpen(false)}
+          aria-label="Close people"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary hover:bg-bg-card-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto pb-2 pt-2">
+        <div className="flex items-center gap-3">
+          <img src={localAvatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+          <div>
+            <p className="text-sm font-semibold text-white">You</p>
+            <p className="text-xs text-text-secondary">In call</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <img
+            src={remoteAvatar || initialsAvatarDataUrl(remoteName || remoteLeftName || "Guest")}
+            alt=""
+            className="h-10 w-10 rounded-full object-cover"
+          />
+          <div>
+            <p className="text-sm font-semibold text-white">
+              {remoteName || remoteLeftName || "The other person"}
+            </p>
+            <p className="text-xs text-text-secondary">
+              {hasRemote ? "In call" : remoteLeftName ? "Left" : "Not joined yet"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div ref={rootRef} className="flex h-dvh flex-col overflow-hidden bg-bg-base">
       {/* Stage + self-view */}
@@ -534,6 +624,13 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         </div>
       </div>
 
+      {/* Other participant left */}
+      {remoteLeftName && !hasRemote && (
+        <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2 whitespace-nowrap rounded-pill border border-border-subtle bg-bg-surface/90 px-4 py-2 text-sm font-semibold text-white">
+          {remoteLeftName} left the session
+        </div>
+      )}
+
       {/* Control bar */}
       <div
         className={`absolute inset-x-0 bottom-0 z-30 flex justify-center pb-[calc(20px+env(safe-area-inset-bottom,0px))] transition-opacity duration-300 ${cleanView ? "pointer-events-none opacity-0" : "opacity-100"}`}
@@ -558,6 +655,14 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             {hasUnread && !chatOpen && (
               <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-brand ring-2 ring-bg-surface" />
             )}
+          </button>
+          <button
+            type="button"
+            onClick={togglePeople}
+            aria-label={peopleOpen ? "Close people" : "Open people"}
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-white transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <PeopleIcon />
           </button>
           {isDesktop && (
             <ControlButton on={isFullscreen} onClick={toggleFullscreen} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
@@ -584,6 +689,19 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         ) : (
           <div className="absolute inset-x-0 bottom-0 z-40 flex h-[55%] flex-col rounded-t-2xl border-t border-border-subtle bg-bg-surface px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">
             {chatBody}
+          </div>
+        )
+      )}
+
+      {/* People: side panel on desktop, bottom sheet on mobile */}
+      {peopleOpen && !cleanView && (
+        isDesktop ? (
+          <div className="absolute bottom-0 right-0 top-0 z-40 flex w-[320px] flex-col border-l border-border-subtle bg-bg-surface px-4 py-4">
+            {peopleBody}
+          </div>
+        ) : (
+          <div className="absolute inset-x-0 bottom-0 z-40 flex h-[55%] flex-col rounded-t-2xl border-t border-border-subtle bg-bg-surface px-4 pb-[calc(12px+env(safe-area-inset-bottom,0px))] pt-3">
+            {peopleBody}
           </div>
         )
       )}
@@ -636,6 +754,17 @@ function ChatIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   );
 }

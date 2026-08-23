@@ -98,6 +98,7 @@ export default async function HomePage() {
     <Link
       key={c.id}
       href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}
+      prefetch={false}
       aria-label={`Book a session with ${c.display_name}`}
     >
       <CreatorCard

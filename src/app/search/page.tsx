@@ -118,7 +118,7 @@ export default async function SearchPage({
         {creators.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4 mt-6">
             {visibleCreators.map((c) => (
-              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}>
+              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`} prefetch={false}>
                 <CreatorCard
                   name={c.display_name}
                   categories={c.categories}

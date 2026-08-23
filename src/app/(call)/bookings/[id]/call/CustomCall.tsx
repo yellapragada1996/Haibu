@@ -584,7 +584,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
         {/* Local participant — stage or PiP depending on swap */}
         <div className={localClass} onClick={toggleSwap}>
-          <video ref={selfVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+          <video ref={selfVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
           {!cameraOn && (
             localIsStage ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">

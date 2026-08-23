@@ -54,9 +54,6 @@ function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: Media
   stream.addTrack(track);
   el.srcObject = stream;
   el.play().catch(() => {});
-  // Force a reflow so object-fit:cover recomputes once the track renders —
-  // WebKit sometimes leaves the video letterboxed until the next re-render.
-  requestAnimationFrame(() => void el.offsetWidth);
 }
 
 function removeTrackFrom(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {

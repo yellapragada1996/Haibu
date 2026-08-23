@@ -49,6 +49,15 @@ function fmtCountdown(targetMs: number) {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
 }
 
+function nudgeObjectFit(v: HTMLVideoElement) {
+  v.style.objectFit = "none";
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      v.style.objectFit = "";
+    });
+  });
+}
+
 function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
   if (!el) return;
   const stream = (el.srcObject as MediaStream | null) ?? new MediaStream();
@@ -56,6 +65,14 @@ function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: Media
   stream.addTrack(track);
   el.srcObject = stream;
   el.play().catch(() => {});
+
+  if (el instanceof HTMLVideoElement) {
+    const onPlaying = () => {
+      nudgeObjectFit(el);
+      el.removeEventListener("playing", onPlaying);
+    };
+    el.addEventListener("playing", onPlaying, { once: true });
+  }
 }
 
 function removeTrackFrom(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
@@ -608,7 +625,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
         {/* Local participant — stage or PiP depending on swap */}
         <div className={localClass} onClick={toggleSwap}>
-          <video ref={selfVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} onLoadedMetadata={(e) => { const v = e.currentTarget; v.style.objectFit = "none"; requestAnimationFrame(() => { v.style.objectFit = "cover"; }); }} />
+          <video ref={selfVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
           {!cameraOn && (
             localIsStage ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">

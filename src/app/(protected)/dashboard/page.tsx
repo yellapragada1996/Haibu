@@ -114,7 +114,7 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-white">
-        {isCreator ? "Booked by me" : "Home"}
+        {isCreator ? "Booked by me" : "My sessions"}
       </h1>
 
       {!isCreator && (

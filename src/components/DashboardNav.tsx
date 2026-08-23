@@ -10,7 +10,7 @@ type NavItem = { href: string; label: string; icon: React.ReactNode };
 const CREATOR_ITEMS: NavItem[] = [
   {
     href: "/creator",
-    label: "Home",
+    label: "Dashboard",
     icon: (
       <>
         <path d="M3 10.5 12 3l9 7.5" />
@@ -86,11 +86,11 @@ const CREATOR_ITEMS: NavItem[] = [
 const FAN_ITEMS: NavItem[] = [
   {
     href: "/dashboard",
-    label: "Home",
+    label: "My sessions",
     icon: (
       <>
-        <path d="M3 10.5 12 3l9 7.5" />
-        <path d="M5 9.5V21h14V9.5" />
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
       </>
     ),
   },
@@ -190,7 +190,7 @@ export function DashboardNav({ isCreator }: { isCreator: boolean }) {
       <aside className="hidden shrink-0 border-r border-border-subtle bg-bg-surface md:block md:w-60">
         <nav aria-label="Dashboard" className="sticky top-0 flex h-screen flex-col">
           <div className="px-5 pb-3 pt-6 text-base font-bold text-white">
-            Dashboard
+            {isCreator ? "Studio" : "My sessions"}
           </div>
           <div className="flex-1 overflow-y-auto px-3">{list()}</div>
         </nav>
@@ -221,7 +221,7 @@ export function DashboardNav({ isCreator }: { isCreator: boolean }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <span className="text-base font-bold text-white">Dashboard</span>
+        <span className="text-base font-bold text-white">{isCreator ? "Studio" : "My sessions"}</span>
       </header>
 
       {/* Mobile — drawer */}
@@ -241,7 +241,7 @@ export function DashboardNav({ isCreator }: { isCreator: boolean }) {
           />
           <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-bg-surface p-3 shadow-xl">
             <div className="mb-2 flex items-center justify-between px-2 pt-2">
-              <span className="text-base font-bold text-white">Dashboard</span>
+              <span className="text-base font-bold text-white">{isCreator ? "Studio" : "My sessions"}</span>
               <button
                 type="button"
                 ref={closeButtonRef}

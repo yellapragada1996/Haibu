@@ -23,6 +23,15 @@ function DashboardIcon() {
   );
 }
 
+function ClockIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
 function SignUpIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -58,8 +67,8 @@ export function BottomNav({
       ? "/creator"
       : "/dashboard";
 
-  const secondLabel = !isLoggedIn ? "Sign up" : "Dashboard";
-  const secondIcon = !isLoggedIn ? <SignUpIcon /> : <DashboardIcon />;
+  const secondLabel = !isLoggedIn ? "Sign up" : isCreator ? "Studio" : "My sessions";
+  const secondIcon = !isLoggedIn ? <SignUpIcon /> : isCreator ? <DashboardIcon /> : <ClockIcon />;
   const secondActive = isLoggedIn && isDashboardRoute;
 
   return (

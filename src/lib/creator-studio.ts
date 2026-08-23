@@ -6,7 +6,7 @@ import {
   offerings,
   users,
 } from "@/db/schema";
-import { and, asc, count, desc, eq, gt, gte, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 const fan = alias(users, "fan");
@@ -138,7 +138,7 @@ export async function getCreatorUpcoming(profileId: string, limit = 3) {
         or(eq(bookings.status, "confirmed"), eq(bookings.status, "reserved")),
       ),
     )
-    .orderBy(asc(bookings.start_at))
+    .orderBy(desc(bookings.start_at))
     .limit(limit);
 }
 

@@ -54,6 +54,9 @@ function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: Media
   stream.addTrack(track);
   el.srcObject = stream;
   el.play().catch(() => {});
+  // Force a reflow so object-fit:cover recomputes once the track renders —
+  // WebKit sometimes leaves the video letterboxed until the next re-render.
+  requestAnimationFrame(() => void el.offsetWidth);
 }
 
 function removeTrackFrom(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
@@ -481,8 +484,8 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
   const stageClass = "absolute inset-0 bg-black";
   const pipClass = isDesktop
-    ? "absolute top-4 right-4 z-20 h-[178px] w-[100px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer"
-    : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[140px] w-[86px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer";
+    ? "absolute top-4 right-4 z-20 h-[178px] w-[100px] overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer"
+    : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[140px] w-[86px] overflow-hidden rounded-lg border border-border-subtle bg-bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer";
 
   const remoteClass = !hasRemote ? "hidden" : remoteIsStage ? stageClass : remoteIsPip ? pipClass : "hidden";
   const localClass = localIsStage ? stageClass : localIsPip ? pipClass : "hidden";

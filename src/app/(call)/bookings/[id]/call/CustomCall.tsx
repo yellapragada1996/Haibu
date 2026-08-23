@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { initialsAvatarDataUrl } from "@/lib/daily-ui";
@@ -252,9 +253,10 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         setError(err.errorMsg ?? "Call error");
       });
 
-      // Render the tiles BEFORE joining so the <video> refs exist when
-      // track-started fires (otherwise the remote/local tracks are dropped).
-      setPhase("in_call");
+      // flushSync guarantees React commits the "in_call" render (creating the
+      // <video> elements and populating refs) before call.join() fires
+      // track-started — without it the local video track is silently dropped.
+      flushSync(() => setPhase("in_call"));
 
       await call.join();
 

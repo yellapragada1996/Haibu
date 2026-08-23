@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ButtonLink } from "@/components/ui/Button";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { FaqAccordion } from "@/components/FaqAccordion";
+import { AllReviewsModal } from "@/components/AllReviewsModal";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { db } from "@/db";
 import { creatorProfiles, users, offerings, reviews, bookings } from "@/db/schema";
@@ -248,7 +249,7 @@ export default async function CreatorHandlePage({
         {/* FAQ — collapsible accordion, between offerings and reviews */}
         <FaqAccordion />
 
-        {/* Recent reviews — inline previews (2) */}
+        {/* Recent reviews — inline previews (2) + "All reviews" trigger */}
         <section className="mt-6">
           <h2 className="mb-3 text-lg font-semibold text-white">Recent reviews</h2>
           {reviewRows.length === 0 ? (
@@ -281,6 +282,22 @@ export default async function CreatorHandlePage({
                   </Card>
                 );
               })}
+
+              {reviewCount > 2 && (
+                <AllReviewsModal
+                  creatorId={creator.id}
+                  reviewCount={reviewCount}
+                  avgRating={avgRating}
+                  trigger={
+                    <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline cursor-pointer">
+                      All {reviewCount} reviews
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 4l4 4-4 4" />
+                      </svg>
+                    </span>
+                  }
+                />
+              )}
             </div>
           )}
         </section>

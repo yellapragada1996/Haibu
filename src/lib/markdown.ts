@@ -74,6 +74,44 @@ export function markdownToHtml(markdown: string): string {
       continue;
     }
 
+    // blockquote (single-paragraph ">" lines)
+    if (/^>/.test(trimmed)) {
+      closeList();
+      const quote: string[] = [];
+      while (i < lines.length && /^>/.test(lines[i].trim())) {
+        quote.push(lines[i].trim().replace(/^>\s?/, ""));
+        i++;
+      }
+      out.push(`<blockquote><p>${inline(quote.join(" "))}</p></blockquote>`);
+      continue;
+    }
+
+    // table (| a | b | with an optional |---|---| separator row)
+    if (/^\|/.test(trimmed)) {
+      closeList();
+      const rows: string[] = [];
+      while (i < lines.length && /^\|/.test(lines[i].trim())) {
+        rows.push(lines[i].trim());
+        i++;
+      }
+      const cells = (r: string) =>
+        r.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+      const hasHeaderSep =
+        rows.length >= 2 && /^\|[\s:|-]+\|$/.test(rows[1]);
+      let html = "<table><thead><tr>";
+      for (const c of cells(rows[0])) html += `<th>${inline(c)}</th>`;
+      html += "</tr></thead><tbody>";
+      const start = hasHeaderSep ? 2 : 1;
+      for (let r = start; r < rows.length; r++) {
+        html += "<tr>";
+        for (const c of cells(rows[r])) html += `<td>${inline(c)}</td>`;
+        html += "</tr>";
+      }
+      html += "</tbody></table>";
+      out.push(html);
+      continue;
+    }
+
     // paragraph — accumulate consecutive non-empty, non-special lines
     closeList();
     const para: string[] = [];

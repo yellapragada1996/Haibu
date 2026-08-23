@@ -181,22 +181,14 @@ export default async function HomePage() {
 
         <footer className="mt-16 border-t border-border-subtle pt-8 pb-12">
           <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-text-secondary">
-            <Link href="/" className="hover:text-white">
-              Home
+            <Link href="/terms" className="hover:text-white">
+              Terms of Service
             </Link>
-            <Link href="/search" className="hover:text-white">
-              Search
-            </Link>
-            <Link href="/browse/casual_talk" className="hover:text-white">
-              Browse
-            </Link>
-            <Link href="/creator" className="hover:text-white">
-              Become a Creator
+            <Link href="/support" className="hover:text-white">
+              Support
             </Link>
           </div>
-          <p className="mt-4 text-xs text-text-tertiary">
-            &copy; 2026 Haibu · Toronto, ON, Canada
-          </p>
+          <p className="mt-4 text-xs text-text-tertiary">&copy; 2026 Haibu</p>
         </footer>
       </main>
     </PublicLayout>

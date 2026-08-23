@@ -462,8 +462,8 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
   const stageClass = "absolute inset-0 bg-black";
   const pipClass = isDesktop
-    ? "absolute top-4 right-4 z-20 h-[100px] w-[178px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer"
-    : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[86px] w-[140px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer";
+    ? "absolute top-4 right-4 z-20 h-[178px] w-[100px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer"
+    : "absolute top-[calc(12px+env(safe-area-inset-top,0px))] right-3 z-20 h-[140px] w-[86px] overflow-hidden rounded-lg border border-border-subtle bg-card shadow-[0_8px_24px_rgba(0,0,0,0.55)] cursor-pointer";
 
   const remoteClass = !hasRemote ? "hidden" : remoteIsStage ? stageClass : remoteIsPip ? pipClass : "hidden";
   const localClass = localIsStage ? stageClass : localIsPip ? pipClass : "hidden";
@@ -593,7 +593,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
               </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <img src={localAvatar} alt="" className="h-full w-full object-cover" />
+                <img src={localAvatar} alt="" className="h-12 w-12 rounded-full border-2 border-white/10 object-cover" />
               </div>
             )
           )}

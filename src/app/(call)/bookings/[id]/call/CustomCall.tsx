@@ -51,15 +51,18 @@ function fmtCountdown(targetMs: number) {
 function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
   if (!el) return;
   const stream = (el.srcObject as MediaStream | null) ?? new MediaStream();
+  if (stream.getTracks().includes(track)) return;
   stream.addTrack(track);
   el.srcObject = stream;
   el.play().catch(() => {});
 }
 
 function removeTrackFrom(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
-  const stream = el?.srcObject as MediaStream | undefined;
+  if (!el) return;
+  const stream = el.srcObject as MediaStream | undefined;
   if (!stream) return;
   stream.removeTrack(track);
+  if (stream.getTracks().length === 0) el.srcObject = null;
 }
 
 export function CustomCall({ bookingId }: { bookingId: string }) {
@@ -581,7 +584,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       <div className="relative flex-1 min-h-0">
         {/* Remote participant — stage or PiP depending on swap */}
         <div className={remoteClass} onClick={toggleSwap}>
-          <video ref={remoteVideoRef} autoPlay playsInline className={`h-full w-full ${remoteIsStage ? "object-contain" : "object-cover"}`} />
+          <video ref={remoteVideoRef} autoPlay playsInline muted className={`h-full w-full ${remoteIsStage ? "object-contain" : "object-cover"}`} />
           {!remoteHasVideo && (
             remoteIsStage ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -603,7 +606,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
         {/* Local participant — stage or PiP depending on swap */}
         <div className={localClass} onClick={toggleSwap}>
-          <video ref={selfVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
+          <video ref={selfVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} onLoadedMetadata={(e) => { const v = e.currentTarget; v.style.objectFit = "none"; requestAnimationFrame(() => { v.style.objectFit = "cover"; }); }} />
           {!cameraOn && (
             localIsStage ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">

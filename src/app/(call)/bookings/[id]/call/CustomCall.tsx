@@ -610,7 +610,13 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
           type="button"
           aria-label={cleanView ? "Show controls" : "Hide controls"}
           className="absolute inset-0 z-10 cursor-default"
-          onClick={() => setCleanView((v) => !v)}
+          onClick={() => {
+            // Tapping outside an open drawer dismisses it (standard bottom-sheet
+            // behavior); otherwise the tap toggles the auto-hiding controls.
+            if (chatOpen) setChatOpen(false);
+            else if (peopleOpen) setPeopleOpen(false);
+            else setCleanView((v) => !v);
+          }}
         />
       </div>
 
@@ -681,7 +687,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       </div>
 
       {/* Chat: side panel on desktop, bottom sheet on mobile */}
-      {chatOpen && !cleanView && (
+      {chatOpen && (
         isDesktop ? (
           <div className="absolute bottom-0 right-0 top-0 z-40 flex w-[320px] flex-col border-l border-border-subtle bg-bg-surface px-4 py-4">
             {chatBody}
@@ -694,7 +700,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       )}
 
       {/* People: side panel on desktop, bottom sheet on mobile */}
-      {peopleOpen && !cleanView && (
+      {peopleOpen && (
         isDesktop ? (
           <div className="absolute bottom-0 right-0 top-0 z-40 flex w-[320px] flex-col border-l border-border-subtle bg-bg-surface px-4 py-4">
             {peopleBody}

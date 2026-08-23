@@ -92,7 +92,7 @@ export default async function CreatorHandlePage({
     .innerJoin(users, eq(users.id, bookings.fan_id))
     .where(publicFilter)
     .orderBy(sql`${reviews.created_at} DESC`)
-    .limit(2);
+    .limit(3);
 
   const [ratingAgg] = await db
     .select({
@@ -249,9 +249,23 @@ export default async function CreatorHandlePage({
         {/* FAQ — collapsible accordion, between offerings and reviews */}
         <FaqAccordion />
 
-        {/* Recent reviews — inline previews (2) + "All reviews" trigger */}
+        {/* Recent reviews — inline previews (3) + "View more →" trigger */}
         <section className="mt-6">
-          <h2 className="mb-3 text-lg font-semibold text-white">Recent reviews</h2>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold text-white">Recent reviews</h2>
+            {reviewCount > 3 && (
+              <AllReviewsModal
+                creatorId={creator.id}
+                reviewCount={reviewCount}
+                avgRating={avgRating}
+                trigger={
+                  <span className="text-sm text-text-secondary hover:text-white">
+                    View more →
+                  </span>
+                }
+              />
+            )}
+          </div>
           {reviewRows.length === 0 ? (
             <p className="text-sm text-text-secondary">
               No reviews yet — be the first to book a session.
@@ -282,22 +296,6 @@ export default async function CreatorHandlePage({
                   </Card>
                 );
               })}
-
-              {reviewCount > 2 && (
-                <AllReviewsModal
-                  creatorId={creator.id}
-                  reviewCount={reviewCount}
-                  avgRating={avgRating}
-                  trigger={
-                    <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline cursor-pointer">
-                      All {reviewCount} reviews
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 4l4 4-4 4" />
-                      </svg>
-                    </span>
-                  }
-                />
-              )}
             </div>
           )}
         </section>

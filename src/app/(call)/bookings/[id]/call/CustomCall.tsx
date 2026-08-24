@@ -132,7 +132,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const [draft, setDraft] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState("");
-  const [cameraFailed, setCameraFailed] = useState<false | true | "unsupported">(false);
+  const [cameraFailed, setCameraFailed] = useState<false | true | string>(false);
   const [endedByTimer, setEndedByTimer] = useState(false);
   const [remoteLeftName, setRemoteLeftName] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
@@ -378,7 +378,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     const call = callRef.current;
     if (!call) return;
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraFailed("unsupported");
+      setCameraFailed("getUserMedia not available");
       return;
     }
     try {
@@ -392,8 +392,14 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       setCameraFailed(false);
       setCameraOn(true);
       setMicOn(true);
-    } catch {
-      setCameraFailed("unsupported");
+    } catch (e) {
+      const name = e instanceof Error ? e.name : "";
+      const msg = e instanceof Error ? e.message : String(e);
+      if (name === "NotAllowedError") {
+        setCameraFailed("Permission denied. In Chrome, tap the lock icon in the address bar → Site settings → Camera → Allow");
+      } else {
+        setCameraFailed(`${name}: ${msg}`);
+      }
     }
   }, []);
 
@@ -736,10 +742,13 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       )}
 
       {cameraFailed && (
-        cameraFailed === "unsupported" ? (
-          <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-2xl border border-border-subtle bg-bg-surface/95 px-5 py-3 text-center shadow-lg">
-            <p className="text-sm font-semibold text-white">Camera not available in this browser</p>
-            <p className="mt-1 text-xs text-text-secondary">Open this page in Safari for camera access</p>
+        typeof cameraFailed === "string" ? (
+          <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2 max-w-[min(90vw,320px)] rounded-2xl border border-border-subtle bg-bg-surface/95 px-5 py-3 text-center shadow-lg">
+            <p className="text-sm font-semibold text-white">{cameraFailed}</p>
+            <p className="mt-2 text-xs text-text-secondary">Or open this page in Safari</p>
+            <button type="button" onClick={retryCameraAccess} className="mt-2 text-xs font-semibold text-brand">
+              Try again
+            </button>
           </div>
         ) : (
           <button

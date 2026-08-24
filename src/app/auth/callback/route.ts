@@ -16,6 +16,9 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+    if (error.code === "user_banned") {
+      return NextResponse.redirect(`${origin}/suspended`);
+    }
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_error`);

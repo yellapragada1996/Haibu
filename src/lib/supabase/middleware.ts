@@ -28,6 +28,7 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
   // Path-boundary matcher: a protected/auth path must be an exact match or a
@@ -56,6 +57,18 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = authPaths.some((path) =>
     matchesPath(request.nextUrl.pathname, path),
   );
+
+  // Suspended accounts: a banned user still carries a session cookie, but
+  // Supabase returns a `user_banned` error from getUser(). Treat this as a
+  // distinct state — not "logged out" — so the user lands on a clear message
+  // instead of bouncing between /login and protected pages on a stale cookie.
+  // Guarded so /suspended itself never re-triggers a redirect.
+  if (
+    userError?.code === "user_banned" &&
+    request.nextUrl.pathname !== "/suspended"
+  ) {
+    return NextResponse.redirect(new URL("/suspended", request.url));
+  }
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();

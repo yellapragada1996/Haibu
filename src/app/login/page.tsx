@@ -23,6 +23,9 @@ type Mode =
   | "reset-verify"
   | "reset-password";
 
+const SUSPENDED_MESSAGE =
+  "Your account has been suspended. If you think this is a mistake, contact support@haibu.live.";
+
 function captureTimezone() {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -216,7 +219,9 @@ export default function LoginPage() {
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        if (error.code === "email_not_confirmed") {
+        if (error.code === "user_banned") {
+          setMessage(SUSPENDED_MESSAGE);
+        } else if (error.code === "email_not_confirmed") {
           setMessage("Please verify your email first.");
           setMode("verify");
           startResend();
@@ -295,7 +300,9 @@ export default function LoginPage() {
     if (mode === "verify") {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "email" });
       if (error) {
-        setMessage(error.message);
+        setMessage(
+          error.code === "user_banned" ? SUSPENDED_MESSAGE : error.message,
+        );
         setLoading(false);
         return;
       }
@@ -303,7 +310,9 @@ export default function LoginPage() {
     } else if (mode === "reset-verify") {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "recovery" });
       if (error) {
-        setMessage(error.message);
+        setMessage(
+          error.code === "user_banned" ? SUSPENDED_MESSAGE : error.message,
+        );
         setLoading(false);
         return;
       }

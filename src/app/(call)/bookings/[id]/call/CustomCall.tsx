@@ -58,10 +58,13 @@ function nudgeObjectFit(v: HTMLVideoElement) {
   });
 }
 
-function isIOSChrome() {
+function isIOSNonSafari() {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) && /CriOS/.test(ua);
+  const isIOS = /iPhone|iPad|iPod/.test(ua) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
+  if (!isIOS) return false;
+  return /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
 }
 
 function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
@@ -70,7 +73,7 @@ function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: Media
 
   // iOS Chrome (WKWebView): reassigning srcObject with a fresh MediaStream
   // resets the internal decoder, which fixes black-frame rendering bugs.
-  if (isIOSChrome() && existing) {
+  if (isIOSNonSafari() && existing) {
     const fresh = new MediaStream([...existing.getTracks(), track]);
     el.srcObject = fresh;
   } else {
@@ -129,6 +132,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const [draft, setDraft] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState("");
+  const [cameraFailed, setCameraFailed] = useState(false);
   const [endedByTimer, setEndedByTimer] = useState(false);
   const [remoteLeftName, setRemoteLeftName] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
@@ -292,6 +296,21 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         setError(err.errorMsg ?? "Call error");
       });
 
+      call.on("camera-error", () => {
+        setCameraFailed(true);
+        setCameraOn(false);
+      });
+
+      // Acquire camera/mic before joining. On iOS third-party browsers
+      // (WKWebView), getUserMedia can fail silently when called deep inside
+      // an async chain. Isolating the call here surfaces failures early
+      // and lets the retry button re-acquire within a fresh user gesture.
+      try {
+        await call.startCamera();
+      } catch {
+        setCameraFailed(true);
+      }
+
       // flushSync guarantees React commits the "in_call" render (creating the
       // <video> elements and populating refs) before call.join() fires
       // track-started — without it the local video track is silently dropped.
@@ -310,6 +329,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       }
       setCameraOn(call.localVideo());
       setMicOn(call.localAudio());
+      if (!call.localVideo()) setCameraFailed(true);
 
       const now = Date.now();
       const endMs =
@@ -363,6 +383,22 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  const retryCameraAccess = useCallback(async () => {
+    const call = callRef.current;
+    if (!call) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+    } catch {
+      return;
+    }
+    call.setLocalVideo(true);
+    call.setLocalAudio(true);
+    setCameraFailed(false);
+    setCameraOn(true);
+    setMicOn(true);
   }, []);
 
   const toggleCamera = () => {
@@ -701,6 +737,16 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2 whitespace-nowrap rounded-pill border border-border-subtle bg-bg-surface/90 px-4 py-2 text-sm font-semibold text-white">
           {remoteLeftName} left the session
         </div>
+      )}
+
+      {cameraFailed && (
+        <button
+          type="button"
+          onClick={retryCameraAccess}
+          className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-pill border border-border-subtle bg-bg-surface/95 px-5 py-3 text-sm font-semibold text-white shadow-lg active:bg-bg-card-hover"
+        >
+          Tap to enable camera
+        </button>
       )}
 
       {/* Control bar */}

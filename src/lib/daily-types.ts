@@ -4,6 +4,7 @@
 
 export interface DailyCall {
   on: (event: string, cb: (data?: unknown) => void) => void;
+  startCamera: () => Promise<unknown>;
   join: () => Promise<void>;
   leave: () => void;
   destroy: () => void | Promise<void>;

@@ -58,20 +58,42 @@ function nudgeObjectFit(v: HTMLVideoElement) {
   });
 }
 
+function isIOSChrome() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/.test(ua) && /CriOS/.test(ua);
+}
+
 function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
   if (!el) return;
-  const stream = (el.srcObject as MediaStream | null) ?? new MediaStream();
-  if (stream.getTracks().includes(track)) return;
-  stream.addTrack(track);
-  el.srcObject = stream;
-  el.play().catch(() => {});
+  const existing = el.srcObject as MediaStream | null;
+
+  // iOS Chrome (WKWebView): reassigning srcObject with a fresh MediaStream
+  // resets the internal decoder, which fixes black-frame rendering bugs.
+  if (isIOSChrome() && existing) {
+    const fresh = new MediaStream([...existing.getTracks(), track]);
+    el.srcObject = fresh;
+  } else {
+    const stream = existing ?? new MediaStream();
+    if (stream.getTracks().includes(track)) return;
+    stream.addTrack(track);
+    el.srcObject = stream;
+  }
+
+  // iOS Chrome (WKWebView) can silently refuse play() outside a user gesture.
+  // Retry on the next user interaction if the initial attempt fails.
+  el.play().catch(() => {
+    const resume = () => {
+      el.play().catch(() => {});
+      document.removeEventListener("touchstart", resume);
+      document.removeEventListener("click", resume);
+    };
+    document.addEventListener("touchstart", resume, { once: true });
+    document.addEventListener("click", resume, { once: true });
+  });
 
   if (el instanceof HTMLVideoElement) {
-    const onPlaying = () => {
-      nudgeObjectFit(el);
-      el.removeEventListener("playing", onPlaying);
-    };
-    el.addEventListener("playing", onPlaying, { once: true });
+    el.addEventListener("playing", () => nudgeObjectFit(el), { once: true });
   }
 }
 

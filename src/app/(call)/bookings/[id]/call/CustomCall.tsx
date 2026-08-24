@@ -15,7 +15,7 @@ import { DailyCall, DailyParticipant } from "@/lib/daily-types";
 // side chat panel; mobile uses a bottom chat sheet. No Daily Prebuilt iframe.
 // ---------------------------------------------------------------------------
 
-type Phase = "loading" | "too_early" | "in_call" | "ended" | "error";
+type Phase = "loading" | "too_early" | "ready" | "in_call" | "ended" | "error";
 
 interface TrackEvent {
   participant?: DailyParticipant | null;
@@ -300,12 +300,48 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         setCameraFailed(true);
       });
 
+      setPhase("ready");
+    } catch (e) {
+      setPhase("error");
+      setError(e instanceof Error ? e.message : "Call failed");
+    }
+  }, [bookingId]);
+
+  const joinCall = useCallback(async () => {
+    const call = callRef.current;
+    if (!call) return;
+    try {
+      // Acquire camera within this user gesture so the browser shows a real
+      // permission prompt instead of auto-denying (WKWebView requirement).
+      let ownStream: MediaStream | null = null;
+      if (navigator.mediaDevices?.getUserMedia) {
+        try {
+          ownStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch (e) {
+          const name = e instanceof Error ? e.name : "";
+          if (name === "NotAllowedError") {
+            setCameraFailed("Camera blocked. Clear Chrome data: Settings → Privacy → Clear Browsing Data, then reload. Or use Safari.");
+          }
+        }
+      }
+
       // flushSync guarantees React commits the "in_call" render (creating the
       // <video> elements and populating refs) before call.join() fires
       // track-started — without it the local video track is silently dropped.
       flushSync(() => setPhase("in_call"));
 
       await call.join();
+
+      // Pass our gesture-acquired tracks directly to Daily — bypasses Daily's
+      // own getUserMedia which may fail outside a gesture on WKWebView.
+      if (ownStream) {
+        const vt = ownStream.getVideoTracks()[0];
+        const at = ownStream.getAudioTracks()[0];
+        await call.setInputDevicesAsync({
+          ...(vt ? { videoSource: vt } : {}),
+          ...(at ? { audioSource: at } : {}),
+        }).catch(() => {});
+      }
 
       const participants = call.participants();
       const remote = Object.values(participants).find((p) => !p.local);
@@ -318,13 +354,10 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       }
       setCameraOn(call.localVideo());
       setMicOn(call.localAudio());
-      if (!call.localVideo()) setCameraFailed(true);
+      if (!call.localVideo() && !ownStream) setCameraFailed(true);
 
       const now = Date.now();
-      const endMs =
-        typeof data.session_end_at === "string"
-          ? new Date(data.session_end_at).getTime()
-          : now;
+      const endMs = sessionEndAt ?? now;
       const joinEnd = endMs + 5 * 60 * 1000;
       endTimerRef.current = setTimeout(() => {
         callRef.current?.leave();
@@ -335,7 +368,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       setPhase("error");
       setError(e instanceof Error ? e.message : "Call failed");
     }
-  }, [bookingId]);
+  }, [sessionEndAt]);
 
   useEffect(() => {
     void startCall();
@@ -550,6 +583,31 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
         <p className="font-medium text-text-secondary">Making things cozy…</p>
+      </div>
+    );
+  }
+
+  if (phase === "ready") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
+        <div className="w-full max-w-xs text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand" aria-hidden="true">
+              <polygon points="23 7 16 12 23 17 23 7" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-white">{sessionTitle}</h1>
+          <p className="mt-2 text-sm text-text-secondary">
+            Your camera and microphone will be requested
+          </p>
+          <Button className="mt-6 w-full" onClick={joinCall}>
+            Join call
+          </Button>
+          <Button variant="secondary" className="mt-3 w-full" onClick={() => router.push(`/bookings/${bookingId}`)}>
+            Back to booking
+          </Button>
+        </div>
       </div>
     );
   }

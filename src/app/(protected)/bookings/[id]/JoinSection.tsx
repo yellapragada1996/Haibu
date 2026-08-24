@@ -68,7 +68,13 @@ export function JoinSection({
       <Button
         className="mt-3 w-full"
         disabled={state !== "open"}
-        onClick={() => router.push(`/bookings/${bookingId}/call`)}
+        onClick={async () => {
+          try {
+            const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            s.getTracks().forEach((t) => t.stop());
+          } catch {}
+          router.push(`/bookings/${bookingId}/call`);
+        }}
       >
         {state === "closed" ? "Session ended" : "Join session"}
       </Button>

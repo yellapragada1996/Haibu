@@ -90,10 +90,17 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
 
   // Money captured but booking not reservable anymore — auto-refund
   if (booking.status !== "reserved") {
-    await stripe.refunds.create({
-      payment_intent: pi.id,
-      reason: "requested_by_customer" as Stripe.RefundCreateParams.Reason,
-    });
+    try {
+      await stripe.refunds.create({
+        payment_intent: pi.id,
+        reason: "requested_by_customer" as Stripe.RefundCreateParams.Reason,
+      });
+    } catch (e: unknown) {
+      // Charge already refunded (e.g. duplicate webhook delivery) — skip to ledger.
+      if (!(e instanceof Stripe.errors.StripeInvalidRequestError && /already.*refund/i.test(e.message))) {
+        throw e;
+      }
+    }
     try {
       await db.insert(ledgerEntries).values({
         booking_id: bookingId,
@@ -103,8 +110,6 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
         note: `auto-refund: payment succeeded after booking was ${booking.status}`,
       });
     } catch (e: unknown) {
-      // Unique violation on (stripe_reference, type) means refund already logged.
-      // This is genuine idempotency, not a silent failure.
       if (isPgErrorCode(e, "23505")) return;
       throw e;
     }

@@ -15,7 +15,7 @@ import { DailyCall, DailyParticipant } from "@/lib/daily-types";
 // side chat panel; mobile uses a bottom chat sheet. No Daily Prebuilt iframe.
 // ---------------------------------------------------------------------------
 
-type Phase = "loading" | "too_early" | "ready" | "in_call" | "ended" | "error";
+type Phase = "loading" | "too_early" | "in_call" | "ended" | "error";
 
 interface TrackEvent {
   participant?: DailyParticipant | null;
@@ -58,45 +58,20 @@ function nudgeObjectFit(v: HTMLVideoElement) {
   });
 }
 
-function isIOSNonSafari() {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  const isIOS = /iPhone|iPad|iPod/.test(ua) ||
-                (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua));
-  if (!isIOS) return false;
-  return /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-}
-
 function addTrackTo(el: HTMLVideoElement | HTMLAudioElement | null, track: MediaStreamTrack) {
   if (!el) return;
-  const existing = el.srcObject as MediaStream | null;
-
-  // iOS Chrome (WKWebView): reassigning srcObject with a fresh MediaStream
-  // resets the internal decoder, which fixes black-frame rendering bugs.
-  if (isIOSNonSafari() && existing) {
-    const fresh = new MediaStream([...existing.getTracks(), track]);
-    el.srcObject = fresh;
-  } else {
-    const stream = existing ?? new MediaStream();
-    if (stream.getTracks().includes(track)) return;
-    stream.addTrack(track);
-    el.srcObject = stream;
-  }
-
-  // iOS Chrome (WKWebView) can silently refuse play() outside a user gesture.
-  // Retry on the next user interaction if the initial attempt fails.
-  el.play().catch(() => {
-    const resume = () => {
-      el.play().catch(() => {});
-      document.removeEventListener("touchstart", resume);
-      document.removeEventListener("click", resume);
-    };
-    document.addEventListener("touchstart", resume, { once: true });
-    document.addEventListener("click", resume, { once: true });
-  });
+  const stream = (el.srcObject as MediaStream | null) ?? new MediaStream();
+  if (stream.getTracks().includes(track)) return;
+  stream.addTrack(track);
+  el.srcObject = stream;
+  el.play().catch(() => {});
 
   if (el instanceof HTMLVideoElement) {
-    el.addEventListener("playing", () => nudgeObjectFit(el), { once: true });
+    const onPlaying = () => {
+      nudgeObjectFit(el);
+      el.removeEventListener("playing", onPlaying);
+    };
+    el.addEventListener("playing", onPlaying, { once: true });
   }
 }
 
@@ -132,7 +107,6 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const [draft, setDraft] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState("");
-  const [cameraFailed, setCameraFailed] = useState<false | true | string>(false);
   const [endedByTimer, setEndedByTimer] = useState(false);
   const [remoteLeftName, setRemoteLeftName] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
@@ -296,52 +270,12 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         setError(err.errorMsg ?? "Call error");
       });
 
-      call.on("camera-error", () => {
-        setCameraFailed(true);
-      });
-
-      setPhase("ready");
-    } catch (e) {
-      setPhase("error");
-      setError(e instanceof Error ? e.message : "Call failed");
-    }
-  }, [bookingId]);
-
-  const joinCall = useCallback(async () => {
-    const call = callRef.current;
-    if (!call) return;
-    try {
-      // Acquire camera within this user gesture so the browser shows a real
-      // permission prompt instead of auto-denying (WKWebView requirement).
-      let ownStream: MediaStream | null = null;
-      if (navigator.mediaDevices?.getUserMedia) {
-        try {
-          ownStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        } catch (e) {
-          const name = e instanceof Error ? e.name : "";
-          if (name === "NotAllowedError") {
-            setCameraFailed("Camera blocked. Clear Chrome data: Settings → Privacy → Clear Browsing Data, then reload. Or use Safari.");
-          }
-        }
-      }
-
       // flushSync guarantees React commits the "in_call" render (creating the
       // <video> elements and populating refs) before call.join() fires
       // track-started — without it the local video track is silently dropped.
       flushSync(() => setPhase("in_call"));
 
       await call.join();
-
-      // Pass our gesture-acquired tracks directly to Daily — bypasses Daily's
-      // own getUserMedia which may fail outside a gesture on WKWebView.
-      if (ownStream) {
-        const vt = ownStream.getVideoTracks()[0];
-        const at = ownStream.getAudioTracks()[0];
-        await call.setInputDevicesAsync({
-          ...(vt ? { videoSource: vt } : {}),
-          ...(at ? { audioSource: at } : {}),
-        }).catch(() => {});
-      }
 
       const participants = call.participants();
       const remote = Object.values(participants).find((p) => !p.local);
@@ -354,10 +288,12 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       }
       setCameraOn(call.localVideo());
       setMicOn(call.localAudio());
-      if (!call.localVideo() && !ownStream) setCameraFailed(true);
 
       const now = Date.now();
-      const endMs = sessionEndAt ?? now;
+      const endMs =
+        typeof data.session_end_at === "string"
+          ? new Date(data.session_end_at).getTime()
+          : now;
       const joinEnd = endMs + 5 * 60 * 1000;
       endTimerRef.current = setTimeout(() => {
         callRef.current?.leave();
@@ -368,7 +304,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       setPhase("error");
       setError(e instanceof Error ? e.message : "Call failed");
     }
-  }, [sessionEndAt]);
+  }, [bookingId]);
 
   useEffect(() => {
     void startCall();
@@ -405,35 +341,6 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     const onFs = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
-
-  const retryCameraAccess = useCallback(async () => {
-    const call = callRef.current;
-    if (!call) return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraFailed("getUserMedia not available");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      const videoTrack = stream.getVideoTracks()[0];
-      const audioTrack = stream.getAudioTracks()[0];
-      await call.setInputDevicesAsync({
-        ...(videoTrack ? { videoSource: videoTrack } : {}),
-        ...(audioTrack ? { audioSource: audioTrack } : {}),
-      });
-      setCameraFailed(false);
-      setCameraOn(true);
-      setMicOn(true);
-    } catch (e) {
-      const name = e instanceof Error ? e.name : "";
-      const msg = e instanceof Error ? e.message : String(e);
-      if (name === "NotAllowedError") {
-        setCameraFailed("Permission denied. In Chrome, tap the lock icon in the address bar → Site settings → Camera → Allow");
-      } else {
-        setCameraFailed(`${name}: ${msg}`);
-      }
-    }
   }, []);
 
   const toggleCamera = () => {
@@ -583,31 +490,6 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
         <p className="font-medium text-text-secondary">Making things cozy…</p>
-      </div>
-    );
-  }
-
-  if (phase === "ready") {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
-        <div className="w-full max-w-xs text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand" aria-hidden="true">
-              <polygon points="23 7 16 12 23 17 23 7" />
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-white">{sessionTitle}</h1>
-          <p className="mt-2 text-sm text-text-secondary">
-            Your camera and microphone will be requested
-          </p>
-          <Button className="mt-6 w-full" onClick={joinCall}>
-            Join call
-          </Button>
-          <Button variant="secondary" className="mt-3 w-full" onClick={() => router.push(`/bookings/${bookingId}`)}>
-            Back to booking
-          </Button>
-        </div>
       </div>
     );
   }
@@ -797,26 +679,6 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2 whitespace-nowrap rounded-pill border border-border-subtle bg-bg-surface/90 px-4 py-2 text-sm font-semibold text-white">
           {remoteLeftName} left the session
         </div>
-      )}
-
-      {cameraFailed && (
-        typeof cameraFailed === "string" ? (
-          <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2 max-w-[min(90vw,320px)] rounded-2xl border border-border-subtle bg-bg-surface/95 px-5 py-3 text-center shadow-lg">
-            <p className="text-sm font-semibold text-white">{cameraFailed}</p>
-            <p className="mt-2 text-xs text-text-secondary">Or open this page in Safari</p>
-            <button type="button" onClick={retryCameraAccess} className="mt-2 text-xs font-semibold text-brand">
-              Try again
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={retryCameraAccess}
-            className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-pill border border-border-subtle bg-bg-surface/95 px-5 py-3 text-sm font-semibold text-white shadow-lg active:bg-bg-card-hover"
-          >
-            Tap to enable camera
-          </button>
-        )
       )}
 
       {/* Control bar */}

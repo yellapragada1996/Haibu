@@ -12,12 +12,6 @@ export interface DailyCall {
   participantCounts: () => { present: number };
   setLocalVideo: (enabled: boolean) => void;
   setLocalAudio: (enabled: boolean) => void;
-  setInputDevicesAsync: (devices: {
-    audioDeviceId?: string | false | null;
-    audioSource?: MediaStreamTrack | false;
-    videoDeviceId?: string | false | null;
-    videoSource?: MediaStreamTrack | false;
-  }) => Promise<unknown>;
   localVideo: () => boolean;
   localAudio: () => boolean;
   participants: () => Record<string, DailyParticipant>;

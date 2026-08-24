@@ -92,11 +92,15 @@ export default function LoginPage() {
       const safe = isSafeRedirectPath(r) ? r : "/dashboard";
       if (safe !== "/dashboard") setRedirectTo(safe);
 
+      // Use getUser() (validates against Supabase) rather than getSession()
+      // (reads the local cookie) so a suspended user with a stale session
+      // cookie is treated as logged out and can reach the login/signup form
+      // instead of being bounced to a protected page in a loop.
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
       if (cancelled) return;
-      if (session) {
+      if (user) {
         router.replace(safe);
         return;
       }

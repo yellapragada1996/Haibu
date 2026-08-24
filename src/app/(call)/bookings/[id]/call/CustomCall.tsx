@@ -298,18 +298,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
       call.on("camera-error", () => {
         setCameraFailed(true);
-        setCameraOn(false);
       });
-
-      // Acquire camera/mic before joining. On iOS third-party browsers
-      // (WKWebView), getUserMedia can fail silently when called deep inside
-      // an async chain. Isolating the call here surfaces failures early
-      // and lets the retry button re-acquire within a fresh user gesture.
-      try {
-        await call.startCamera();
-      } catch {
-        setCameraFailed(true);
-      }
 
       // flushSync guarantees React commits the "in_call" render (creating the
       // <video> elements and populating refs) before call.join() fires
@@ -390,15 +379,21 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     if (!call) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      stream.getTracks().forEach((t) => t.stop());
+      const videoTrack = stream.getVideoTracks()[0];
+      const audioTrack = stream.getAudioTracks()[0];
+      if (videoTrack) addTrackTo(selfVideoRef.current, videoTrack);
+      if (audioTrack && audioRef.current) {
+        const as = audioRef.current.srcObject as MediaStream | null;
+        if (!as?.getAudioTracks().length) addTrackTo(audioRef.current, audioTrack);
+      }
+      setCameraFailed(false);
+      setCameraOn(true);
+      setMicOn(true);
+      call.setLocalVideo(true);
+      call.setLocalAudio(true);
     } catch {
-      return;
+      setCameraFailed(true);
     }
-    call.setLocalVideo(true);
-    call.setLocalAudio(true);
-    setCameraFailed(false);
-    setCameraOn(true);
-    setMicOn(true);
   }, []);
 
   const toggleCamera = () => {

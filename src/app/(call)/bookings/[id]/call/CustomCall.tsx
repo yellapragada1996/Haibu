@@ -132,7 +132,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const [draft, setDraft] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState("");
-  const [cameraFailed, setCameraFailed] = useState(false);
+  const [cameraFailed, setCameraFailed] = useState<false | true | "unsupported">(false);
   const [endedByTimer, setEndedByTimer] = useState(false);
   const [remoteLeftName, setRemoteLeftName] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
@@ -377,22 +377,23 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const retryCameraAccess = useCallback(async () => {
     const call = callRef.current;
     if (!call) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraFailed("unsupported");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
-      if (videoTrack) addTrackTo(selfVideoRef.current, videoTrack);
-      if (audioTrack && audioRef.current) {
-        const as = audioRef.current.srcObject as MediaStream | null;
-        if (!as?.getAudioTracks().length) addTrackTo(audioRef.current, audioTrack);
-      }
+      await call.setInputDevicesAsync({
+        ...(videoTrack ? { videoSource: videoTrack } : {}),
+        ...(audioTrack ? { audioSource: audioTrack } : {}),
+      });
       setCameraFailed(false);
       setCameraOn(true);
       setMicOn(true);
-      call.setLocalVideo(true);
-      call.setLocalAudio(true);
     } catch {
-      setCameraFailed(true);
+      setCameraFailed("unsupported");
     }
   }, []);
 
@@ -735,13 +736,20 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       )}
 
       {cameraFailed && (
-        <button
-          type="button"
-          onClick={retryCameraAccess}
-          className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-pill border border-border-subtle bg-bg-surface/95 px-5 py-3 text-sm font-semibold text-white shadow-lg active:bg-bg-card-hover"
-        >
-          Tap to enable camera
-        </button>
+        cameraFailed === "unsupported" ? (
+          <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-2xl border border-border-subtle bg-bg-surface/95 px-5 py-3 text-center shadow-lg">
+            <p className="text-sm font-semibold text-white">Camera not available in this browser</p>
+            <p className="mt-1 text-xs text-text-secondary">Open this page in Safari for camera access</p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={retryCameraAccess}
+            className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-pill border border-border-subtle bg-bg-surface/95 px-5 py-3 text-sm font-semibold text-white shadow-lg active:bg-bg-card-hover"
+          >
+            Tap to enable camera
+          </button>
+        )
       )}
 
       {/* Control bar */}

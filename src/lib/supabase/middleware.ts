@@ -60,13 +60,12 @@ export async function updateSession(request: NextRequest) {
 
   // Suspended accounts: a banned user still carries a session cookie, but
   // Supabase returns a `user_banned` error from getUser(). Treat this as a
-  // distinct state — not "logged out" — so the user lands on a clear message
-  // instead of bouncing between /login and protected pages on a stale cookie.
-  // Guarded so /suspended itself never re-triggers a redirect.
-  if (
-    userError?.code === "user_banned" &&
-    request.nextUrl.pathname !== "/suspended"
-  ) {
+  // distinct state — not "logged out" — so a suspended user lands on a clear
+  // message instead of bouncing between /login and protected pages on a stale
+  // cookie. Scoped to protected + auth routes only: public pages (home, browse,
+  // creator profiles) stay reachable so "Back to home" works and the user can
+  // still see the site while suspended.
+  if (userError?.code === "user_banned" && (isProtected || isAuthPage)) {
     return NextResponse.redirect(new URL("/suspended", request.url));
   }
 

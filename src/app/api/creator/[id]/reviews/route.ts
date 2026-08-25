@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { reviews, bookings, users } from "@/db/schema";
-import { eq, and, sql, lt } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 const PAGE_SIZE = 10;
 
@@ -18,6 +18,13 @@ export async function GET(
     eq(reviews.reviewer_role, "guest"),
   );
 
+  let cursorFilter;
+  if (cursor) {
+    cursorFilter = sql`(${reviews.created_at}, ${reviews.id}) < (
+      SELECT created_at, id FROM reviews WHERE id = ${cursor}
+    )`;
+  }
+
   const rows = await db
     .select({
       id: reviews.id,
@@ -29,17 +36,14 @@ export async function GET(
     .from(reviews)
     .innerJoin(bookings, eq(bookings.id, reviews.booking_id))
     .innerJoin(users, eq(users.id, bookings.fan_id))
-    .where(
-      cursor
-        ? and(publicFilter, lt(reviews.created_at, new Date(cursor)))
-        : publicFilter,
-    )
-    .orderBy(sql`${reviews.created_at} DESC`)
+    .where(cursorFilter ? and(publicFilter, cursorFilter) : publicFilter)
+    .orderBy(sql`${reviews.created_at} DESC, ${reviews.id} DESC`)
     .limit(PAGE_SIZE + 1);
 
   const hasMore = rows.length > PAGE_SIZE;
   const page = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
-  const nextCursor = hasMore ? page[page.length - 1].created_at.toISOString() : null;
+  const last = page[page.length - 1];
+  const nextCursor = hasMore && last ? last.id : null;
 
   const result: Record<string, unknown> = {
     reviews: page.map((r) => ({

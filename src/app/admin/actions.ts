@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { adminActions, bookings, creatorProfiles, ledgerEntries, offerings, participantEvents, reports, users } from "@/db/schema";
+import { adminActions, bookings, creatorProfiles, ledgerEntries, offerings, participantEvents, platformSettings, reports, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
@@ -496,5 +496,52 @@ export async function resolveNeedsReview(
 
   revalidatePath("/admin");
   revalidatePath("/admin/bookings");
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Update platform fee rate
+// ---------------------------------------------------------------------------
+
+export async function updatePlatformFeeRate(
+  rate: number,
+): Promise<{ success: true } | { error: string }> {
+  const adminId = await requireAdmin();
+  if (!adminId) return { error: "Unauthorized" };
+
+  if (typeof rate !== "number" || !isFinite(rate) || rate < 0.01 || rate > 0.5) {
+    return { error: "Rate must be between 1% and 50%" };
+  }
+
+  const rounded = Math.round(rate * 10000) / 10000;
+
+  const [existing] = await db
+    .select({ id: platformSettings.id, platform_fee_rate: platformSettings.platform_fee_rate })
+    .from(platformSettings)
+    .limit(1);
+
+  const oldRate = existing?.platform_fee_rate ?? 0.18;
+
+  if (existing) {
+    await db
+      .update(platformSettings)
+      .set({ platform_fee_rate: rounded, updated_at: new Date(), updated_by: adminId })
+      .where(eq(platformSettings.id, existing.id));
+  } else {
+    await db.insert(platformSettings).values({
+      platform_fee_rate: rounded,
+      updated_by: adminId,
+    });
+  }
+
+  await db.insert(adminActions).values({
+    admin_id: adminId,
+    action: "update_fee_rate",
+    reason: `Platform fee changed from ${(oldRate * 100).toFixed(1)}% to ${(rounded * 100).toFixed(1)}%`,
+    details: `${oldRate} → ${rounded}`,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/settings");
   return { success: true };
 }

@@ -9,6 +9,7 @@ const items = [
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/audit", label: "Audit" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export function AdminNav() {

@@ -550,3 +550,21 @@ export const participantEvents = pgTable(
     index("idx_participant_events_room").on(table.room_name),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// 13. platform_settings  (single-row config — one row, upserted on change)
+// ---------------------------------------------------------------------------
+
+export const platformSettings = pgTable("platform_settings", {
+  id: uuid("id").primaryKey().defaultRandom().notNull(),
+  platform_fee_rate: doublePrecision("platform_fee_rate").notNull(),
+  updated_at: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updated_by: uuid("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});

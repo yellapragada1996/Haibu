@@ -686,15 +686,9 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         className={`absolute inset-x-0 bottom-0 z-30 flex justify-center pb-[calc(20px+env(safe-area-inset-bottom,0px))] transition-opacity duration-300 ${cleanView ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         <div className="flex items-center gap-2.5 rounded-pill border border-border-subtle bg-bg-surface/95 px-4 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.55)]">
-          <ControlButton on={micOn} onClick={toggleMic} label={micOn ? "Mute microphone" : "Unmute microphone"}>
-            <MicIcon />
-          </ControlButton>
-          <ControlButton on={cameraOn} onClick={toggleCamera} label={cameraOn ? "Turn camera off" : "Turn camera on"}>
-            <CameraIcon />
-          </ControlButton>
-          <ControlButton on={showSelfView} onClick={() => setShowSelfView((v) => !v)} label={showSelfView ? "Hide self-view" : "Show self-view"}>
-            <EyeIcon />
-          </ControlButton>
+          <ControlButton on={micOn} onClick={toggleMic} label={micOn ? "Mute microphone" : "Unmute microphone"} icon={MicIcon} />
+          <ControlButton on={cameraOn} onClick={toggleCamera} label={cameraOn ? "Turn camera off" : "Turn camera on"} icon={CameraIcon} />
+          <ControlButton on={showSelfView} onClick={() => setShowSelfView((v) => !v)} label={showSelfView ? "Hide self-view" : "Show self-view"} icon={EyeIcon} />
           <button
             type="button"
             onClick={toggleChat}
@@ -715,9 +709,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             <PeopleIcon />
           </button>
           {isDesktop && (
-            <ControlButton on={isFullscreen} onClick={toggleFullscreen} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-              <FullscreenIcon />
-            </ControlButton>
+            <ControlButton on={isFullscreen} onClick={toggleFullscreen} label={isFullscreen ? "Exit fullscreen" : "Fullscreen"} icon={FullscreenIcon} />
           )}
           <button
             type="button"
@@ -759,7 +751,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   );
 }
 
-function ControlButton({ on, onClick, label, children }: { on: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+function ControlButton({ on, onClick, label, icon: Icon }: { on: boolean; onClick: () => void; label: string; icon: React.ComponentType<{ off?: boolean }> }) {
   return (
     <button
       type="button"
@@ -768,34 +760,37 @@ function ControlButton({ on, onClick, label, children }: { on: boolean; onClick:
       aria-pressed={on}
       className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${on ? "bg-bg-card-hover text-white" : "bg-white text-on-primary"}`}
     >
-      {children}
+      <Icon off={!on} />
     </button>
   );
 }
 
-function CameraIcon() {
+function CameraIcon({ off }: { off?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m22 8-6 4 6 4V8Z" />
       <rect x="2" y="6" width="14" height="12" rx="2" />
+      {off && <line x1="3" y1="3" x2="21" y2="21" strokeWidth="2" />}
     </svg>
   );
 }
 
-function MicIcon() {
+function MicIcon({ off }: { off?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
       <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      {off && <line x1="3" y1="3" x2="21" y2="21" strokeWidth="2" />}
     </svg>
   );
 }
 
-function EyeIcon() {
+function EyeIcon({ off }: { off?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
       <circle cx="12" cy="12" r="3" />
+      {off && <line x1="3" y1="3" x2="21" y2="21" strokeWidth="2" />}
     </svg>
   );
 }
@@ -819,7 +814,7 @@ function PeopleIcon() {
   );
 }
 
-function FullscreenIcon() {
+function FullscreenIcon({ off: _off }: { off?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />

@@ -29,3 +29,4 @@ assets/
 test-screenshots/
 test_pictures/
 Legal Documents/
+.env*

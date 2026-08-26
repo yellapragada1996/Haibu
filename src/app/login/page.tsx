@@ -75,21 +75,23 @@ export default function LoginPage() {
   // useState initializer keeps the SSR default ("/dashboard") because
   // hydration adopts the server's state. The effect below runs after
   // hydration and picks up the real value.
-  const [redirectTo, setRedirectTo] = useState("/dashboard");
   const supabase = createClient();
+
+  // Read ?redirect= from the URL. A ref is used alongside state because the
+  // ref is set synchronously (no batching delay), making it safe to read in
+  // submit handlers even if a password manager auto-submits before React
+  // processes the state update.
+  const redirectRef = useRef("/dashboard");
+  const [redirectTo, setRedirectTo] = useState("/dashboard");
 
   // Resolve ?redirect= and handle already-logged-in visitors.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // ?redirect= is only readable client-side after hydration. Resolve it
-      // BEFORE checking the session so an already-logged-in visitor also
-      // lands back on the page they came from — not /dashboard.
       const params = new URLSearchParams(window.location.search);
       const r = params.get("redirect");
-      // isSafeRedirectPath rejects backslashes too — "/\evil.com" would
-      // otherwise normalize to "//evil.com" and escape the app (CWE-601).
       const safe = isSafeRedirectPath(r) ? r : "/dashboard";
+      redirectRef.current = safe;
       if (safe !== "/dashboard") setRedirectTo(safe);
 
       // Use getUser() (validates against Supabase) rather than getSession()
@@ -252,7 +254,7 @@ export default function LoginPage() {
       // Full navigation after auth — client-side router.push + refresh lets
       // the middleware's auth-page redirect (session now exists) bounce to
       // /dashboard instead of the intended page.
-      window.location.assign(redirectTo);
+      window.location.assign(redirectRef.current);
     } else if (mode === "signup") {
       if (!requireConsent()) return;
       // Duplicate-email guard: GoTrue's signUp never errors on an existing
@@ -310,7 +312,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      window.location.assign(redirectTo);
+      window.location.assign(redirectRef.current);
     } else if (mode === "reset-verify") {
       const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: "recovery" });
       if (error) {
@@ -636,7 +638,7 @@ export default function LoginPage() {
     (async () => {
       const target = booking
         ? `/book/${booking.creatorId}?offering=${booking.offeringId}&slot=${encodeURIComponent(booking.slotStart)}`
-        : redirectTo;
+        : redirectRef.current;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

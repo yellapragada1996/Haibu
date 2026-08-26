@@ -59,19 +59,25 @@ export const handleBookingConfirmed = inngest.createFunction(
       .where(eq(bookings.id, bookingId));
 
     if (!booking) return { message: "booking not found" };
-    if (booking.daily_room_name) return { message: "room already exists" };
 
-    const roomName = `booking-${bookingId.slice(0, 8)}`;
-    const room = await createOrGetRoom(roomName);
+    // Create room if not already created. The rest of the function (evaluation
+    // + reminders) must run even on retries, so don't early-return here.
+    let roomName = booking.daily_room_name;
+    if (!roomName) {
+      roomName = `booking-${bookingId.slice(0, 8)}`;
+      const room = await createOrGetRoom(roomName);
 
-    await db
-      .update(bookings)
-      .set({ daily_room_name: room.name, daily_room_url: room.url })
-      .where(eq(bookings.id, bookingId));
+      await db
+        .update(bookings)
+        .set({ daily_room_name: room.name, daily_room_url: room.url })
+        .where(eq(bookings.id, bookingId));
+    }
 
-    // Schedule session evaluation at end_at + 5 min grace
+    // Schedule session evaluation at end_at + 5 min grace.
+    // Inngest deduplicates by event id, so resending on retry is safe.
     if (booking.end_at) {
       await inngest.send({
+        id: `evaluate-${bookingId}`,
         name: "booking/evaluate",
         data: { bookingId },
         ts: new Date(booking.end_at).getTime() + 5 * 60 * 1000,
@@ -89,7 +95,6 @@ export const handleBookingConfirmed = inngest.createFunction(
       const reminder15mMs = parseInt(process.env.REMINDER_15M_MS ?? "900000", 10);
 
       if (startMs - nowMs < 15 * 60 * 1000) {
-        // Imminent — send immediately, not as a scheduled event.
         const data = await getReminderData(bookingId);
         if (data && data.status === "confirmed") {
           await sendBookingReminder({
@@ -138,7 +143,7 @@ export const handleBookingConfirmed = inngest.createFunction(
       }
     }
 
-    return { message: "room created", roomName: room.name };
+    return { message: "done", roomName };
   },
 );
 

@@ -261,8 +261,11 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       });
 
       call.on("left-meeting", () => {
-        setEndedByTimer(false);
-        setPhase("ended");
+        setPhase((prev) => {
+          if (prev === "ended") return prev;
+          setEndedByTimer(false);
+          return "ended";
+        });
       });
 
       call.on("error", (e) => {
@@ -320,6 +323,9 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       const remaining = sessionEndAt - Date.now();
       if (remaining <= 0) {
         setTimeLeft("0:00");
+        clearTimeout(endTimerRef.current);
+        setEndedByTimer(true);
+        setPhase("ended");
         callRef.current?.leave();
         return;
       }

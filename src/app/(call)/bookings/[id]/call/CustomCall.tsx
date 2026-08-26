@@ -117,6 +117,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const sessionEndRef = useRef<number | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Reset the "auto-hide the control tray" timer — called on any interaction.
@@ -174,7 +175,9 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       setSessionTitle(data.session_title ?? "Session");
       setLocalAvatar(data.avatar_url || initialsAvatarDataUrl(data.display_name || "User"));
       if (data.session_end_at) {
-        setSessionEndAt(new Date(data.session_end_at).getTime());
+        const endMs_ = new Date(data.session_end_at).getTime();
+        sessionEndRef.current = endMs_;
+        setSessionEndAt(endMs_);
       }
 
       await loadDailyScript();
@@ -263,7 +266,10 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
       call.on("left-meeting", () => {
         setPhase((prev) => {
           if (prev === "ended") return prev;
-          setEndedByTimer(false);
+          const expired =
+            sessionEndRef.current != null &&
+            Date.now() >= sessionEndRef.current;
+          setEndedByTimer(expired);
           return "ended";
         });
       });

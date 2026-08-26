@@ -70,6 +70,28 @@ export async function createOrGetRoom(name: string) {
   }
 }
 
+export interface DailyMeetingParticipant {
+  user_id: string;
+  user_name: string;
+  join_time: number;
+  duration: number;
+}
+
+export interface DailyMeeting {
+  id: string;
+  room: string;
+  start_time: number;
+  duration: number;
+  ongoing: boolean;
+  max_participants: number;
+  participants: DailyMeetingParticipant[];
+}
+
+export async function getRoomMeetings(roomName: string): Promise<DailyMeeting[]> {
+  const data = await dailyFetch(`/meetings?room=${encodeURIComponent(roomName)}&limit=100`);
+  return (data.data ?? []) as DailyMeeting[];
+}
+
 export async function createMeetingToken(params: {
   roomName: string;
   userId: string;

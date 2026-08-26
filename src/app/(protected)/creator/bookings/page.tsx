@@ -132,7 +132,8 @@ export default async function CreatorBookingsPage() {
     .orderBy(desc(bookingsTable.start_at))
     .limit(50);
 
-  // Completed sessions.
+  // Past sessions — completed + any confirmed booking past its end time
+  // (stuck "confirmed" means evaluation hasn't run yet).
   const past = await db
     .select({
       id: bookingsTable.id,
@@ -142,6 +143,7 @@ export default async function CreatorBookingsPage() {
       price_cents: bookingsTable.price_cents,
       fan_name: users.display_name,
       offering_title: offerings.title,
+      needs_review: bookingsTable.needs_review,
     })
     .from(bookingsTable)
     .innerJoin(offerings, eq(offerings.id, bookingsTable.offering_id))
@@ -149,7 +151,13 @@ export default async function CreatorBookingsPage() {
     .where(
       and(
         eq(bookingsTable.creator_id, profile.id),
-        eq(bookingsTable.status, "completed"),
+        or(
+          eq(bookingsTable.status, "completed"),
+          and(
+            eq(bookingsTable.status, "confirmed"),
+            sql`${bookingsTable.end_at} < NOW()`,
+          ),
+        ),
       ),
     )
     .orderBy(desc(bookingsTable.start_at))
@@ -241,7 +249,10 @@ export default async function CreatorBookingsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-text-secondary">Guest</span>
                       <span className="font-medium text-white">{b.fan_name}</span>
-                      <Badge variant="completed" label="Completed" />
+                      <Badge
+                        variant={bookingBadgeVariant(b.status)}
+                        label={bookingLabel(b.status, { needs_review: b.needs_review }, "creator")}
+                      />
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">
                       {b.offering_title} ·{" "}

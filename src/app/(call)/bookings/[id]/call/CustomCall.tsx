@@ -286,6 +286,12 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
 
       await call.join();
 
+      fetch("/api/meetings/joined", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      }).catch(() => {});
+
       const participants = call.participants();
       const remote = Object.values(participants).find((p) => !p.local);
       if (remote) {

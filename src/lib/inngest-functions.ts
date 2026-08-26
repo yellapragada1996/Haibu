@@ -1,9 +1,9 @@
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { bookings, creatorProfiles, ledgerEntries, reviews, users, offerings, participantEvents } from "@/db/schema";
-import { eq, and, or, lt, lte, sql, count } from "drizzle-orm";
+import { eq, and, or, lt, lte, sql, count, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { createOrGetRoom } from "@/lib/daily";
+import { createOrGetRoom, getRoomMeetings } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
 import { sendBookingReminder, type ReminderWindow } from "@/lib/email";
@@ -344,11 +344,49 @@ export async function runEvaluation(bookingId: string) {
   if (!booking) return;
   if (booking.status !== "confirmed") return;
 
-  const fanJoined = booking.fan_joined_at !== null;
-  const creatorJoined = booking.creator_joined_at !== null;
+  let fanJoined = booking.fan_joined_at !== null;
+  let creatorJoined = booking.creator_joined_at !== null;
 
-  // Binary no-show decision — centralized in session-policy.ts (§5). The
-  // proportional >50%-missed relabel is applied below once presence is known.
+  // If either join is missing, verify against Daily's REST API before deciding.
+  // This catches failures in webhooks AND client-side confirmation.
+  if ((!fanJoined || !creatorJoined) && booking.daily_room_name) {
+    try {
+      const meetings = await getRoomMeetings(booking.daily_room_name);
+      for (const m of meetings) {
+        for (const p of m.participants) {
+          if (!fanJoined && p.user_id.startsWith("fan:")) {
+            fanJoined = true;
+            await db
+              .update(bookings)
+              .set({ fan_joined_at: new Date(m.start_time * 1000) })
+              .where(and(eq(bookings.id, bookingId), isNull(bookings.fan_joined_at)));
+          }
+          if (!creatorJoined && p.user_id.startsWith("creator:")) {
+            creatorJoined = true;
+            await db
+              .update(bookings)
+              .set({ creator_joined_at: new Date(m.start_time * 1000) })
+              .where(and(eq(bookings.id, bookingId), isNull(bookings.creator_joined_at)));
+          }
+        }
+        if (fanJoined && creatorJoined) break;
+      }
+    } catch (e) {
+      console.error(
+        `[eval] Daily API check failed for ${bookingId}: ${e instanceof Error ? e.message : String(e)}`,
+      );
+      // If we still have no join data AND the API is unreachable, flag for
+      // manual review instead of auto-deciding a financial outcome.
+      if (!fanJoined && !creatorJoined) {
+        await db
+          .update(bookings)
+          .set({ needs_review: true })
+          .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
+        return;
+      }
+    }
+  }
+
   const { status: outcome, refund, cancelled_by, cancel_reason } =
     evaluateSessionOutcome(fanJoined, creatorJoined);
 

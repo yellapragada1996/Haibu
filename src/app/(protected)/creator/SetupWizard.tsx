@@ -101,12 +101,14 @@ export function SetupWizard({
     setError(null);
     try {
       const result = await startStripeOnboarding(country);
-      if (result && "error" in result) setError(result.error ?? "");
-      else if (result && "url" in result)
-        window.open(result.url, "_blank", "noopener,noreferrer");
+      if (result && "error" in result) {
+        setError(result.error ?? "");
+        setBusy(false);
+      } else if (result && "url" in result) {
+        window.location.href = result.url;
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
       setBusy(false);
     }
   }, [country]);
@@ -116,12 +118,14 @@ export function SetupWizard({
     setError(null);
     try {
       const result = await startIdentityVerification();
-      if (result && "error" in result) setError(result.error ?? "");
-      else if (result && "url" in result && result.url)
-        window.open(result.url, "_blank", "noopener,noreferrer");
+      if (result && "error" in result) {
+        setError(result.error ?? "");
+        setBusy(false);
+      } else if (result && "url" in result && result.url) {
+        window.location.href = result.url;
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
       setBusy(false);
     }
   }, []);
@@ -291,7 +295,7 @@ export function SetupWizard({
                 </div>
               )}
               <p className="mt-4 text-xs text-text-tertiary">
-                Opens in a new tab · returns you here
+                You'll be redirected back when done
               </p>
             </div>
           )}
@@ -309,7 +313,7 @@ export function SetupWizard({
                 required before you can go live.
               </p>
               <p className="mt-4 text-xs text-text-tertiary">
-                Opens in a new tab · returns you here
+                You'll be redirected back when done
               </p>
             </div>
           )}

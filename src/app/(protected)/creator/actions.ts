@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { creatorProfiles, offerings, availabilityWindows, availabilityBlocks, availabilityDateOverrides, users, bookings } from "@/db/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCategories } from "@/lib/categories";
 import { generateUniqueSlug } from "@/lib/slug";
@@ -403,7 +404,10 @@ export async function startStripeOnboarding(country: string) {
       .where(eq(creatorProfiles.id, profile.id));
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const h = await headers();
+  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
+  const proto = h.get("x-forwarded-proto") || "http";
+  const origin = `${proto}://${host}`;
   const accountLink = await stripe.accountLinks.create({
     account: stripeAccountId,
     refresh_url: `${origin}/creator?step=4`,
@@ -485,7 +489,10 @@ export async function startIdentityVerification() {
   // (`account_update` is rejected for Stripe-hosted onboarding accounts). Since
   // business/bank is already done, this link resumes at the remaining
   // identity-verification step, so the creator still does one more visit.
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const h = await headers();
+  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
+  const proto = h.get("x-forwarded-proto") || "http";
+  const origin = `${proto}://${host}`;
   const accountLink = await stripe.accountLinks.create({
     account: profile.stripe_account_id,
     refresh_url: `${origin}/creator?step=5`,

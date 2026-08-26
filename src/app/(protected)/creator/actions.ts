@@ -50,12 +50,12 @@ export async function upsertCreatorProfile(formData: FormData) {
       .where(eq(creatorProfiles.user_id, user.id));
   } else {
     const slug = await generateUniqueSlug(nameForSlug);
+    const allCategories = await getCategories();
+    const defaultCategory = allCategories[0]?.slug ?? "entertainment";
     await db.insert(creatorProfiles).values({
       user_id: user.id,
       bio: bio ?? null,
-      // Category is no longer chosen at profile creation — it's derived
-      // from offerings (see Offerings tab). Default until an offering exists.
-      category: "casual_talk",
+      category: defaultCategory,
       slug,
     });
   }

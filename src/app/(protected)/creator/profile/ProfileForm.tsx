@@ -48,6 +48,24 @@ export function ProfileForm({
     setSaveState("saving");
     setError(null);
 
+    // Create/update the profile BEFORE uploading files — the banner presign
+    // API needs the profile ID for the storage path, so new users must have
+    // a profile row before we can upload a banner.
+    const formData = new FormData(form);
+    let result: Awaited<ReturnType<typeof upsertCreatorProfile>>;
+    try {
+      result = await upsertCreatorProfile(formData);
+    } catch {
+      setError("Something went wrong — please try again");
+      setSaveState("idle");
+      return;
+    }
+    if (result && "error" in result) {
+      setError((result as { error: string }).error);
+      setSaveState("idle");
+      return;
+    }
+
     try {
       if (stagedAvatar) await uploadImage("avatar", stagedAvatar);
       if (stagedBanner) await uploadImage("banner", stagedBanner);
@@ -57,23 +75,15 @@ export function ProfileForm({
       return;
     }
 
-    const formData = new FormData(form);
-    const result = await upsertCreatorProfile(formData);
-    if (result && "error" in result) {
-      setError((result as { error: string }).error);
-      setSaveState("idle");
+    setStagedAvatar(null);
+    setStagedBanner(null);
+    setSaveState("saved");
+    if (onComplete) {
+      onComplete();
+    } else if (hasProfile) {
+      router.refresh();
     } else {
-      setStagedAvatar(null);
-      setStagedBanner(null);
-      setSaveState("saved");
-      if (onComplete) {
-        onComplete();
-      } else if (hasProfile) {
-        router.refresh();
-      } else {
-        // First-time creation → drop the new creator onto the "Go live" hub.
-        router.push("/creator");
-      }
+      router.push("/creator");
     }
   };
 

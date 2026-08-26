@@ -15,9 +15,9 @@ import { ToastProvider, toast } from "@/components/ui/Toast";
 
 // Dev-only preview — labels hardcoded here (not a source of truth).
 const DEV_CATEGORY_LABELS: Record<string, string> = {
-  casual_talk: "Casual Talk",
-  asmr: "ASMR",
-  music: "Music",
+  fitness: "Fitness",
+  entertainment: "Entertainment",
+  technology: "Technology",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -113,9 +113,9 @@ export default function ComponentsShowcase() {
 
         <Section title="CreatorCard">
           <div className="flex gap-4 flex-wrap">
-            <CreatorCard name="Sarah Music" categories={["music", "asmr", "casual_talk", "music"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={2500} durationMinutes={30} rating={4.8} sessionCount={42} availableToday />
-            <CreatorCard name="Alex Talk" categories={["casual_talk"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={1500} durationMinutes={15} rating={0} sessionCount={3} />
-            <CreatorCard name="Calm Vibes ASMR" categories={["asmr"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={3500} durationMinutes={60} rating={4.9} sessionCount={127} availableToday />
+            <CreatorCard name="Sarah Fit" categories={["fitness", "entertainment", "technology"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={2500} durationMinutes={30} rating={4.8} sessionCount={42} availableToday />
+            <CreatorCard name="Alex Tech" categories={["technology"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={1500} durationMinutes={15} rating={0} sessionCount={3} />
+            <CreatorCard name="Fun Vibes" categories={["entertainment"]} categoryLabels={DEV_CATEGORY_LABELS} priceCents={3500} durationMinutes={60} rating={4.9} sessionCount={127} availableToday />
           </div>
         </Section>
 

@@ -416,7 +416,7 @@ export default async function CreatorHomePage({
           }}
           offerings={offeringsList}
           profileId={profile?.id ?? ""}
-          profileCategory={profile?.category ?? "casual_talk"}
+          profileCategory={profile?.category ?? categories[0]?.value ?? ""}
           categories={categories}
           availability={{
             windows: windowsList,

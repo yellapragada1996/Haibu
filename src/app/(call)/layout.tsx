@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 // Call-screen layout: deliberately MINIMAL — no site NavBar here. The call
@@ -14,7 +15,11 @@ export default async function CallLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    const hdrs = await headers();
+    const path = hdrs.get("x-pathname") || "/dashboard";
+    redirect(`/login?redirect=${encodeURIComponent(path)}`);
+  }
 
   return <div className="min-h-dvh bg-bg-base">{children}</div>;
 }

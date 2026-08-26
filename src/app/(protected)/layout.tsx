@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { TimezoneCapture } from "@/components/TimezoneCapture";
 import { EmailGate } from "@/components/EmailGate";
@@ -15,7 +16,11 @@ export default async function ProtectedLayout({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    const hdrs = await headers();
+    const path = hdrs.get("x-pathname") || "/dashboard";
+    redirect(`/login?redirect=${encodeURIComponent(path)}`);
+  }
   if (!user.email_confirmed_at) return <EmailGate />;
 
   const [profile] = await db

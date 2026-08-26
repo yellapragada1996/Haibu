@@ -10,7 +10,11 @@ import { Resend } from "resend";
 // ---------------------------------------------------------------------------
 
 const FROM_ADDRESS = "Haibu <noreply@mail.haibu.live>";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://haibu.live";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://haibu.live");
 
 const LOGO_SVG =
   '<svg width="140" height="55" viewBox="0 8 102 40" xmlns="http://www.w3.org/2000/svg">' +

@@ -297,7 +297,7 @@ export const sweepEligiblePayouts = inngest.createFunction(
             // no_show_creator for tracking but still has a non-zero payout.
             and(
               eq(bookings.status, "no_show_creator"),
-              sql`${bookings.effective_payout_cents} IS NOT NULL`,
+              sql`${bookings.effective_payout_cents} > 0`,
             ),
           ),
           eq(bookings.needs_review, false),
@@ -512,29 +512,13 @@ export async function runEvaluation(bookingId: string) {
   // flag for admin review — no money moves until a human looks at it.
   if (deferRefund) needsReview = true;
 
-  // Update booking status with guard
-  const extra =
-    cancelled_by && cancel_reason
-      ? { cancelled_by, cancel_reason }
-      : {};
-
-  await db
-    .update(bookings)
-    .set({
-      status: finalStatus,
-      payout_eligible_at: payoutEligibleAt,
-      needs_review: needsReview,
-      ...(effectivePayoutCents != null
-        ? { effective_payout_cents: effectivePayoutCents }
-        : {}),
-      ...extra,
-    })
-    .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
+  // Issue Stripe refunds BEFORE transitioning the booking status. If Stripe
+  // fails, the status stays "confirmed" and Inngest retries correctly. The
+  // idempotency key + ledger unique constraint prevent double-refunding.
+  const stripeFeeCents = booking.stripe_fee_cents ?? 0;
 
   // Full refund — no-show / mutual no-show. Skipped when the Daily API was
   // unreachable and we have no evidence either way (admin decides).
-  const stripeFeeCents = booking.stripe_fee_cents ?? 0;
-
   if (refund && booking.stripe_payment_intent_id && !deferRefund) {
     const fullRefundCents = booking.price_cents - stripeFeeCents;
 
@@ -542,7 +526,7 @@ export async function runEvaluation(bookingId: string) {
       payment_intent: booking.stripe_payment_intent_id,
       amount: fullRefundCents,
       reason: "requested_by_customer" as const,
-    });
+    }, { idempotencyKey: `eval-refund-${bookingId}` });
 
     try {
       await db.insert(ledgerEntries).values({
@@ -567,23 +551,6 @@ export async function runEvaluation(bookingId: string) {
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
     }
-
-    const partyData = await getReminderData(bookingId);
-    if (partyData) {
-      await sendRefundEmails({
-        scenario: "full",
-        bookingId,
-        offeringTitle: partyData.offering_title,
-        creator: { name: partyData.creator_name, email: partyData.creator_email, timezone: partyData.creator_timezone },
-        guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
-        startAt: new Date(partyData.start_at!),
-        priceCents: booking.price_cents,
-        stripeFeeCents,
-        refundCents: fullRefundCents,
-        effectivePayoutCents: null,
-        deliveredPercent: 0,
-      });
-    }
   }
 
   // Partial refund — creator partially delivered a completed session (Phase 5).
@@ -592,7 +559,7 @@ export async function runEvaluation(bookingId: string) {
       payment_intent: booking.stripe_payment_intent_id,
       amount: partialRefund.refundCents,
       reason: "requested_by_customer" as const,
-    });
+    }, { idempotencyKey: `eval-partial-${bookingId}` });
 
     try {
       await db.insert(ledgerEntries).values({
@@ -617,7 +584,51 @@ export async function runEvaluation(bookingId: string) {
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
     }
+  }
 
+  // Transition booking status AFTER money has moved. The optimistic lock on
+  // "confirmed" prevents duplicate transitions; retries re-enter cleanly
+  // because the refund steps above are idempotent.
+  const extra =
+    cancelled_by && cancel_reason
+      ? { cancelled_by, cancel_reason }
+      : {};
+
+  await db
+    .update(bookings)
+    .set({
+      status: finalStatus,
+      payout_eligible_at: payoutEligibleAt,
+      needs_review: needsReview,
+      ...(effectivePayoutCents != null
+        ? { effective_payout_cents: effectivePayoutCents }
+        : {}),
+      ...extra,
+    })
+    .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
+
+  // Notification emails — best-effort, after status is committed.
+  if (refund && booking.stripe_payment_intent_id && !deferRefund) {
+    const fullRefundCents = booking.price_cents - stripeFeeCents;
+    const partyData = await getReminderData(bookingId);
+    if (partyData) {
+      await sendRefundEmails({
+        scenario: "full",
+        bookingId,
+        offeringTitle: partyData.offering_title,
+        creator: { name: partyData.creator_name, email: partyData.creator_email, timezone: partyData.creator_timezone },
+        guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
+        startAt: new Date(partyData.start_at!),
+        priceCents: booking.price_cents,
+        stripeFeeCents,
+        refundCents: fullRefundCents,
+        effectivePayoutCents: null,
+        deliveredPercent: 0,
+      });
+    }
+  }
+
+  if (partialRefund && booking.stripe_payment_intent_id) {
     const partyData = await getReminderData(bookingId);
     if (partyData) {
       await sendRefundEmails({

@@ -9,9 +9,7 @@ import { Resend } from "resend";
 // ---------------------------------------------------------------------------
 
 const FROM_ADDRESS = "Haibu <noreply@mail.haibu.live>";
-const APP_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-  : "https://haibu.live";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://haibu.live";
 
 const LOGO_URL =
   "https://etikjlfhyywksokxbxor.supabase.co/storage/v1/object/public/assets/haibu-logo-email.png";
@@ -711,6 +709,7 @@ export async function sendBookingConfirmationEmails(
 
   const creatorBody =
     para(`${guestName} booked a ${offering} session with you for ${creatorStart}.`) +
+    infoBox(`Session price: ${amount}`) +
     para("You will get a reminder before it starts with a link to join.") +
     '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
     "                <tr>\n" +

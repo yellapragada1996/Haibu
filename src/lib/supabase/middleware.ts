@@ -3,6 +3,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isSafeRedirectPath } from "@/lib/safe-redirect";
 
 export async function updateSession(request: NextRequest) {
+  // Forward the current pathname+search to Server Components via headers().
+  // Must be a REQUEST header — headers() reads from the incoming request, not
+  // the outgoing response.
+  request.headers.set(
+    "x-pathname",
+    request.nextUrl.pathname + request.nextUrl.search,
+  );
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -73,11 +81,19 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
-    url.searchParams.set(
-      "redirect",
-      request.nextUrl.pathname + request.nextUrl.search,
-    );
-    return NextResponse.redirect(url);
+    const target = request.nextUrl.pathname + request.nextUrl.search;
+    url.searchParams.set("redirect", target);
+    const res = NextResponse.redirect(url);
+    // Persist the redirect target as a cookie so OAuth callback flows (where
+    // query params can be lost in the Supabase → IdP → callback chain) still
+    // land the user on the right page.
+    res.cookies.set("auth_redirect", target, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 600,
+    });
+    return res;
   }
 
   if (isAuthPage && user) {
@@ -96,9 +112,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  supabaseResponse.headers.set(
-    "x-pathname",
-    request.nextUrl.pathname + request.nextUrl.search,
-  );
   return supabaseResponse;
 }

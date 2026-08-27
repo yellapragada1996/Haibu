@@ -4,6 +4,7 @@ import {
   bookings,
   ledgerEntries,
   offerings,
+  platformSettings,
   users,
 } from "@/db/schema";
 import { and, count, desc, eq, gt, gte, inArray, isNull, or, sql } from "drizzle-orm";
@@ -22,12 +23,22 @@ export function formatCents(cents: number): string {
 export type EarningsSession = {
   id: string;
   startAt: Date | null;
+  endAt: Date | null;
   offering: string;
   guest: string;
   duration: number | null;
   amount: number;
   status: "paid" | "pending" | "on_hold";
   paysAt: Date | null;
+  priceCents: number;
+  platformFeeCents: number;
+  creatorPayoutCents: number;
+  effectivePayoutCents: number | null;
+  bookingStatus: string;
+  fanJoined: boolean;
+  creatorJoined: boolean;
+  cancelledBy: string | null;
+  cancelReason: string | null;
 };
 
 export async function getCreatorEarnings(profileId: string) {
@@ -64,12 +75,22 @@ export async function getCreatorEarnings(profileId: string) {
     .select({
       id: bookings.id,
       start_at: bookings.start_at,
+      end_at: bookings.end_at,
       offering: offerings.title,
       guest: fan.display_name,
       duration: offerings.duration_minutes,
       effective: sql<number>`COALESCE(${bookings.effective_payout_cents}, ${bookings.creator_payout_cents})`,
       needs_review: bookings.needs_review,
       payout_eligible_at: bookings.payout_eligible_at,
+      price_cents: bookings.price_cents,
+      platform_fee_cents: bookings.platform_fee_cents,
+      creator_payout_cents: bookings.creator_payout_cents,
+      effective_payout_cents: bookings.effective_payout_cents,
+      booking_status: bookings.status,
+      fan_joined_at: bookings.fan_joined_at,
+      creator_joined_at: bookings.creator_joined_at,
+      cancelled_by: bookings.cancelled_by,
+      cancel_reason: bookings.cancel_reason,
     })
     .from(bookings)
     .innerJoin(offerings, eq(offerings.id, bookings.offering_id))
@@ -101,20 +122,37 @@ export async function getCreatorEarnings(profileId: string) {
     return {
       id: r.id,
       startAt: r.start_at,
+      endAt: r.end_at,
       offering: r.offering,
       guest: r.guest,
       duration: r.duration,
       amount: r.effective,
       status,
       paysAt: r.payout_eligible_at,
+      priceCents: r.price_cents,
+      platformFeeCents: r.platform_fee_cents,
+      creatorPayoutCents: r.creator_payout_cents,
+      effectivePayoutCents: r.effective_payout_cents,
+      bookingStatus: r.booking_status,
+      fanJoined: r.fan_joined_at !== null,
+      creatorJoined: r.creator_joined_at !== null,
+      cancelledBy: r.cancelled_by ?? null,
+      cancelReason: r.cancel_reason ?? null,
     };
   });
+
+  const [feeRow] = await db
+    .select({ rate: platformSettings.platform_fee_rate })
+    .from(platformSettings)
+    .limit(1);
+  const platformFeeRate = feeRow?.rate ?? 0.18;
 
   return {
     totalEarned: total,
     paidOut: paid,
     pending: total - paid,
     sessions,
+    platformFeeRate,
   };
 }
 

@@ -3,13 +3,9 @@ import { db } from "@/db";
 import { creatorProfiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Kpi } from "@/components/ui/Kpi";
 import { formatCents, getCreatorEarnings } from "@/lib/creator-studio";
-
-function fmtDate(d: Date | string, tz: string): string {
-  return new Date(d).toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric" });
-}
+import { EarningsList } from "./EarningsList";
 
 export default async function CreatorEarningsPage() {
   const supabase = await createClient();
@@ -34,6 +30,16 @@ export default async function CreatorEarningsPage() {
   const tz = userRow?.timezone ?? "UTC";
 
   const earnings = await getCreatorEarnings(profile.id);
+
+  const serializedSessions = earnings.sessions.map((s) => ({
+    ...s,
+    startAtIso: s.startAt ? s.startAt.toISOString() : null,
+    endAtIso: s.endAt ? s.endAt.toISOString() : null,
+    paysAtIso: s.paysAt ? s.paysAt.toISOString() : null,
+    startAt: null as Date | null,
+    endAt: null as Date | null,
+    paysAt: null as Date | null,
+  }));
 
   return (
     <div>
@@ -66,34 +72,11 @@ export default async function CreatorEarningsPage() {
             </p>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {earnings.sessions.map((s) => {
-              const badge =
-                s.status === "paid" ? (
-                  <Badge variant="confirmed" label="Paid" />
-                ) : s.status === "on_hold" ? (
-                  <Badge variant="error" label="On hold" />
-                ) : (
-                  <Badge variant="pending" label="Pending" />
-                );
-              return (
-                <Card key={s.id} className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{s.offering}</p>
-                    <p className="mt-0.5 text-xs text-text-secondary">
-                      {s.startAt ? fmtDate(s.startAt, tz) : ""} · {s.guest} · {s.duration} min
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-sm font-bold text-white">
-                      {formatCents(s.amount)}
-                    </span>
-                    {badge}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+          <EarningsList
+            sessions={serializedSessions}
+            platformFeeRate={earnings.platformFeeRate}
+            timezone={tz}
+          />
         )}
       </section>
     </div>

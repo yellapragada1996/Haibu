@@ -8,6 +8,8 @@
 export const COOLING_OFF_MS = 5 * 60 * 1000;
 export const HOLD_NEW_CREATOR_MS = 7 * 24 * 60 * 60 * 1000;
 export const HOLD_ESTABLISHED_MS = 96 * 60 * 60 * 1000;
+export const STRIPE_PERCENT = 0.029;
+export const STRIPE_FIXED_CENTS = 30;
 // Creators with fewer than this many prior successful sessions use the long hold.
 export const HOLD_ESTABLISHED_THRESHOLD = 5;
 
@@ -39,6 +41,10 @@ export function holdPeriodMs(priorCompletedCount: number): number {
   return priorCompletedCount < HOLD_ESTABLISHED_THRESHOLD
     ? HOLD_NEW_CREATOR_MS
     : HOLD_ESTABLISHED_MS;
+}
+
+export function computeStripeFee(priceCents: number): number {
+  return Math.round(priceCents * STRIPE_PERCENT) + STRIPE_FIXED_CENTS;
 }
 
 // §5 — no-show evaluation (binary, the current implementation). `status` is the
@@ -160,12 +166,16 @@ export interface ProportionalRefund {
 
 export function proportionalRefund(
   priceCents: number,
-  feeCents: number,
+  platformFeeCents: number,
+  stripeFeeCents: number,
   refundPercent: number, // 0..1
 ): ProportionalRefund {
   const refundCents = Math.round(priceCents * refundPercent);
-  const feeReversalCents = Math.round(feeCents * refundPercent);
+  const feeReversalCents = Math.round(platformFeeCents * refundPercent);
+  const stripeFeeReversalCents = Math.round(stripeFeeCents * refundPercent);
   const effectivePayoutCents =
-    priceCents - refundCents - (feeCents - feeReversalCents);
+    priceCents - refundCents
+    - (stripeFeeCents - stripeFeeReversalCents)
+    - (platformFeeCents - feeReversalCents);
   return { refundCents, feeReversalCents, effectivePayoutCents };
 }

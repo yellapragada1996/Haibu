@@ -383,6 +383,7 @@ export async function resolveNeedsReview(
       id: bookings.id,
       needs_review: bookings.needs_review,
       price_cents: bookings.price_cents,
+      stripe_fee_cents: bookings.stripe_fee_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       creator_id: bookings.creator_id,
       daily_room_name: bookings.daily_room_name,
@@ -477,6 +478,7 @@ export async function resolveNeedsReview(
       effectivePayoutCents = proportionalRefund(
         booking.price_cents,
         booking.platform_fee_cents,
+        booking.stripe_fee_cents ?? 0,
         presence.undeliveredPercent,
       ).effectivePayoutCents;
     }

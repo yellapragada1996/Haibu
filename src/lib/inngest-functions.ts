@@ -460,6 +460,7 @@ export async function runEvaluation(bookingId: string) {
     const money = proportionalRefund(
       booking.price_cents,
       booking.platform_fee_cents,
+      booking.stripe_fee_cents ?? 0,
       undeliveredPercent,
     );
     effectivePayoutCents = money.effectivePayoutCents;

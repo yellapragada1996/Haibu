@@ -247,24 +247,45 @@ describe("proportionalRefund (§5 money — balanced integer cents)", () => {
   const PRICE = 4000;
   const FEE = 720; // 18%
 
-  it("40% undelivered → 40% refund, 60% payout, balanced", () => {
-    const r = proportionalRefund(PRICE, FEE, 0.4);
+  it("40% undelivered, no stripe fee → 40% refund, 60% payout, balanced", () => {
+    const r = proportionalRefund(PRICE, FEE, 0, 0.4);
     expect(r.refundCents).toBe(1600);
     expect(r.feeReversalCents).toBe(288);
     expect(r.effectivePayoutCents).toBe(1968);
-    // invariant: refund + fee_retained + payout = price
     expect(r.refundCents + (FEE - r.feeReversalCents) + r.effectivePayoutCents).toBe(PRICE);
   });
 
   it("full refund (100%) → 0 payout", () => {
-    const r = proportionalRefund(PRICE, FEE, 1.0);
+    const r = proportionalRefund(PRICE, FEE, 0, 1.0);
     expect(r.refundCents).toBe(PRICE);
     expect(r.effectivePayoutCents).toBe(0);
   });
 
   it("0% refund → full payout", () => {
-    const r = proportionalRefund(PRICE, FEE, 0);
+    const r = proportionalRefund(PRICE, FEE, 0, 0);
     expect(r.refundCents).toBe(0);
     expect(r.effectivePayoutCents).toBe(PRICE - FEE);
+  });
+
+  it("with stripe fee — 0% refund → full payout minus stripe + platform", () => {
+    const STRIPE = 146; // 2.9% of 4000 + 30
+    const r = proportionalRefund(PRICE, FEE, STRIPE, 0);
+    expect(r.refundCents).toBe(0);
+    expect(r.effectivePayoutCents).toBe(PRICE - FEE - STRIPE);
+  });
+
+  it("with stripe fee — 50% refund → 50% of creator payout", () => {
+    const STRIPE = 146;
+    const r = proportionalRefund(PRICE, FEE, STRIPE, 0.5);
+    expect(r.refundCents).toBe(2000);
+    const creatorPayout = PRICE - FEE - STRIPE;
+    expect(r.effectivePayoutCents).toBe(Math.round(creatorPayout * 0.5));
+  });
+
+  it("with stripe fee — 100% refund → 0 payout", () => {
+    const STRIPE = 146;
+    const r = proportionalRefund(PRICE, FEE, STRIPE, 1.0);
+    expect(r.refundCents).toBe(PRICE);
+    expect(r.effectivePayoutCents).toBe(0);
   });
 });

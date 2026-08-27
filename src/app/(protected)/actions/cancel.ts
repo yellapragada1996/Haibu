@@ -47,6 +47,7 @@ export async function cancelBooking(
       end_at: bookings.end_at,
       created_at: bookings.created_at,
       price_cents: bookings.price_cents,
+      stripe_fee_cents: bookings.stripe_fee_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       creator_payout_cents: bookings.creator_payout_cents,
       stripe_payment_intent_id: bookings.stripe_payment_intent_id,
@@ -85,7 +86,12 @@ export async function cancelBooking(
 
   const refundCents = Math.round(booking.price_cents * refundPercent);
   const feeReversalCents = Math.round(booking.platform_fee_cents * refundPercent);
-  const creatorPayoutFromCancellation = booking.price_cents - refundCents - (booking.platform_fee_cents - feeReversalCents);
+  const stripeFeeCents = booking.stripe_fee_cents ?? 0;
+  const stripeFeeReversalCents = Math.round(stripeFeeCents * refundPercent);
+  const creatorPayoutFromCancellation =
+    booking.price_cents - refundCents
+    - (stripeFeeCents - stripeFeeReversalCents)
+    - (booking.platform_fee_cents - feeReversalCents);
 
   // Hold period for creator's cancellation share (if any)
   let payoutEligibleAt: Date | null = null;

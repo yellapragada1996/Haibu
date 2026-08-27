@@ -302,6 +302,7 @@ export const bookings = pgTable(
     end_at: timestamp("end_at", { withTimezone: true }).notNull(),
     status: bookingStatusEnum("status").notNull(),
     price_cents: integer("price_cents").notNull(),
+    stripe_fee_cents: integer("stripe_fee_cents"),
     platform_fee_cents: integer("platform_fee_cents").notNull(),
     creator_payout_cents: integer("creator_payout_cents").notNull(),
     // Phase 5 — the creator's actual payout after a proportional refund. NULL
@@ -346,7 +347,7 @@ export const bookings = pgTable(
     ),
     check(
       "chk_money_split",
-      sql`${table.creator_payout_cents} + ${table.platform_fee_cents} = ${table.price_cents}`,
+      sql`${table.creator_payout_cents} + ${table.platform_fee_cents} + COALESCE(${table.stripe_fee_cents}, 0) = ${table.price_cents}`,
     ),
     // Query indexes.
     index("idx_bookings_fan_status").on(table.fan_id, table.status),

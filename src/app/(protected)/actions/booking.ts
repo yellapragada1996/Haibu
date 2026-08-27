@@ -11,6 +11,7 @@ import { addMinutes } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { isPgErrorCode } from "@/lib/pg-errors";
 import { getPlatformFeeRate } from "@/lib/platform-settings";
+import { computeStripeFee } from "@/lib/session-policy";
 
 // Mark a reserved booking as PAID immediately after client-side
 // confirmPayment succeeds, so the booking page shows the confirmed UI
@@ -154,8 +155,9 @@ export async function reserveSlot(offeringId: string, startAtIso: string) {
 
   // Compute money split
   const feeRate = await getPlatformFeeRate();
+  const stripeFeeCents = computeStripeFee(offering.price_cents);
   const platformFeeCents = Math.round(offering.price_cents * feeRate);
-  const creatorPayoutCents = offering.price_cents - platformFeeCents;
+  const creatorPayoutCents = offering.price_cents - stripeFeeCents - platformFeeCents;
 
   // (a) INSERT booking with status 'reserved', no PI id yet
   let bookingId: string;
@@ -170,6 +172,7 @@ export async function reserveSlot(offeringId: string, startAtIso: string) {
         end_at: endAt,
         status: "reserved",
         price_cents: offering.price_cents,
+        stripe_fee_cents: stripeFeeCents,
         platform_fee_cents: platformFeeCents,
         creator_payout_cents: creatorPayoutCents,
         reservation_expires_at: addMinutes(new Date(), 10),

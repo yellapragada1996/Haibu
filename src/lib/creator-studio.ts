@@ -31,6 +31,7 @@ export type EarningsSession = {
   status: "paid" | "pending" | "on_hold";
   paysAt: Date | null;
   priceCents: number;
+  stripeFeeCents: number;
   platformFeeCents: number;
   creatorPayoutCents: number;
   effectivePayoutCents: number | null;
@@ -83,6 +84,7 @@ export async function getCreatorEarnings(profileId: string) {
       needs_review: bookings.needs_review,
       payout_eligible_at: bookings.payout_eligible_at,
       price_cents: bookings.price_cents,
+      stripe_fee_cents: bookings.stripe_fee_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       creator_payout_cents: bookings.creator_payout_cents,
       effective_payout_cents: bookings.effective_payout_cents,
@@ -130,6 +132,7 @@ export async function getCreatorEarnings(profileId: string) {
       status,
       paysAt: r.payout_eligible_at,
       priceCents: r.price_cents,
+      stripeFeeCents: r.stripe_fee_cents ?? 0,
       platformFeeCents: r.platform_fee_cents,
       creatorPayoutCents: r.creator_payout_cents,
       effectivePayoutCents: r.effective_payout_cents,

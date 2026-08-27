@@ -502,6 +502,12 @@ export async function runEvaluation(bookingId: string) {
     needsReview = false;
   }
 
+  // Creator total no-show or mutual no-show → creator earns nothing.
+  // Skip when deferred (admin will decide).
+  if (refund && !deferRefund && effectivePayoutCents == null) {
+    effectivePayoutCents = 0;
+  }
+
   // When the Daily API was unreachable and we have no join evidence at all,
   // flag for admin review — no money moves until a human looks at it.
   if (deferRefund) needsReview = true;

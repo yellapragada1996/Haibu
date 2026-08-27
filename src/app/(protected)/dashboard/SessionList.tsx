@@ -13,6 +13,7 @@ export type SessionItem = {
   status: string;
   cancelled_by: string | null;
   needs_review: boolean;
+  effective_payout_cents: number | null;
   start_at: string;
   end_at: string;
   price_cents: number;
@@ -114,7 +115,7 @@ export function SessionList({
             const isPastEnd = s.end_at ? new Date(s.end_at) < new Date() : false;
             const badgeLabel = bookingLabel(
               s.status,
-              { cancelled_by: s.cancelled_by, needs_review: s.needs_review, isPastEnd },
+              { cancelled_by: s.cancelled_by, needs_review: s.needs_review, effective_payout_cents: s.effective_payout_cents, isPastEnd },
               "guest",
             );
             const badgeClass = sessionBadgeClassName(s.status);

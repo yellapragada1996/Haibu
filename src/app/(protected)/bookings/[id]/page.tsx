@@ -49,6 +49,7 @@ export default async function BookingPage({
       status: bookingsTable.status,
       cancelled_by: bookingsTable.cancelled_by,
       needs_review: bookingsTable.needs_review,
+      effective_payout_cents: bookingsTable.effective_payout_cents,
       created_at: bookingsTable.created_at,
       start_at: bookingsTable.start_at,
       end_at: bookingsTable.end_at,
@@ -181,6 +182,7 @@ export default async function BookingPage({
                 {
                   cancelled_by: booking.cancelled_by,
                   needs_review: booking.needs_review,
+                  effective_payout_cents: booking.effective_payout_cents,
                   isPastEnd,
                 },
                 isFan ? "guest" : "creator",

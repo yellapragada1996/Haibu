@@ -12,6 +12,7 @@ export type BookingFacts = {
   cancelled_by?: string | null;
   needs_review?: boolean | null;
   isPastEnd?: boolean;
+  effective_payout_cents?: number | null;
 };
 
 const LABELS: Record<string, { guest: string; creator: string }> = {
@@ -44,6 +45,11 @@ export function bookingLabel(
   // (fires 5 min after end). Show "Processing" so it doesn't look stuck.
   if (status === "confirmed" && facts.isPastEnd) {
     return "Processing";
+  }
+  // no_show_creator with an effective payout = partial delivery (creator joined
+  // but missed >50%). Show a neutral label instead of "didn't join".
+  if (status === "no_show_creator" && facts.effective_payout_cents != null) {
+    return "Partially delivered";
   }
   // cancelled_creator + system = mutual no-show (deliberately neutral).
   if (status === "cancelled_creator" && facts.cancelled_by === "system") {

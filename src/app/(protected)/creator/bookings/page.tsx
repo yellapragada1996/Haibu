@@ -24,6 +24,7 @@ type CancelledRowItem = {
   status: string;
   cancelled_by: string | null;
   needs_review: boolean | null;
+  effective_payout_cents: number | null;
   start_at: Date | null;
   end_at: Date | null;
   price_cents: number | null;
@@ -43,7 +44,7 @@ function CancelledRow({ b, timezone }: { b: CancelledRowItem; timezone?: string 
               variant={bookingBadgeVariant(b.status)}
               label={bookingLabel(
                 b.status,
-                { cancelled_by: b.cancelled_by, needs_review: b.needs_review, isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false },
+                { cancelled_by: b.cancelled_by, needs_review: b.needs_review, effective_payout_cents: b.effective_payout_cents, isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false },
                 "creator",
               )}
             />
@@ -170,6 +171,7 @@ export default async function CreatorBookingsPage() {
       status: bookingsTable.status,
       cancelled_by: bookingsTable.cancelled_by,
       needs_review: bookingsTable.needs_review,
+      effective_payout_cents: bookingsTable.effective_payout_cents,
       start_at: bookingsTable.start_at,
       end_at: bookingsTable.end_at,
       price_cents: bookingsTable.price_cents,

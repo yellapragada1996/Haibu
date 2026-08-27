@@ -43,6 +43,12 @@ describe("bookingLabel (haibu-booking-status-reference.md §6)", () => {
     expect(bookingLabel("no_show_creator", {}, "creator")).toBe("You missed this");
   });
 
+  it("no_show_creator with effective_payout_cents shows Partially delivered", () => {
+    expect(bookingLabel("no_show_creator", { effective_payout_cents: 1500 }, "guest")).toBe("Partially delivered");
+    expect(bookingLabel("no_show_creator", { effective_payout_cents: 1500 }, "creator")).toBe("Partially delivered");
+    expect(bookingLabel("no_show_creator", { effective_payout_cents: null }, "guest")).toBe("Creator didn't join");
+  });
+
   it("expired reads as neutral, not a real past session", () => {
     expect(bookingLabel("expired", {}, "guest")).toBe("Not completed");
     expect(bookingLabel("expired", {}, "creator")).toBe("Not completed");

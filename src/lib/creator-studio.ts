@@ -47,7 +47,7 @@ export async function getCreatorEarnings(profileId: string) {
   // are included only when the creator has a non-zero payout (partial refund).
   // A 100% refund cancellation (effective_payout_cents = 0) is excluded — the
   // creator earned nothing and showing "$0 Pending" is confusing.
-  const doneStatuses = sql`(${bookings.status} IN ('completed', 'no_show_fan') OR (${bookings.status} = 'cancelled_fan' AND COALESCE(${bookings.effective_payout_cents}, ${bookings.creator_payout_cents}) > 0))`;
+  const doneStatuses = sql`(${bookings.status} IN ('completed', 'no_show_fan') OR (${bookings.status} IN ('cancelled_fan', 'no_show_creator') AND COALESCE(${bookings.effective_payout_cents}, ${bookings.creator_payout_cents}) > 0))`;
 
   const [earnedRow] = await db
     .select({

@@ -30,14 +30,14 @@ function fmtTime(d: string, tz: string): string {
   });
 }
 
-function outcomeLabel(status: string, cancelledBy: string | null): string {
+function outcomeLabel(status: string, cancelledBy: string | null, effectivePayoutCents: number | null): string {
   switch (status) {
     case "completed":
       return "Session completed";
     case "no_show_fan":
       return "Guest didn't join";
     case "no_show_creator":
-      return "You didn't join";
+      return effectivePayoutCents != null ? "Session partially delivered" : "You didn't join";
     case "cancelled_fan":
       return "Guest cancelled";
     case "cancelled_creator":
@@ -137,6 +137,7 @@ export function EarningsList({ sessions, platformFeeRate, timezone }: Props) {
                 value={outcomeLabel(
                   selected.bookingStatus,
                   selected.cancelledBy,
+                  selected.effectivePayoutCents,
                 )}
               />
             </div>

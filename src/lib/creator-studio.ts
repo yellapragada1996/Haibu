@@ -44,9 +44,10 @@ export type EarningsSession = {
 
 export async function getCreatorEarnings(profileId: string) {
   // "Done" = sessions the creator actually earned money for. Guest cancellations
-  // are included because cancel.ts stores the creator's non-refunded share in
-  // effective_payout_cents and the sweep pays it out (policy §3).
-  const doneStatuses = sql`${bookings.status} IN ('completed', 'no_show_fan', 'cancelled_fan')`;
+  // are included only when the creator has a non-zero payout (partial refund).
+  // A 100% refund cancellation (effective_payout_cents = 0) is excluded — the
+  // creator earned nothing and showing "$0 Pending" is confusing.
+  const doneStatuses = sql`(${bookings.status} IN ('completed', 'no_show_fan') OR (${bookings.status} = 'cancelled_fan' AND COALESCE(${bookings.effective_payout_cents}, ${bookings.creator_payout_cents}) > 0))`;
 
   const [earnedRow] = await db
     .select({

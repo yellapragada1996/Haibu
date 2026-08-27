@@ -206,8 +206,9 @@ export function EarningsList({ sessions, platformFeeRate, timezone }: Props) {
                         bold
                       />
                       <p className="mt-1 text-xs text-text-tertiary">
-                        Payout was adjusted because the session was partially
-                        delivered. The guest received a proportional refund.
+                        {selected.bookingStatus === "cancelled_fan"
+                          ? `The guest cancelled and received a partial refund. Your payout was adjusted to reflect the non-refunded portion (minus fees).`
+                          : "Payout was adjusted because the session was partially delivered. The guest received a proportional refund."}
                       </p>
                     </>
                   )}

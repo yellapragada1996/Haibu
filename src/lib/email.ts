@@ -15,7 +15,7 @@ const APP_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 const LOGO_URL =
   "https://etikjlfhyywksokxbxor.supabase.co/storage/v1/object/public/assets/haibu-logo-email.png";
-const LOGO_IMG = `<img src="${LOGO_URL}" alt="haibu" width="140" height="38" style="display:block;border:0;" />`;
+const LOGO_IMG = `<img src="${LOGO_URL}" alt="haibu" width="220" height="60" style="display:block;border:0;margin:0 auto;" />`;
 
 export type ReminderWindow = "1h" | "15m" | "imminent";
 export type ReminderRole = "guest" | "creator";

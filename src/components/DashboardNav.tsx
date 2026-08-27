@@ -95,6 +95,18 @@ const FAN_ITEMS: NavItem[] = [
     ),
   },
   {
+    href: "/dashboard/refunds",
+    label: "Refunds",
+    icon: (
+      <>
+        <path d="M3 10h18" />
+        <path d="M6 14h2" />
+        <path d="M11 14h2" />
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+      </>
+    ),
+  },
+  {
     href: "/dashboard/profile",
     label: "Profile",
     icon: (

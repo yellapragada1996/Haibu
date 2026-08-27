@@ -753,3 +753,177 @@ export async function sendBookingConfirmationEmails(
 
   return { sent, errors };
 }
+
+// ---------------------------------------------------------------------------
+// Refund notification emails — sent after session evaluation when a full or
+// partial refund is issued. Two emails per refund: one to the guest (amount
+// refunded), one to the creator (payout adjustment).
+// ---------------------------------------------------------------------------
+
+export type RefundScenario = "full" | "partial";
+
+export interface RefundEmailParty {
+  name: string;
+  email: string;
+  timezone: string;
+}
+
+export interface RefundEmailInput {
+  scenario: RefundScenario;
+  bookingId: string;
+  offeringTitle: string;
+  creator: RefundEmailParty;
+  guest: RefundEmailParty;
+  startAt: Date;
+  priceCents: number;
+  refundCents: number;
+  effectivePayoutCents: number | null;
+  deliveredPercent: number;
+}
+
+function bodyRefundGuest(
+  v: CancellationVars,
+  scenario: RefundScenario,
+  refundAmount: string,
+  priceFull: string,
+  percent: number,
+): string {
+  const info =
+    scenario === "full"
+      ? `Refund amount: ${refundAmount} (full refund)`
+      : `Refund amount: ${refundAmount} (${percent}% of ${priceFull})`;
+  return (
+    para(
+      `Your ${v.offering} session with ${v.creator} that was scheduled for ${v.start} has been ${scenario === "full" ? "refunded" : "partially refunded"}.`,
+    ) +
+    infoBox(info) +
+    smallNote(
+      "The refund will appear on your original payment method within 5–10 business days.",
+    )
+  );
+}
+
+function bodyRefundCreator(
+  v: CancellationVars,
+  scenario: RefundScenario,
+  payoutAmount: string | null,
+): string {
+  if (scenario === "full") {
+    return (
+      para(
+        `Your ${v.offering} session with ${v.guest} that was scheduled for ${v.start} resulted in a full refund to the guest.`,
+      ) + infoBox("No payout will be issued for this session.")
+    );
+  }
+  return (
+    para(
+      `Your ${v.offering} session with ${v.guest} that was scheduled for ${v.start} was partially delivered. The guest received a partial refund.`,
+    ) + infoBox(`Your adjusted payout: ${payoutAmount}`)
+  );
+}
+
+export async function sendRefundEmails(
+  input: RefundEmailInput,
+): Promise<{ sent: number; errors: string[] }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    const message =
+      "[email] RESEND_API_KEY is not set; refund emails skipped";
+    console.error(message);
+    return { sent: 0, errors: [message] };
+  }
+
+  const resend = new Resend(apiKey);
+  const offering = escapeHtml(input.offeringTitle);
+  const creatorName = escapeHtml(input.creator.name);
+  const guestName = escapeHtml(input.guest.name);
+  const guestStart = escapeHtml(
+    formatStartTime(input.startAt, input.guest.timezone),
+  );
+  const creatorStart = escapeHtml(
+    formatStartTime(input.startAt, input.creator.timezone),
+  );
+  const refundAmount = money(input.refundCents);
+  const priceFull = money(input.priceCents);
+  const percent = Math.round((input.refundCents / input.priceCents) * 100);
+  const payoutAmount =
+    input.effectivePayoutCents != null
+      ? money(input.effectivePayoutCents)
+      : null;
+
+  const guestSubject =
+    input.scenario === "full"
+      ? `Your session with ${input.creator.name} was refunded`
+      : `Your session with ${input.creator.name} was partially refunded`;
+  const creatorSubject =
+    input.scenario === "full"
+      ? "A session was fully refunded"
+      : "Your payout was adjusted";
+
+  const emails = [
+    {
+      to: input.guest.email,
+      subject: guestSubject,
+      html: document(
+        input.scenario === "full"
+          ? "Session refunded"
+          : "Session partially refunded",
+        input.scenario === "full"
+          ? "Your session was refunded"
+          : "Your session was partially refunded",
+        bodyRefundGuest(
+          { offering, creator: creatorName, guest: guestName, start: guestStart },
+          input.scenario,
+          refundAmount,
+          priceFull,
+          percent,
+        ),
+      ),
+    },
+    {
+      to: input.creator.email,
+      subject: creatorSubject,
+      html: document(
+        input.scenario === "full" ? "Session refunded" : "Payout adjusted",
+        input.scenario === "full"
+          ? "A session was refunded"
+          : "Your payout was adjusted",
+        bodyRefundCreator(
+          { offering, creator: creatorName, guest: guestName, start: creatorStart },
+          input.scenario,
+          payoutAmount,
+        ),
+      ),
+    },
+  ];
+
+  let sent = 0;
+  const errors: string[] = [];
+
+  for (const e of emails) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: e.to,
+        subject: e.subject,
+        html: e.html,
+      });
+      if (error) {
+        const message = `[email] failed to send refund email for booking ${input.bookingId}: ${error.message}`;
+        console.error(message);
+        errors.push(message);
+      } else {
+        console.log(
+          `[email] sent refund email for booking ${input.bookingId} to ${e.to} (${data?.id ?? "no id"})`,
+        );
+        sent++;
+      }
+    } catch (err) {
+      const message = `[email] exception sending refund email for booking ${input.bookingId}: ${err instanceof Error ? err.message : String(err)}`;
+      console.error(message);
+      errors.push(message);
+    }
+  }
+
+  return { sent, errors };
+}

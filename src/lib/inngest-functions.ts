@@ -6,7 +6,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { createOrGetRoom, getRoomMeetings } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
-import { sendBookingReminder, sendBookingConfirmationEmails, type ReminderWindow } from "@/lib/email";
+import { sendBookingReminder, sendBookingConfirmationEmails, sendRefundEmails, type ReminderWindow } from "@/lib/email";
 import { evaluateSessionOutcome, holdPeriodMs, computePresence, needsCreatorReview, proportionalRefund } from "@/lib/session-policy";
 
 const fanUser = alias(users, "fanUser");
@@ -557,6 +557,22 @@ export async function runEvaluation(bookingId: string) {
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
     }
+
+    const partyData = await getReminderData(bookingId);
+    if (partyData) {
+      await sendRefundEmails({
+        scenario: "full",
+        bookingId,
+        offeringTitle: partyData.offering_title,
+        creator: { name: partyData.creator_name, email: partyData.creator_email, timezone: partyData.creator_timezone },
+        guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
+        startAt: new Date(partyData.start_at!),
+        priceCents: booking.price_cents,
+        refundCents: booking.price_cents,
+        effectivePayoutCents: null,
+        deliveredPercent: 0,
+      });
+    }
   }
 
   // Partial refund — creator partially delivered a completed session (Phase 5).
@@ -589,6 +605,22 @@ export async function runEvaluation(bookingId: string) {
       });
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
+    }
+
+    const partyData = await getReminderData(bookingId);
+    if (partyData) {
+      await sendRefundEmails({
+        scenario: "partial",
+        bookingId,
+        offeringTitle: partyData.offering_title,
+        creator: { name: partyData.creator_name, email: partyData.creator_email, timezone: partyData.creator_timezone },
+        guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
+        startAt: new Date(partyData.start_at!),
+        priceCents: booking.price_cents,
+        refundCents: partialRefund.refundCents,
+        effectivePayoutCents: effectivePayoutCents,
+        deliveredPercent: 1 - undeliveredPercent,
+      });
     }
   }
 }

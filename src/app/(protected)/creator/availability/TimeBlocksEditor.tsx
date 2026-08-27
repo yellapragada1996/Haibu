@@ -8,7 +8,7 @@ export type TimeBlock = { start_minute: number; end_minute: number };
 
 const DEFAULT_BLOCK: TimeBlock = { start_minute: 9 * 60, end_minute: 17 * 60 };
 
-function minuteOptions() {
+function minuteOptions(includeEndOfDay = false) {
   const opts: { value: number; label: string }[] = [];
   for (let m = 0; m < 24 * 60; m += 30) {
     const h = Math.floor(m / 60);
@@ -17,9 +17,13 @@ function minuteOptions() {
     const ampm = h < 12 ? "AM" : "PM";
     opts.push({ value: m, label: `${h12}:${min.toString().padStart(2, "0")} ${ampm}` });
   }
+  if (includeEndOfDay) {
+    opts.push({ value: 24 * 60, label: "12:00 AM" });
+  }
   return opts;
 }
-const MINUTE_OPTIONS = minuteOptions();
+const START_OPTIONS = minuteOptions(false);
+const END_OPTIONS = minuteOptions(true);
 
 export function TimeBlocksEditor({
   blocks,
@@ -53,7 +57,7 @@ export function TimeBlocksEditor({
     if (start > 21 * 60) start = 18 * 60;
     onBlocksChange([
       ...blocks,
-      { start_minute: start, end_minute: Math.min(start + 2 * 60, 23 * 60 + 30) },
+      { start_minute: start, end_minute: Math.min(start + 2 * 60, 24 * 60) },
     ]);
   };
 
@@ -70,7 +74,7 @@ export function TimeBlocksEditor({
             onChange={(e) => updateBlock(index, "start_minute", Number(e.target.value))}
             className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-white outline-none focus:border-primary"
           >
-            {MINUTE_OPTIONS.map((o) => (
+            {START_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -82,7 +86,7 @@ export function TimeBlocksEditor({
             onChange={(e) => updateBlock(index, "end_minute", Number(e.target.value))}
             className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-white outline-none focus:border-primary"
           >
-            {MINUTE_OPTIONS.map((o) => (
+            {END_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>

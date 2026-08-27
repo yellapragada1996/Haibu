@@ -597,6 +597,7 @@ export const AvailabilityManager = forwardRef<
 });
 
 function labelFor(minute: number) {
+  if (minute >= 24 * 60) return "12:00 AM";
   const h = Math.floor(minute / 60);
   const m = minute % 60;
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;

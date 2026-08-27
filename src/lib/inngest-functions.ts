@@ -6,7 +6,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { createOrGetRoom, getRoomMeetings } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
-import { sendBookingReminder, type ReminderWindow } from "@/lib/email";
+import { sendBookingReminder, sendBookingConfirmationEmails, type ReminderWindow } from "@/lib/email";
 import { evaluateSessionOutcome, holdPeriodMs, computePresence, needsCreatorReview, proportionalRefund } from "@/lib/session-policy";
 
 const fanUser = alias(users, "fanUser");
@@ -54,6 +54,7 @@ export const handleBookingConfirmed = inngest.createFunction(
         daily_room_name: bookings.daily_room_name,
         start_at: bookings.start_at,
         end_at: bookings.end_at,
+        price_cents: bookings.price_cents,
       })
       .from(bookings)
       .where(eq(bookings.id, bookingId));
@@ -71,6 +72,33 @@ export const handleBookingConfirmed = inngest.createFunction(
         .update(bookings)
         .set({ daily_room_name: room.name, daily_room_url: room.url })
         .where(eq(bookings.id, bookingId));
+    }
+
+    // Send booking confirmation emails to both guest and creator.
+    const confirmData = await getReminderData(bookingId);
+    if (confirmData && confirmData.status === "confirmed") {
+      try {
+        await sendBookingConfirmationEmails({
+          bookingId,
+          offeringTitle: confirmData.offering_title,
+          creator: {
+            name: confirmData.creator_name,
+            email: confirmData.creator_email,
+            timezone: confirmData.creator_timezone,
+          },
+          guest: {
+            name: confirmData.fan_name,
+            email: confirmData.fan_email,
+            timezone: confirmData.fan_timezone,
+          },
+          startAt: new Date(confirmData.start_at),
+          priceCents: booking.price_cents,
+        });
+      } catch (e) {
+        console.error(
+          `[booking] confirmation email failed for ${bookingId}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
     }
 
     // Schedule session evaluation at end_at + 5 min grace.

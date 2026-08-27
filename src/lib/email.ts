@@ -642,3 +642,114 @@ export async function sendCancellationEmails(
 
   return { sent, errors };
 }
+
+// ---------------------------------------------------------------------------
+// Booking confirmation emails — sent to both guest and creator when a
+// session is confirmed (payment succeeded).
+// ---------------------------------------------------------------------------
+
+export interface BookingConfirmationParty {
+  name: string;
+  email: string;
+  timezone: string;
+}
+
+export interface BookingConfirmationInput {
+  bookingId: string;
+  offeringTitle: string;
+  creator: BookingConfirmationParty;
+  guest: BookingConfirmationParty;
+  startAt: Date;
+  priceCents: number;
+}
+
+export async function sendBookingConfirmationEmails(
+  input: BookingConfirmationInput,
+): Promise<{ sent: number; errors: string[] }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    const message =
+      "[email] RESEND_API_KEY is not set; booking confirmation emails skipped";
+    console.error(message);
+    return { sent: 0, errors: [message] };
+  }
+
+  const resend = new Resend(apiKey);
+  const offering = escapeHtml(input.offeringTitle);
+  const creatorName = escapeHtml(input.creator.name);
+  const guestName = escapeHtml(input.guest.name);
+  const guestStart = escapeHtml(
+    formatStartTime(input.startAt, input.guest.timezone),
+  );
+  const creatorStart = escapeHtml(
+    formatStartTime(input.startAt, input.creator.timezone),
+  );
+  const url = escapeHtml(bookingUrl(input.bookingId));
+  const amount = money(input.priceCents);
+
+  const guestBody =
+    para(`Your ${offering} session with ${creatorName} is booked for ${guestStart}.`) +
+    infoBox(`Amount paid: ${amount}`) +
+    para("You will get a reminder before it starts with a link to join.") +
+    '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
+    "                <tr>\n" +
+    '                  <td align="center">\n' +
+    `                    <a href="${url}" style="display:inline-block;background-color:#121212;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">View booking</a>\n` +
+    "                  </td>\n" +
+    "                </tr>\n" +
+    "              </table>\n";
+
+  const creatorBody =
+    para(`${guestName} booked a ${offering} session with you for ${creatorStart}.`) +
+    para("You will get a reminder before it starts with a link to join.") +
+    '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
+    "                <tr>\n" +
+    '                  <td align="center">\n' +
+    `                    <a href="${url}" style="display:inline-block;background-color:#121212;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">View booking</a>\n` +
+    "                  </td>\n" +
+    "                </tr>\n" +
+    "              </table>\n";
+
+  const emails = [
+    {
+      to: input.guest.email,
+      subject: `Your session with ${input.creator.name} is confirmed`,
+      html: document("Booking confirmed", "You're booked", guestBody),
+    },
+    {
+      to: input.creator.email,
+      subject: `New booking from ${input.guest.name}`,
+      html: document("New booking", "You have a new booking", creatorBody),
+    },
+  ];
+
+  let sent = 0;
+  const errors: string[] = [];
+
+  for (const e of emails) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: e.to,
+        subject: e.subject,
+        html: e.html,
+      });
+      if (error) {
+        const message = `[email] failed to send booking confirmation for ${input.bookingId}: ${error.message}`;
+        console.error(message);
+        errors.push(message);
+      } else {
+        console.log(
+          `[email] sent booking confirmation for ${input.bookingId} to ${e.to} (${data?.id ?? "no id"})`,
+        );
+        sent++;
+      }
+    } catch (err) {
+      const message = `[email] exception sending booking confirmation for ${input.bookingId}: ${err instanceof Error ? err.message : String(err)}`;
+      console.error(message);
+      errors.push(message);
+    }
+  }
+
+  return { sent, errors };
+}

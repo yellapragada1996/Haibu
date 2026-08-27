@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { bookings as bookingsTable, offerings, creatorProfiles, users } from "@/db/schema";
-import { eq, and, or, gte, desc, sql } from "drizzle-orm";
+import { eq, and, or, gte, asc, desc, sql } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { bookingBadgeVariant, bookingLabel } from "@/lib/status";
@@ -130,7 +130,7 @@ export default async function CreatorBookingsPage() {
         ),
       ),
     )
-    .orderBy(desc(bookingsTable.start_at))
+    .orderBy(asc(bookingsTable.start_at))
     .limit(50);
 
   // Past sessions — completed + any confirmed booking past its end time

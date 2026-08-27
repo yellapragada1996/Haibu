@@ -113,6 +113,13 @@ export default async function DashboardPage() {
     else past.push(item);
   }
 
+  // Upcoming should be soonest-first (most recent at top). The query returns
+  // rows newest-start_at-first (which the Past list wants), so re-sort the
+  // upcoming subset ascending by start time; past stays newest-first.
+  upcoming.sort(
+    (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime(),
+  );
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-white">

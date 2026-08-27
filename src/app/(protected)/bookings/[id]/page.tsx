@@ -128,6 +128,7 @@ export default async function BookingPage({
 
   const startDate = booking.start_at ? new Date(booking.start_at) : null;
   const endDate = booking.end_at ? new Date(booking.end_at) : null;
+  const isPastEnd = endDate ? endDate < new Date() : false;
 
   const detail = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between gap-4">
@@ -144,7 +145,9 @@ export default async function BookingPage({
           : booking.status === "confirmed"
             ? booking.start_at! > new Date()
               ? "Upcoming session"
-              : "Session in progress"
+              : isPastEnd
+                ? "Session ended"
+                : "Session in progress"
             : "Your Session"}
       </h1>
 
@@ -184,7 +187,7 @@ export default async function BookingPage({
           </div>
         </div>
 
-        {booking.status === "confirmed" && (
+        {booking.status === "confirmed" && !isPastEnd && (
           <>
             <JoinSection
               bookingId={booking.id}
@@ -205,6 +208,12 @@ export default async function BookingPage({
               </div>
             )}
           </>
+        )}
+
+        {booking.status === "confirmed" && isPastEnd && (
+          <p className="pt-3 text-sm text-text-secondary">
+            This session has ended and is being processed.
+          </p>
         )}
 
         {booking.status === "confirmed" && booking.start_at! > new Date() && (

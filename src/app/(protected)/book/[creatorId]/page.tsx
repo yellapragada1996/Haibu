@@ -160,7 +160,12 @@ export default function BookPage() {
   const pillRowRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  console.log("[BookPage] selectedOffering:", selectedOffering?.title ?? "null", "| clientSecret:", !!clientSecret);
+  // When arriving from the public slot picker (?slot= present), skip all
+  // intermediate UI (offering list, slot grid) and show a single spinner
+  // until the payment form is ready.
+  const [directBooking] = useState(
+    () => typeof window !== "undefined" && !!new URLSearchParams(window.location.search).get("slot"),
+  );
 
   useEffect(() => {
     fetch(`/api/creator/${creatorId}/offerings`)
@@ -317,7 +322,7 @@ export default function BookPage() {
     <div className="mx-auto max-w-lg px-6 py-8" key={creatorId}>
       <h1 className="text-xl font-semibold text-white">Book a Session</h1>
 
-      {!selectedOffering && offerings.length > 0 && (
+      {!selectedOffering && offerings.length > 0 && !directBooking && (
         <div className="mt-6 space-y-2">
           {offerings.map((o) => (
             <button
@@ -336,13 +341,19 @@ export default function BookPage() {
         </div>
       )}
 
-      {selectedOffering && !clientSecret && autoReserving && (
+      {directBooking && !clientSecret && (
         <div className="mt-6 py-16 text-center">
           <p className="text-sm text-text-secondary">Reserving your slot…</p>
         </div>
       )}
 
-      {selectedOffering && !clientSecret && !autoReserving && (
+      {!directBooking && selectedOffering && !clientSecret && autoReserving && (
+        <div className="mt-6 py-16 text-center">
+          <p className="text-sm text-text-secondary">Reserving your slot…</p>
+        </div>
+      )}
+
+      {!directBooking && selectedOffering && !clientSecret && !autoReserving && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <div>

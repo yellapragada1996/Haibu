@@ -33,9 +33,10 @@ export function bookingLabel(
   facts: BookingFacts = {},
   viewer: BookingViewer = "guest",
 ): string {
-  // needs_review overlays the underlying status for the creator only — the
-  // guest always sees their real status regardless of review state.
-  if (facts.needs_review && viewer === "creator") {
+  // needs_review overlays the underlying status for both parties — neither
+  // should see a stale "Confirmed" or misleading terminal label while the
+  // session is awaiting admin review.
+  if (facts.needs_review) {
     return "Under review";
   }
   // cancelled_creator + system = mutual no-show (deliberately neutral).

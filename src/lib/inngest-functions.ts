@@ -349,6 +349,7 @@ export async function runEvaluation(bookingId: string) {
 
   // If either join is missing, verify against Daily's REST API before deciding.
   // This catches failures in webhooks AND client-side confirmation.
+  let deferRefund = false;
   if ((!fanJoined || !creatorJoined) && booking.daily_room_name) {
     try {
       const meetings = await getRoomMeetings(booking.daily_room_name);
@@ -375,14 +376,11 @@ export async function runEvaluation(bookingId: string) {
       console.error(
         `[eval] Daily API check failed for ${bookingId}: ${e instanceof Error ? e.message : String(e)}`,
       );
-      // If we still have no join data AND the API is unreachable, flag for
-      // manual review instead of auto-deciding a financial outcome.
+      // If we still have no join data AND the API is unreachable, defer the
+      // refund for admin review but still transition the status (so the session
+      // doesn't stay "confirmed" forever).
       if (!fanJoined && !creatorJoined) {
-        await db
-          .update(bookings)
-          .set({ needs_review: true })
-          .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
-        return;
+        deferRefund = true;
       }
     }
   }
@@ -475,6 +473,10 @@ export async function runEvaluation(bookingId: string) {
     needsReview = false;
   }
 
+  // When the Daily API was unreachable and we have no join evidence at all,
+  // flag for admin review — no money moves until a human looks at it.
+  if (deferRefund) needsReview = true;
+
   // Update booking status with guard
   const extra =
     cancelled_by && cancel_reason
@@ -494,8 +496,9 @@ export async function runEvaluation(bookingId: string) {
     })
     .where(and(eq(bookings.id, bookingId), eq(bookings.status, "confirmed")));
 
-  // Full refund — no-show / mutual no-show (unchanged).
-  if (refund && booking.stripe_payment_intent_id) {
+  // Full refund — no-show / mutual no-show. Skipped when the Daily API was
+  // unreachable and we have no evidence either way (admin decides).
+  if (refund && booking.stripe_payment_intent_id && !deferRefund) {
     await stripe.refunds.create({
       payment_intent: booking.stripe_payment_intent_id,
       reason: "requested_by_customer" as const,

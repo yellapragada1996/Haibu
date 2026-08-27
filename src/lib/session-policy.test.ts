@@ -243,19 +243,21 @@ describe("needsCreatorReview (§5 partial-delivery flag)", () => {
   });
 });
 
-describe("proportionalRefund (§5 money — balanced integer cents)", () => {
+describe("proportionalRefund (§5 money — balanced integer cents, net of Stripe fee)", () => {
   const PRICE = 4000;
-  const FEE = 720; // 18%
+  const FEE = 720; // 18% platform fee
 
-  it("40% undelivered, no stripe fee → 40% refund, 60% payout, balanced", () => {
+  it("40% undelivered, no stripe fee → refund 40% of net, balanced", () => {
     const r = proportionalRefund(PRICE, FEE, 0, 0.4);
+    // net = 4000, refund = round(4000*0.4) = 1600
     expect(r.refundCents).toBe(1600);
-    expect(r.feeReversalCents).toBe(288);
+    // creatorPayout = 4000-0-720 = 3280, effective = round(3280*0.6) = 1968
     expect(r.effectivePayoutCents).toBe(1968);
-    expect(r.refundCents + (FEE - r.feeReversalCents) + r.effectivePayoutCents).toBe(PRICE);
+    // invariant: refund + payout + feeReversal = netAmount
+    expect(r.refundCents + r.effectivePayoutCents + r.feeReversalCents).toBe(PRICE);
   });
 
-  it("full refund (100%) → 0 payout", () => {
+  it("full refund (100%), no stripe fee → refund = price, 0 payout", () => {
     const r = proportionalRefund(PRICE, FEE, 0, 1.0);
     expect(r.refundCents).toBe(PRICE);
     expect(r.effectivePayoutCents).toBe(0);
@@ -268,24 +270,29 @@ describe("proportionalRefund (§5 money — balanced integer cents)", () => {
   });
 
   it("with stripe fee — 0% refund → full payout minus stripe + platform", () => {
-    const STRIPE = 146; // 2.9% of 4000 + 30
+    const STRIPE = 146;
     const r = proportionalRefund(PRICE, FEE, STRIPE, 0);
     expect(r.refundCents).toBe(0);
     expect(r.effectivePayoutCents).toBe(PRICE - FEE - STRIPE);
   });
 
-  it("with stripe fee — 50% refund → 50% of creator payout", () => {
+  it("with stripe fee — 50% refund → refund is 50% of net amount", () => {
     const STRIPE = 146;
+    const NET = PRICE - STRIPE; // 3854
     const r = proportionalRefund(PRICE, FEE, STRIPE, 0.5);
-    expect(r.refundCents).toBe(2000);
-    const creatorPayout = PRICE - FEE - STRIPE;
+    // refund = round(3854 * 0.5) = 1927
+    expect(r.refundCents).toBe(Math.round(NET * 0.5));
+    const creatorPayout = PRICE - FEE - STRIPE; // 3134
     expect(r.effectivePayoutCents).toBe(Math.round(creatorPayout * 0.5));
+    // invariant: all pieces sum to net amount
+    expect(r.refundCents + r.effectivePayoutCents + r.feeReversalCents).toBe(NET);
   });
 
-  it("with stripe fee — 100% refund → 0 payout", () => {
+  it("with stripe fee — 100% refund → refund = net, 0 payout", () => {
     const STRIPE = 146;
+    const NET = PRICE - STRIPE;
     const r = proportionalRefund(PRICE, FEE, STRIPE, 1.0);
-    expect(r.refundCents).toBe(PRICE);
+    expect(r.refundCents).toBe(NET);
     expect(r.effectivePayoutCents).toBe(0);
   });
 });

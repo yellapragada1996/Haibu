@@ -10,6 +10,7 @@ export interface RefundItem {
   bookingId: string;
   refundCents: number;
   priceCents: number;
+  stripeFeeCents: number;
   refundedAt: string;
   startAt: string;
   offeringTitle: string;
@@ -148,8 +149,9 @@ export function RefundList({
   return (
     <div className="space-y-3">
       {items.map((item) => {
-        const isPartial = item.refundCents < item.priceCents;
-        const percent = Math.round((item.refundCents / item.priceCents) * 100);
+        const netAmount = item.priceCents - item.stripeFeeCents;
+        const isFullRefund = item.refundCents >= netAmount;
+        const isPartial = !isFullRefund;
         const reason = refundReasonShort(item);
         const isExpanded = expandedId === item.id;
 
@@ -187,7 +189,7 @@ export function RefundList({
                         </p>
                         {isPartial && (
                           <p className="mt-0.5 text-xs text-text-secondary">
-                            {percent}% refund
+                            partial refund
                           </p>
                         )}
                       </div>
@@ -227,11 +229,17 @@ export function RefundList({
                     label="Session price"
                     value={money(item.priceCents)}
                   />
+                  {item.stripeFeeCents > 0 && (
+                    <DetailRow
+                      label="Processing fee (non-refundable)"
+                      value={`-${money(item.stripeFeeCents)}`}
+                    />
+                  )}
                   <DetailRow
                     label="Refund amount"
                     value={
                       isPartial
-                        ? `${money(item.refundCents)} (${percent}%)`
+                        ? `${money(item.refundCents)} (partial)`
                         : `${money(item.refundCents)} (full)`
                     }
                     highlight

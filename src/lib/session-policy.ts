@@ -170,12 +170,10 @@ export function proportionalRefund(
   stripeFeeCents: number,
   refundPercent: number, // 0..1
 ): ProportionalRefund {
-  const refundCents = Math.round(priceCents * refundPercent);
-  const feeReversalCents = Math.round(platformFeeCents * refundPercent);
-  const stripeFeeReversalCents = Math.round(stripeFeeCents * refundPercent);
-  const effectivePayoutCents =
-    priceCents - refundCents
-    - (stripeFeeCents - stripeFeeReversalCents)
-    - (platformFeeCents - feeReversalCents);
+  const netAmount = priceCents - stripeFeeCents;
+  const refundCents = Math.round(netAmount * refundPercent);
+  const creatorPayoutCents = priceCents - stripeFeeCents - platformFeeCents;
+  const effectivePayoutCents = Math.round(creatorPayoutCents * (1 - refundPercent));
+  const feeReversalCents = netAmount - refundCents - effectivePayoutCents;
   return { refundCents, feeReversalCents, effectivePayoutCents };
 }

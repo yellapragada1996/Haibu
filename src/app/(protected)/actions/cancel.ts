@@ -78,20 +78,20 @@ export async function cancelBooking(
 
   // Refund calculation (§3/§4) — includes the 5-minute cooling-off grace for
   // guests and the tiered guest rule, centralized in session-policy.ts.
+  // Stripe's processing fee is non-refundable, so the refund base is
+  // price minus Stripe fee. The guest absorbs the fee, not Haibu.
   const refundPercent = cancellationRefundPercent(
     actor,
     booking.start_at,
     booking.created_at,
   );
 
-  const refundCents = Math.round(booking.price_cents * refundPercent);
-  const feeReversalCents = Math.round(booking.platform_fee_cents * refundPercent);
   const stripeFeeCents = booking.stripe_fee_cents ?? 0;
-  const stripeFeeReversalCents = Math.round(stripeFeeCents * refundPercent);
+  const netAmount = booking.price_cents - stripeFeeCents;
+  const refundCents = Math.round(netAmount * refundPercent);
   const creatorPayoutFromCancellation =
-    booking.price_cents - refundCents
-    - (stripeFeeCents - stripeFeeReversalCents)
-    - (booking.platform_fee_cents - feeReversalCents);
+    Math.round(booking.creator_payout_cents * (1 - refundPercent));
+  const feeReversalCents = netAmount - refundCents - creatorPayoutFromCancellation;
 
   // Hold period for creator's cancellation share (if any)
   let payoutEligibleAt: Date | null = null;
@@ -169,6 +169,7 @@ export async function cancelBooking(
         },
         startAt: booking.start_at,
         priceCents: booking.price_cents,
+        stripeFeeCents,
         creatorPayoutCents: booking.creator_payout_cents,
         refundPercent,
       });

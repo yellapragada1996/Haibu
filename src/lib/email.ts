@@ -396,6 +396,7 @@ export interface CancellationInput {
   guest: CancellationParty;
   startAt: Date;
   priceCents: number;
+  stripeFeeCents: number;
   creatorPayoutCents: number;
   refundPercent: number; // 0..1; guest-cancel tier, else 1.0
 }
@@ -405,11 +406,15 @@ function money(cents: number): string {
 }
 
 // §3 — the guest's refund tier, rendered in their own words.
-function refundText(refundPercent: number, priceCents: number): string {
-  const amount = money(Math.round(priceCents * refundPercent));
-  if (refundPercent >= 1) return `You'll receive a full refund of ${amount}.`;
+// Stripe's processing fee is non-refundable, so the refund base is net of fees.
+function refundText(refundPercent: number, priceCents: number, stripeFeeCents: number): string {
+  const netAmount = priceCents - stripeFeeCents;
+  const amount = money(Math.round(netAmount * refundPercent));
+  if (refundPercent >= 1) {
+    return `You'll receive a refund of ${amount}. A non-refundable payment processing fee of ${money(stripeFeeCents)} has been deducted from the original ${money(priceCents)}.`;
+  }
   if (refundPercent > 0) {
-    return `You'll receive a ${Math.round(refundPercent * 100)}% refund of ${amount}.`;
+    return `You'll receive a ${Math.round(refundPercent * 100)}% refund of ${amount} (after a non-refundable processing fee of ${money(stripeFeeCents)}).`;
   }
   return "No refund applies at this stage.";
 }
@@ -465,10 +470,13 @@ function bodyGuestCancelledCreator(v: CancellationVars, compensation: string): s
   );
 }
 
-function bodyCreatorCancelledGuest(v: CancellationVars, amount: string): string {
+function bodyCreatorCancelledGuest(v: CancellationVars, netAmount: string, stripeFeeCents: number, priceCents: number): string {
+  const feeNote = stripeFeeCents > 0
+    ? ` A non-refundable payment processing fee of ${money(stripeFeeCents)} has been deducted from the original ${money(priceCents)}.`
+    : "";
   return (
     para(`${v.creator} cancelled your ${v.offering} session that was scheduled for ${v.start}.`) +
-    infoBox(`You will receive a full refund of ${amount}.`)
+    infoBox(`You will receive a refund of ${netAmount}.${feeNote}`)
   );
 }
 
@@ -517,12 +525,12 @@ export function buildCancellationEmails(
   const creatorStart = escapeHtml(
     formatStartTime(input.startAt, input.creator.timezone),
   );
-  const refund = refundText(input.refundPercent, input.priceCents);
+  const refund = refundText(input.refundPercent, input.priceCents, input.stripeFeeCents);
   const compensation = compensationText(
     input.refundPercent,
     input.creatorPayoutCents,
   );
-  const amount = money(input.priceCents);
+  const netRefundAmount = money(input.priceCents - input.stripeFeeCents);
 
   const emails: CancellationEmail[] = [];
 
@@ -555,7 +563,9 @@ export function buildCancellationEmails(
       heading: "Your session was cancelled",
       body: bodyCreatorCancelledGuest(
         { offering, creator: creatorName, guest: guestName, start: guestStart },
-        amount,
+        netRefundAmount,
+        input.stripeFeeCents,
+        input.priceCents,
       ),
     });
     emails.push({
@@ -776,6 +786,7 @@ export interface RefundEmailInput {
   guest: RefundEmailParty;
   startAt: Date;
   priceCents: number;
+  stripeFeeCents: number;
   refundCents: number;
   effectivePayoutCents: number | null;
   deliveredPercent: number;
@@ -785,13 +796,16 @@ function bodyRefundGuest(
   v: CancellationVars,
   scenario: RefundScenario,
   refundAmount: string,
-  priceFull: string,
-  percent: number,
+  stripeFeeCents: number,
+  priceCents: number,
 ): string {
+  const feeNote = stripeFeeCents > 0
+    ? ` A non-refundable payment processing fee of ${money(stripeFeeCents)} has been deducted from the original ${money(priceCents)}.`
+    : "";
   const info =
     scenario === "full"
-      ? `Refund amount: ${refundAmount} (full refund)`
-      : `Refund amount: ${refundAmount} (${percent}% of ${priceFull})`;
+      ? `Refund amount: ${refundAmount}.${feeNote}`
+      : `Refund amount: ${refundAmount}.${feeNote}`;
   return (
     para(
       `Your ${v.offering} session with ${v.creator} that was scheduled for ${v.start} has been ${scenario === "full" ? "refunded" : "partially refunded"}.`,
@@ -844,8 +858,6 @@ export async function sendRefundEmails(
     formatStartTime(input.startAt, input.creator.timezone),
   );
   const refundAmount = money(input.refundCents);
-  const priceFull = money(input.priceCents);
-  const percent = Math.round((input.refundCents / input.priceCents) * 100);
   const payoutAmount =
     input.effectivePayoutCents != null
       ? money(input.effectivePayoutCents)
@@ -875,8 +887,8 @@ export async function sendRefundEmails(
           { offering, creator: creatorName, guest: guestName, start: guestStart },
           input.scenario,
           refundAmount,
-          priceFull,
-          percent,
+          input.stripeFeeCents,
+          input.priceCents,
         ),
       ),
     },

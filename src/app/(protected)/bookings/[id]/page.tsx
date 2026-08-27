@@ -53,6 +53,7 @@ export default async function BookingPage({
       start_at: bookingsTable.start_at,
       end_at: bookingsTable.end_at,
       price_cents: bookingsTable.price_cents,
+      stripe_fee_cents: bookingsTable.stripe_fee_cents,
       daily_room_url: bookingsTable.daily_room_url,
       creator_name: users.display_name,
       creator_avatar: users.avatar_url,
@@ -225,6 +226,7 @@ export default async function BookingPage({
               booking.created_at ? new Date(booking.created_at).toISOString() : null
             }
             priceCents={booking.price_cents}
+            stripeFeeCents={booking.stripe_fee_cents ?? 0}
             role={isFan ? "fan" : "creator"}
           />
         )}

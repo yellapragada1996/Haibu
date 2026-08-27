@@ -45,12 +45,14 @@ export function CancelSection({
   startAt,
   createdAt,
   priceCents,
+  stripeFeeCents,
   role,
 }: {
   bookingId: string;
   startAt: string;
   createdAt: string | null;
   priceCents: number;
+  stripeFeeCents: number;
   role: "fan" | "creator";
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
@@ -61,7 +63,8 @@ export function CancelSection({
   const isCreator = role === "creator";
   const refundText = isCreator ? null : computeRefundText(startAt, createdAt);
   const percent = isCreator ? 100 : computeRefundPercent(startAt, createdAt);
-  const refundCents = Math.round(priceCents * (percent / 100));
+  const netAmount = priceCents - stripeFeeCents;
+  const refundCents = Math.round(netAmount * (percent / 100));
 
   if (!showConfirm) {
     return (
@@ -83,9 +86,9 @@ export function CancelSection({
     >
       <p className="text-sm text-white">
         {isCreator ? (
-          "The guest will receive a full refund and this session will be cancelled. You will not be paid for this session."
+          "The guest will receive a refund (minus payment processing fees) and this session will be cancelled. You will not be paid for this session."
         ) : refundText ? (
-          `${refundText}: you'll receive $${(refundCents / 100).toFixed(2)} back`
+          `${refundText}: you'll receive $${(refundCents / 100).toFixed(2)} back (after non-refundable processing fees)`
         ) : (
           "No refund at this stage"
         )}

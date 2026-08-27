@@ -527,20 +527,24 @@ export async function runEvaluation(bookingId: string) {
 
   // Full refund — no-show / mutual no-show. Skipped when the Daily API was
   // unreachable and we have no evidence either way (admin decides).
+  const stripeFeeCents = booking.stripe_fee_cents ?? 0;
+
   if (refund && booking.stripe_payment_intent_id && !deferRefund) {
+    const fullRefundCents = booking.price_cents - stripeFeeCents;
+
     await stripe.refunds.create({
       payment_intent: booking.stripe_payment_intent_id,
+      amount: fullRefundCents,
       reason: "requested_by_customer" as const,
     });
 
-    // Ledger entries — each with its own 23505 catch
     try {
       await db.insert(ledgerEntries).values({
         booking_id: bookingId,
         type: "refund" as const,
-        amount_cents: -booking.price_cents,
+        amount_cents: -fullRefundCents,
         stripe_reference: booking.stripe_payment_intent_id,
-        note: `refund: session ${outcome}`,
+        note: `refund: session ${outcome} (after processing fees)`,
       });
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
@@ -568,7 +572,8 @@ export async function runEvaluation(bookingId: string) {
         guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
         startAt: new Date(partyData.start_at!),
         priceCents: booking.price_cents,
-        refundCents: booking.price_cents,
+        stripeFeeCents,
+        refundCents: fullRefundCents,
         effectivePayoutCents: null,
         deliveredPercent: 0,
       });
@@ -617,6 +622,7 @@ export async function runEvaluation(bookingId: string) {
         guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
         startAt: new Date(partyData.start_at!),
         priceCents: booking.price_cents,
+        stripeFeeCents,
         refundCents: partialRefund.refundCents,
         effectivePayoutCents: effectivePayoutCents,
         deliveredPercent: 1 - undeliveredPercent,

@@ -47,6 +47,7 @@ async function sendAdminCancellationEmails(bookingId: string): Promise<void> {
         offering_id: bookings.offering_id,
         start_at: bookings.start_at,
         price_cents: bookings.price_cents,
+        stripe_fee_cents: bookings.stripe_fee_cents,
         creator_payout_cents: bookings.creator_payout_cents,
       })
       .from(bookings)
@@ -92,6 +93,7 @@ async function sendAdminCancellationEmails(bookingId: string): Promise<void> {
         },
         startAt: booking.start_at,
         priceCents: booking.price_cents,
+        stripeFeeCents: booking.stripe_fee_cents ?? 0,
         creatorPayoutCents: booking.creator_payout_cents,
         refundPercent: 1,
       });
@@ -133,6 +135,7 @@ export async function adminForceCancel(
       id: bookings.id,
       status: bookings.status,
       price_cents: bookings.price_cents,
+      stripe_fee_cents: bookings.stripe_fee_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       stripe_payment_intent_id: bookings.stripe_payment_intent_id,
     })
@@ -144,8 +147,6 @@ export async function adminForceCancel(
     return { error: "Only confirmed bookings can be force-cancelled" };
   }
 
-  // confirmed -> cancelled_admin, guarded on current status (idempotent).
-  // The reason is persisted on bookings.cancel_reason so it remains queryable.
   const result = await db
     .update(bookings)
     .set({
@@ -159,13 +160,13 @@ export async function adminForceCancel(
 
   await sendAdminCancellationEmails(booking.id);
 
-  // Full refund + ledger (mirrors the shapes used in actions/cancel.ts).
-  // Ordering intentionally matches cancel.ts: terminal status first, then
-  // refund — so a failed refund can't leave a booking in a re-cancellable state.
   if (booking.price_cents > 0 && booking.stripe_payment_intent_id) {
+    const stripeFeeCents = booking.stripe_fee_cents ?? 0;
+    const refundCents = booking.price_cents - stripeFeeCents;
+
     await stripe.refunds.create({
       payment_intent: booking.stripe_payment_intent_id,
-      amount: booking.price_cents,
+      amount: refundCents,
       reason: "requested_by_customer",
     });
 
@@ -173,9 +174,9 @@ export async function adminForceCancel(
       await db.insert(ledgerEntries).values({
         booking_id: booking.id,
         type: "refund",
-        amount_cents: -booking.price_cents,
+        amount_cents: -refundCents,
         stripe_reference: booking.stripe_payment_intent_id,
-        note: `refund: admin force-cancel — ${trimmed}`,
+        note: `refund: admin force-cancel — ${trimmed} (after processing fees)`,
       });
     } catch (e: unknown) {
       if (!isPgErrorCode(e, "23505")) throw e;
@@ -264,6 +265,7 @@ export async function noShowOverride(
       id: bookings.id,
       status: bookings.status,
       price_cents: bookings.price_cents,
+      stripe_fee_cents: bookings.stripe_fee_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       stripe_payment_intent_id: bookings.stripe_payment_intent_id,
     })
@@ -308,12 +310,13 @@ export async function noShowOverride(
 
     await sendAdminCancellationEmails(booking.id);
 
-    // Full refund + ledger (mirrors adminForceCancel). Skipped when there is
-    // no payment intent (as with the manual test bookings in this dev DB).
     if (booking.price_cents > 0 && booking.stripe_payment_intent_id) {
+      const stripeFeeCents = booking.stripe_fee_cents ?? 0;
+      const refundCents = booking.price_cents - stripeFeeCents;
+
       await stripe.refunds.create({
         payment_intent: booking.stripe_payment_intent_id,
-        amount: booking.price_cents,
+        amount: refundCents,
         reason: "requested_by_customer",
       });
 
@@ -321,9 +324,9 @@ export async function noShowOverride(
         await db.insert(ledgerEntries).values({
           booking_id: booking.id,
           type: "refund",
-          amount_cents: -booking.price_cents,
+          amount_cents: -refundCents,
           stripe_reference: booking.stripe_payment_intent_id,
-          note: `refund: no-show override — ${trimmed}`,
+          note: `refund: no-show override — ${trimmed} (after processing fees)`,
         });
       } catch (e: unknown) {
         if (!isPgErrorCode(e, "23505")) throw e;
@@ -398,7 +401,6 @@ export async function resolveNeedsReview(
   if (!booking.needs_review) return { error: "Booking is not flagged for review" };
 
   if (outcome === "refund") {
-    // Full refund: status → cancelled_admin, refund the guest, no payout.
     await db
       .update(bookings)
       .set({
@@ -414,18 +416,21 @@ export async function resolveNeedsReview(
     await sendAdminCancellationEmails(booking.id);
 
     if (booking.price_cents > 0 && booking.stripe_payment_intent_id) {
+      const stripeFeeCents = booking.stripe_fee_cents ?? 0;
+      const refundCents = booking.price_cents - stripeFeeCents;
+
       await stripe.refunds.create({
         payment_intent: booking.stripe_payment_intent_id,
-        amount: booking.price_cents,
+        amount: refundCents,
         reason: "requested_by_customer",
       });
       try {
         await db.insert(ledgerEntries).values({
           booking_id: bookingId,
           type: "refund",
-          amount_cents: -booking.price_cents,
+          amount_cents: -refundCents,
           stripe_reference: booking.stripe_payment_intent_id,
-          note: `refund: review resolve — ${trimmed}`,
+          note: `refund: review resolve — ${trimmed} (after processing fees)`,
         });
       } catch (e: unknown) {
         if (!isPgErrorCode(e, "23505")) throw e;

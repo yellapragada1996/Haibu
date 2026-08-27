@@ -11,6 +11,7 @@ export type BookingViewer = "guest" | "creator";
 export type BookingFacts = {
   cancelled_by?: string | null;
   needs_review?: boolean | null;
+  isPastEnd?: boolean;
 };
 
 const LABELS: Record<string, { guest: string; creator: string }> = {
@@ -38,6 +39,11 @@ export function bookingLabel(
   // session is awaiting admin review.
   if (facts.needs_review) {
     return "Under review";
+  }
+  // A confirmed session past its end_at is awaiting automatic evaluation
+  // (fires 5 min after end). Show "Processing" so it doesn't look stuck.
+  if (status === "confirmed" && facts.isPastEnd) {
+    return "Processing";
   }
   // cancelled_creator + system = mutual no-show (deliberately neutral).
   if (status === "cancelled_creator" && facts.cancelled_by === "system") {

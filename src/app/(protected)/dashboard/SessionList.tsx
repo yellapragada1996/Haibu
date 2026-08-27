@@ -111,9 +111,10 @@ export function SessionList({
       ) : (
         <div className="flex flex-col gap-3">
           {list.map((s) => {
+            const isPastEnd = s.end_at ? new Date(s.end_at) < new Date() : false;
             const badgeLabel = bookingLabel(
               s.status,
-              { cancelled_by: s.cancelled_by, needs_review: s.needs_review },
+              { cancelled_by: s.cancelled_by, needs_review: s.needs_review, isPastEnd },
               "guest",
             );
             const badgeClass = sessionBadgeClassName(s.status);

@@ -180,6 +180,7 @@ export default async function BookingPage({
                 {
                   cancelled_by: booking.cancelled_by,
                   needs_review: booking.needs_review,
+                  isPastEnd,
                 },
                 isFan ? "guest" : "creator",
               )}

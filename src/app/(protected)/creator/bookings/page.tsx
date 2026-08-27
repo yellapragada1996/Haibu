@@ -43,7 +43,7 @@ function CancelledRow({ b, timezone }: { b: CancelledRowItem; timezone?: string 
               variant={bookingBadgeVariant(b.status)}
               label={bookingLabel(
                 b.status,
-                { cancelled_by: b.cancelled_by, needs_review: b.needs_review },
+                { cancelled_by: b.cancelled_by, needs_review: b.needs_review, isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false },
                 "creator",
               )}
             />
@@ -217,7 +217,7 @@ export default async function CreatorBookingsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-text-secondary">Guest</span>
                       <span className="font-medium text-white">{b.fan_name}</span>
-                      <Badge variant={bookingBadgeVariant(b.status)} label={bookingLabel(b.status, {}, "creator")} />
+                      <Badge variant={bookingBadgeVariant(b.status)} label={bookingLabel(b.status, { isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false }, "creator")} />
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">
                       {b.offering_title} ·{" "}
@@ -251,7 +251,7 @@ export default async function CreatorBookingsPage() {
                       <span className="font-medium text-white">{b.fan_name}</span>
                       <Badge
                         variant={bookingBadgeVariant(b.status)}
-                        label={bookingLabel(b.status, { needs_review: b.needs_review }, "creator")}
+                        label={bookingLabel(b.status, { needs_review: b.needs_review, isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false }, "creator")}
                       />
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">

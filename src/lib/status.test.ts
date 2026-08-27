@@ -48,13 +48,19 @@ describe("bookingLabel (haibu-booking-status-reference.md §6)", () => {
     expect(bookingLabel("expired", {}, "creator")).toBe("Not completed");
   });
 
-  it("needs_review overlays only the creator — the guest always sees their real status", () => {
+  it("needs_review overlays both roles", () => {
     expect(bookingLabel("no_show_fan", { needs_review: true }, "creator")).toBe(
       "Under review",
     );
     expect(bookingLabel("no_show_fan", { needs_review: true }, "guest")).toBe(
-      "You missed this",
+      "Under review",
     );
+  });
+
+  it("confirmed + isPastEnd shows Processing (evaluation pending)", () => {
+    expect(bookingLabel("confirmed", { isPastEnd: true }, "guest")).toBe("Processing");
+    expect(bookingLabel("confirmed", { isPastEnd: true }, "creator")).toBe("Processing");
+    expect(bookingLabel("confirmed", { isPastEnd: false }, "guest")).toBe("Confirmed");
   });
 
   it("falls back to the raw status for unknown values", () => {

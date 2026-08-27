@@ -3,10 +3,9 @@ import { Resend } from "resend";
 // ---------------------------------------------------------------------------
 // Resend transactional email — booking reminders.
 //
-// Branded template matches the rest of Haibu's email: dark background
-// #121212, card #1A1A1A, centered logo (tight viewBox), #2A2A2A divider,
-// #8A8A8A body text, footer "© 2026 Haibu · Toronto, ON, Canada". No emojis,
-// no dashes. Four authoritative templates (2 timings × 2 roles).
+// Branded template: light background #F5F5F5, white card, centered PNG logo,
+// #E5E5E5 divider, #4A4A4A body text, #121212 headings, dark CTA button,
+// footer "© 2026 Haibu · Toronto, ON, Canada". No emojis, no dashes.
 // ---------------------------------------------------------------------------
 
 const FROM_ADDRESS = "Haibu <noreply@mail.haibu.live>";
@@ -14,10 +13,9 @@ const APP_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : "https://haibu.live";
 
-const LOGO_SVG =
-  '<svg width="140" height="55" viewBox="0 8 102 40" xmlns="http://www.w3.org/2000/svg">' +
-  '<text x="0" y="41" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="600" letter-spacing="-0.5" fill="#FFFFFF">haibu</text>' +
-  '<circle cx="97" cy="35" r="5" fill="#A81120"/></svg>';
+const LOGO_URL =
+  "https://etikjlfhyywksokxbxor.supabase.co/storage/v1/object/public/assets/haibu-logo-email.png";
+const LOGO_IMG = `<img src="${LOGO_URL}" alt="haibu" width="140" height="38" style="display:block;border:0;" />`;
 
 export type ReminderWindow = "1h" | "15m" | "imminent";
 export type ReminderRole = "guest" | "creator";
@@ -108,35 +106,35 @@ function document(title: string, heading: string, bodyHtml: string): string {
     '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
     `<title>${title}</title>\n` +
     "</head>\n" +
-    '<body style="margin:0;padding:0;background-color:#121212;font-family:-apple-system,BlinkMacSystemFont,\'Inter\',\'Segoe UI\',sans-serif;">\n' +
-    '  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#121212;padding:40px 20px;">\n' +
+    '<body style="margin:0;padding:0;background-color:#F5F5F5;font-family:-apple-system,BlinkMacSystemFont,\'Inter\',\'Segoe UI\',sans-serif;">\n' +
+    '  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F5F5;padding:40px 20px;">\n' +
     "    <tr>\n" +
     '      <td align="center" valign="top">\n' +
-    '        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#1A1A1A;border-radius:16px;overflow:hidden;">\n' +
+    '        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#FFFFFF;border-radius:16px;overflow:hidden;">\n' +
     "\n" +
     "          <tr>\n" +
     '            <td align="center" style="padding:44px 40px 32px;">\n' +
-    `              ${LOGO_SVG}\n` +
+    `              ${LOGO_IMG}\n` +
     "            </td>\n" +
     "          </tr>\n" +
     "\n" +
     "          <tr>\n" +
     '            <td style="padding:0 40px;">\n' +
-    '              <div style="height:1px;background-color:#2A2A2A;"></div>\n' +
+    '              <div style="height:1px;background-color:#E5E5E5;"></div>\n' +
     "            </td>\n" +
     "          </tr>\n" +
     "\n" +
     "          <tr>\n" +
     '            <td style="padding:36px 40px 28px;">\n' +
-    `              <p style="margin:0 0 8px;font-size:20px;font-weight:600;color:#FFFFFF;line-height:1.3;">${heading}</p>\n` +
+    `              <p style="margin:0 0 8px;font-size:20px;font-weight:600;color:#121212;line-height:1.3;">${heading}</p>\n` +
     bodyHtml +
     "            </td>\n" +
     "          </tr>\n" +
     "\n" +
     "          <tr>\n" +
     '            <td style="padding:0 40px 36px;">\n' +
-    '              <div style="height:1px;background-color:#2A2A2A;margin-bottom:20px;"></div>\n' +
-    '              <p style="margin:0;font-size:12px;color:#5A5A5A;line-height:1.6;text-align:center;">\n' +
+    '              <div style="height:1px;background-color:#E5E5E5;margin-bottom:20px;"></div>\n' +
+    '              <p style="margin:0;font-size:12px;color:#9A9A9A;line-height:1.6;text-align:center;">\n' +
     "                &copy; 2026 Haibu &nbsp;&middot;&nbsp; Toronto, ON, Canada\n" +
     "              </p>\n" +
     "            </td>\n" +
@@ -152,80 +150,80 @@ function document(title: string, heading: string, bodyHtml: string): string {
 }
 
 const BODY_1H_GUEST =
-  '              <p style="margin:0 0 28px;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0 0 28px;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                Hey, just a heads up that your {{OFFERING_NAME}} session with {{CREATOR_NAME}} starts at {{START_TIME}}. Your join link will be ready 5 minutes before it begins.\n" +
   "              </p>\n" +
-  '              <p style="margin:0;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                See you soon.\n" +
   "              </p>\n";
 
 const BODY_1H_CREATOR =
-  '              <p style="margin:0;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                Reminder that your {{OFFERING_NAME}} session with {{GUEST_NAME}} starts at {{START_TIME}}. Your join link will be ready 5 minutes before it begins.\n" +
   "              </p>\n";
 
 const BODY_15M_GUEST =
-  '              <p style="margin:0 0 32px;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0 0 32px;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                Your {{OFFERING_NAME}} session with {{CREATOR_NAME}} is almost here. Head to your booking page to join when you're ready.\n" +
   "              </p>\n" +
   '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
   "                <tr>\n" +
   '                  <td align="center">\n' +
-  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#FFFFFF;color:#121212;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
+  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#121212;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
   "                  </td>\n" +
   "                </tr>\n" +
   "              </table>\n" +
-  '              <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.7;text-align:center;">\n' +
+  '              <p style="margin:0;font-size:13px;color:#9A9A9A;line-height:1.7;text-align:center;">\n' +
   "                If the button doesn't work, copy and paste this link into your browser:<br>\n" +
-  '                <span style="color:#8A8A8A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
+  '                <span style="color:#4A4A4A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
   "              </p>\n";
 
 const BODY_15M_CREATOR =
-  '              <p style="margin:0 0 32px;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0 0 32px;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                Your {{OFFERING_NAME}} session with {{GUEST_NAME}} is starting soon. Head to your booking page when you're ready.\n" +
   "              </p>\n" +
   '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
   "                <tr>\n" +
   '                  <td align="center">\n' +
-  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#FFFFFF;color:#121212;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
+  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#121212;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
   "                  </td>\n" +
   "                </tr>\n" +
   "              </table>\n" +
-  '              <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.7;text-align:center;">\n' +
+  '              <p style="margin:0;font-size:13px;color:#9A9A9A;line-height:1.7;text-align:center;">\n' +
   "                If the button doesn't work, copy and paste this link into your browser:<br>\n" +
-  '                <span style="color:#8A8A8A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
+  '                <span style="color:#4A4A4A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
   "              </p>\n";
 
 const BODY_IMMINENT_GUEST =
-  '              <p style="margin:0 0 32px;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0 0 32px;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                Your {{OFFERING_NAME}} session with {{CREATOR_NAME}} starts in just a few minutes. Head to your booking page to join when you're ready.\n" +
   "              </p>\n" +
   '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
   "                <tr>\n" +
   '                  <td align="center">\n' +
-  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#FFFFFF;color:#121212;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
+  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#121212;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
   "                  </td>\n" +
   "                </tr>\n" +
   "              </table>\n" +
-  '              <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.7;text-align:center;">\n' +
+  '              <p style="margin:0;font-size:13px;color:#9A9A9A;line-height:1.7;text-align:center;">\n' +
   "                If the button doesn't work, copy and paste this link into your browser:<br>\n" +
-  '                <span style="color:#8A8A8A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
+  '                <span style="color:#4A4A4A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
   "              </p>\n";
 
 const BODY_IMMINENT_CREATOR =
-  '              <p style="margin:0 0 32px;font-size:15px;color:#8A8A8A;line-height:1.7;">\n' +
+  '              <p style="margin:0 0 32px;font-size:15px;color:#4A4A4A;line-height:1.7;">\n' +
   "                Your {{OFFERING_NAME}} session with {{GUEST_NAME}} is starting in just a few minutes. Head to your booking page when you're ready.\n" +
   "              </p>\n" +
   '              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">\n' +
   "                <tr>\n" +
   '                  <td align="center">\n' +
-  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#FFFFFF;color:#121212;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
+  '                    <a href="{{BOOKING_URL}}" style="display:inline-block;background-color:#121212;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:999px;">Join session</a>\n' +
   "                  </td>\n" +
   "                </tr>\n" +
   "              </table>\n" +
-  '              <p style="margin:0;font-size:13px;color:#5A5A5A;line-height:1.7;text-align:center;">\n' +
+  '              <p style="margin:0;font-size:13px;color:#9A9A9A;line-height:1.7;text-align:center;">\n' +
   "                If the button doesn't work, copy and paste this link into your browser:<br>\n" +
-  '                <span style="color:#8A8A8A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
+  '                <span style="color:#4A4A4A;word-break:break-all;">{{BOOKING_URL}}</span>\n' +
   "              </p>\n";
 
 interface Variant {
@@ -431,19 +429,19 @@ function compensationText(
 
 function infoBox(text: string): string {
   return (
-    '              <div style="background-color:#121212;border-radius:12px;padding:20px 24px;border:1px solid #2A2A2A;">\n' +
-    `                <p style="margin:0;font-size:15px;color:#FFFFFF;line-height:1.7;">${text}</p>\n` +
+    '              <div style="background-color:#F5F5F5;border-radius:12px;padding:20px 24px;border:1px solid #E5E5E5;">\n' +
+    `                <p style="margin:0;font-size:15px;color:#121212;line-height:1.7;">${text}</p>\n` +
     "              </div>\n"
   );
 }
 
 function para(text: string, bottom = true): string {
   const margin = bottom ? "0 0 24px" : "0";
-  return `              <p style="margin:${margin};font-size:15px;color:#8A8A8A;line-height:1.7;">${text}</p>\n`;
+  return `              <p style="margin:${margin};font-size:15px;color:#4A4A4A;line-height:1.7;">${text}</p>\n`;
 }
 
 function smallNote(text: string, top = true): string {
-  return `              <p style="margin:${top ? "20px 0 0" : "0"};font-size:13px;color:#5A5A5A;line-height:1.7;">${text}</p>\n`;
+  return `              <p style="margin:${top ? "20px 0 0" : "0"};font-size:13px;color:#9A9A9A;line-height:1.7;">${text}</p>\n`;
 }
 
 interface CancellationVars {

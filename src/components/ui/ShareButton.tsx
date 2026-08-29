@@ -6,20 +6,7 @@ export function ShareButton({ path, name }: { path: string; name: string }) {
   const [copied, setCopied] = useState(false);
 
   const share = async () => {
-    const base = window.location.origin + path;
-    const shareUrl = base;
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: name,
-          text: `Book a live 1:1 with ${name} on Haibu`,
-          url: shareUrl,
-        });
-        return;
-      } catch {
-        /* user cancelled or unsupported — fall through to copy */
-      }
-    }
+    const shareUrl = window.location.origin + path;
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);

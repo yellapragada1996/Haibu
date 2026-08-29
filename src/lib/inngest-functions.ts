@@ -1,6 +1,6 @@
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { bookings, creatorProfiles, ledgerEntries, reviews, users, offerings, participantEvents } from "@/db/schema";
+import { bookings, creatorProfiles, ledgerEntries, users, offerings, participantEvents } from "@/db/schema";
 import { eq, and, or, lt, lte, sql, count, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { createOrGetRoom, getRoomMeetings } from "@/lib/daily";
@@ -648,39 +648,3 @@ export async function runEvaluation(bookingId: string) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Review & rating: double-blind auto-publish
-// ---------------------------------------------------------------------------
-
-export const publishGuestReview = inngest.createFunction(
-  {
-    id: "review-publish",
-    retries: 3,
-    triggers: [{ event: "review/publish" }],
-  },
-  async ({ event }) => {
-    const { reviewId } = event.data as { reviewId: string };
-
-    const [review] = await db
-      .select({
-        id: reviews.id,
-        is_public: reviews.is_public,
-        reviewer_role: reviews.reviewer_role,
-      })
-      .from(reviews)
-      .where(eq(reviews.id, reviewId));
-
-    // Only guest reviews are ever public; a review already published by mutual
-    // submission is left alone.
-    if (!review || review.is_public || review.reviewer_role !== "guest") {
-      return { message: "already published or not a guest review" };
-    }
-
-    await db
-      .update(reviews)
-      .set({ is_public: true, published_at: new Date() })
-      .where(eq(reviews.id, reviewId));
-
-    return { message: "published" };
-  },
-);

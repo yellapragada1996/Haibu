@@ -6,20 +6,11 @@ import { db } from "@/db";
 import { bookings, reviews } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { inngest } from "@/lib/inngest";
 import { REVIEW_WINDOW_MS } from "@/lib/review-tags";
 import { isPgErrorCode } from "@/lib/pg-errors";
 
-const PUBLISH_DELAY_DEFAULT = 172800000; // 48h
-
-function publishDelayMs(): number {
-  const n = Number(process.env.REVIEW_PUBLISH_DELAY_MS);
-  return Number.isFinite(n) && n >= 0 ? n : PUBLISH_DELAY_DEFAULT;
-}
-
 // ---------------------------------------------------------------------------
-// Guest review (public). Held until the creator also reviews OR the
-// double-blind delay expires — whichever comes first.
+// Guest review — published immediately on submission.
 // ---------------------------------------------------------------------------
 
 export async function submitReview(
@@ -81,7 +72,8 @@ export async function submitReview(
         text: trimmed && trimmed.length > 0 ? trimmed : null,
         tags: tagList,
         reviewer_role: "guest",
-        is_public: false,
+        is_public: true,
+        published_at: new Date(),
       })
       .returning({ id: reviews.id });
     reviewId = inserted[0].id;
@@ -90,19 +82,6 @@ export async function submitReview(
       return { error: "You've already reviewed this session" };
     }
     throw e;
-  }
-
-  // Double-blind auto-publish: fire after REVIEW_PUBLISH_DELAY_MS unless the
-  // creator's own review publishes it first. Non-fatal if the Inngest worker
-  // is down — the mutual-submission path still publishes it.
-  try {
-    await inngest.send({
-      name: "review/publish",
-      data: { reviewId },
-      ts: Date.now() + publishDelayMs(),
-    });
-  } catch (e) {
-    console.error("review/publish send failed:", e);
   }
 
   revalidatePath(`/bookings/${bookingId}`);

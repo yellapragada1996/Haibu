@@ -152,6 +152,17 @@ body {
   animation: slide-up 0.3s ease-out;
 }
 
+@keyframes fade-in-out {
+  0% { opacity: 0; transform: translate(-50%, 4px); }
+  15% { opacity: 1; transform: translate(-50%, 0); }
+  85% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -4px); }
+}
+
+.animate-fade-in-out {
+  animation: fade-in-out 2s ease-in-out forwards;
+}
+
 /* Smooth horizontal scroll on iOS */
 .horizontal-scroll {
   -webkit-overflow-scrolling: touch;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { reviews, bookings, users } from "@/db/schema";
+import { reviews } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 
 const PAGE_SIZE = 10;
@@ -31,11 +31,9 @@ export async function GET(
       rating: reviews.rating,
       text: reviews.text,
       created_at: reviews.created_at,
-      guest_name: users.display_name,
+      guest_name: sql<string>`COALESCE((SELECT u.display_name FROM bookings b JOIN users u ON u.id = b.fan_id WHERE b.id = ${reviews.booking_id}), 'Guest')`,
     })
     .from(reviews)
-    .innerJoin(bookings, eq(bookings.id, reviews.booking_id))
-    .innerJoin(users, eq(users.id, bookings.fan_id))
     .where(cursorFilter ? and(publicFilter, cursorFilter) : publicFilter)
     .orderBy(sql`${reviews.created_at} DESC, ${reviews.id} DESC`)
     .limit(PAGE_SIZE + 1);

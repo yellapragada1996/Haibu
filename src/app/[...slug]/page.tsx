@@ -9,7 +9,7 @@ import { FaqAccordion } from "@/components/FaqAccordion";
 import { AllReviewsModal } from "@/components/AllReviewsModal";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { db } from "@/db";
-import { creatorProfiles, users, offerings, reviews, bookings } from "@/db/schema";
+import { creatorProfiles, users, offerings, reviews } from "@/db/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 
 // Catch-all for the shareable creator handle: haibu.live/@queen → creator slug.
@@ -85,11 +85,9 @@ export default async function CreatorHandlePage({
       id: reviews.id,
       rating: reviews.rating,
       text: reviews.text,
-      guest_name: users.display_name,
+      guest_name: sql<string>`COALESCE((SELECT u.display_name FROM bookings b JOIN users u ON u.id = b.fan_id WHERE b.id = ${reviews.booking_id}), 'Guest')`,
     })
     .from(reviews)
-    .innerJoin(bookings, eq(bookings.id, reviews.booking_id))
-    .innerJoin(users, eq(users.id, bookings.fan_id))
     .where(publicFilter)
     .orderBy(sql`${reviews.created_at} DESC`)
     .limit(3);

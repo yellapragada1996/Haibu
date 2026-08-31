@@ -183,7 +183,7 @@ export function EarningsList({ sessions, platformFeeRate, timezone }: Props) {
                   value={formatCents(selected.priceCents)}
                 />
                 <Row
-                  label="Stripe processing (2.9% + 30¢)"
+                  label="Stripe processing fee"
                   value={`-${formatCents(selected.stripeFeeCents)}`}
                   valueClass="text-text-secondary"
                 />

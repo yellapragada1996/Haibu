@@ -116,9 +116,46 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
     return;
   }
 
+  // Reconcile the actual Stripe processing fee from the Balance Transaction.
+  // The booking row currently holds an estimate (computed before payment); the
+  // real fee depends on card type, country, etc. and is only known after the
+  // charge succeeds. If the fetch fails, we keep the estimate — an approximate
+  // fee is better than blocking the confirmation.
+  let actualStripeFeeCents = booking.stripe_fee_cents ?? 0;
+  try {
+    const expanded = await stripe.paymentIntents.retrieve(pi.id, {
+      expand: ["latest_charge.balance_transaction"],
+    });
+    const charge = expanded.latest_charge as Stripe.Charge | undefined;
+    const bt =
+      charge && typeof charge.balance_transaction === "object"
+        ? (charge.balance_transaction as Stripe.BalanceTransaction)
+        : null;
+    if (bt?.fee_details) {
+      const stripeFees = bt.fee_details.filter((d) => d.type === "stripe_fee");
+      if (stripeFees.length > 0) {
+        actualStripeFeeCents = stripeFees.reduce((s, d) => s + d.amount, 0);
+      }
+    }
+  } catch (e) {
+    console.error(
+      `[stripe] failed to fetch actual fee for PI ${pi.id}, using estimate`,
+      e,
+    );
+  }
+  const actualCreatorPayoutCents =
+    booking.price_cents - actualStripeFeeCents - booking.platform_fee_cents;
+
   // Normal path: reserved → confirmed
   await db.transaction(async (tx) => {
-    await tx.update(bookings).set({ status: "confirmed" }).where(eq(bookings.id, bookingId));
+    await tx
+      .update(bookings)
+      .set({
+        status: "confirmed",
+        stripe_fee_cents: actualStripeFeeCents,
+        creator_payout_cents: actualCreatorPayoutCents,
+      })
+      .where(eq(bookings.id, bookingId));
 
     await tx.insert(ledgerEntries).values({
       booking_id: bookingId,

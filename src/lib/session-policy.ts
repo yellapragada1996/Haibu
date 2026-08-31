@@ -43,7 +43,10 @@ export function holdPeriodMs(priorCompletedCount: number): number {
     : HOLD_ESTABLISHED_MS;
 }
 
-export function computeStripeFee(priceCents: number): number {
+// Pre-payment estimate only — the actual fee is reconciled from Stripe's
+// Balance Transaction once the charge succeeds (see the payment_intent.succeeded
+// webhook handler). Do not use this value for post-payment calculations.
+export function estimateStripeFee(priceCents: number): number {
   return Math.round(priceCents * STRIPE_PERCENT) + STRIPE_FIXED_CENTS;
 }
 

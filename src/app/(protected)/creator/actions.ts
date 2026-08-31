@@ -380,42 +380,41 @@ export async function startStripeOnboarding(country: string) {
     .where(eq(creatorProfiles.user_id, user.id));
   if (!profile) return { error: "Create a profile first" };
 
-  // Create Express account if not already created.
-  // NOTE: Uses Stripe v1 Accounts API (stripe.accounts.create with type:"express").
-  // v2 accounts (stripe.v2.core.accounts.create) don't yet support hosted onboarding
-  // via accountLinks.create(). When v2 Express matures, migrate to v2 API.
   let stripeAccountId = profile.stripe_account_id;
-  if (!stripeAccountId) {
-    const account = await stripe.accounts.create({
-      type: "express",
-      country,
-      email: user.email ?? undefined,
-      capabilities: {
-        transfers: { requested: true },
-        // US requires card_payments to be requested alongside transfers
-        // (Stripe rejects `transfers` alone for US accounts).
-        ...(country === "US" ? { card_payments: { requested: true } } : {}),
-      },
+  try {
+    if (!stripeAccountId) {
+      const account = await stripe.accounts.create({
+        type: "express",
+        country,
+        email: user.email ?? undefined,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+      });
+      stripeAccountId = account.id;
+      await db
+        .update(creatorProfiles)
+        .set({ stripe_account_id: stripeAccountId })
+        .where(eq(creatorProfiles.id, profile.id));
+    }
+
+    const h = await headers();
+    const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
+    const proto = h.get("x-forwarded-proto") || "http";
+    const origin = `${proto}://${host}`;
+    const accountLink = await stripe.accountLinks.create({
+      account: stripeAccountId,
+      refresh_url: `${origin}/creator?step=4`,
+      return_url: `${origin}/creator?step=5`,
+      type: "account_onboarding",
     });
-    stripeAccountId = account.id;
-    await db
-      .update(creatorProfiles)
-      .set({ stripe_account_id: stripeAccountId })
-      .where(eq(creatorProfiles.id, profile.id));
+
+    return { url: accountLink.url };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Failed to connect to Stripe";
+    return { error: msg };
   }
-
-  const h = await headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
-  const proto = h.get("x-forwarded-proto") || "http";
-  const origin = `${proto}://${host}`;
-  const accountLink = await stripe.accountLinks.create({
-    account: stripeAccountId,
-    refresh_url: `${origin}/creator?step=4`,
-    return_url: `${origin}/creator?step=5`,
-    type: "account_onboarding",
-  });
-
-  return { url: accountLink.url };
 }
 
 export async function checkOnboardingStatus(): Promise<{

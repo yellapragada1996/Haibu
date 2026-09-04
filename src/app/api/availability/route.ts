@@ -26,13 +26,20 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const slots = await generateAvailableSlots({
-    creator_id: creatorId,
-    offering_id: offeringId,
-    from,
-    to,
-    min_lead_minutes: minLead ? parseInt(minLead, 10) : undefined,
-  });
+  try {
+    const slots = await generateAvailableSlots({
+      creator_id: creatorId,
+      offering_id: offeringId,
+      from,
+      to,
+      min_lead_minutes: minLead ? parseInt(minLead, 10) : undefined,
+    });
 
-  return NextResponse.json({ slots });
+    return NextResponse.json({ slots });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to generate availability" },
+      { status: 500 },
+    );
+  }
 }

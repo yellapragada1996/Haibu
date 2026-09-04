@@ -24,6 +24,7 @@ next-env.d.ts
 # non-code artifacts — kept locally, not committed
 wireframes/
 documents/
+Marketing/
 scripts/
 assets/
 test-screenshots/

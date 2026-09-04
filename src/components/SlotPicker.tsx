@@ -3,11 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { groupSlotsByTimeOfDay, type TimeOfDayGroup } from "@/lib/slot-groups";
 
 interface Slot {
   start_at: string;
   end_at: string;
 }
+
+const GROUP_LABELS: Record<TimeOfDayGroup, string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+};
 
 // Screen 2 — public slot picker. No login required. "Continue" checks the
 // session: logged-in → the protected book page (payment); anonymous → login
@@ -74,6 +81,11 @@ export function SlotPicker({
     ? slots.filter((s) => localDateKey(s.start_at) === selectedDate)
     : [];
 
+  const groupedSlots = useMemo(
+    () => groupSlotsByTimeOfDay(slotsForDate),
+    [slotsForDate],
+  );
+
   // Default to TODAY when the creator has slots today; otherwise the first
   // available day — so the time grid is never empty on arrival.
   useEffect(() => {
@@ -112,7 +124,7 @@ export function SlotPicker({
   };
 
   return (
-    <div>
+    <div className="pb-36 md:pb-24">
       {/* Offering context bar */}
       <div className="mb-4 flex items-center gap-2 rounded-card border border-border-subtle bg-bg-card px-3 py-2">
         {creator.avatar_url ? (
@@ -162,26 +174,38 @@ export function SlotPicker({
             ))}
           </div>
 
-          {/* Time grid */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {slotsForDate.map((s) => (
-              <button
-                key={s.start_at}
-                type="button"
-                onClick={() => setSelectedSlot(s.start_at)}
-                aria-pressed={selectedSlot === s.start_at}
-                aria-label={`${selectedDate ? fmtDate(selectedDate) : ""} ${fmtTime(s.start_at)}`}
-                className={`flex min-h-[44px] items-center justify-center rounded-[10px] text-[13px] font-semibold transition-colors ${
-                  selectedSlot === s.start_at
-                    ? "bg-primary text-on-primary"
-                    : "bg-bg-card text-white hover:bg-bg-card-hover"
-                }`}
-              >
-                {fmtTime(s.start_at)}
-              </button>
+          {/* Grouped time slots */}
+          <div className="mt-4 space-y-5">
+            {groupedSlots.map(({ group, slots: groupSlots }) => (
+              <section key={group}>
+                <div className="mb-2.5 flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    {GROUP_LABELS[group]}
+                  </span>
+                  <div className="h-px flex-1 bg-border-subtle" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {groupSlots.map((s) => (
+                    <button
+                      key={s.start_at}
+                      type="button"
+                      onClick={() => setSelectedSlot(s.start_at)}
+                      aria-pressed={selectedSlot === s.start_at}
+                      aria-label={`${selectedDate ? fmtDate(selectedDate) : ""} ${fmtTime(s.start_at)}`}
+                      className={`flex min-h-[44px] items-center justify-center rounded-[10px] text-[13px] font-semibold transition-colors ${
+                        selectedSlot === s.start_at
+                          ? "bg-primary text-on-primary"
+                          : "bg-bg-card text-white hover:bg-bg-card-hover"
+                      }`}
+                    >
+                      {fmtTime(s.start_at)}
+                    </button>
+                  ))}
+                </div>
+              </section>
             ))}
             {slotsForDate.length === 0 && (
-              <p className="col-span-3 text-sm text-text-secondary">
+              <p className="text-sm text-text-secondary">
                 No times on this day.
               </p>
             )}
@@ -192,26 +216,28 @@ export function SlotPicker({
             Times shown in your timezone ({tzAbbr})
           </p>
 
-          {/* Summary footer */}
-          <div className="mt-5 flex items-center justify-between rounded-card border border-border-subtle bg-bg-card px-4 py-3">
-            <div>
-              <div className="text-xs text-text-secondary">
-                {selectedDate && selectedSlot
-                  ? `${fmtDate(selectedDate)} · ${fmtTime(selectedSlot)}`
-                  : "Pick a time"}
+          {/* Sticky summary footer — sits above the mobile BottomNav (z-40, h-16) */}
+          <div className="fixed inset-x-0 bottom-16 z-30 border-t border-border-subtle bg-bg-base px-4 py-3 md:bottom-0">
+            <div className="mx-auto flex max-w-[480px] items-center justify-between">
+              <div>
+                <div className="text-xs text-text-secondary">
+                  {selectedDate && selectedSlot
+                    ? `${fmtDate(selectedDate)} · ${fmtTime(selectedSlot)}`
+                    : "Pick a time"}
+                </div>
+                <div className="text-sm font-bold text-white">
+                  ${(offering.price_cents / 100).toFixed(2)}
+                </div>
               </div>
-              <div className="text-sm font-bold text-white">
-                ${(offering.price_cents / 100).toFixed(2)}
-              </div>
+              <button
+                type="button"
+                onClick={continueFlow}
+                disabled={!selectedSlot}
+                className="inline-flex h-11 items-center justify-center rounded-pill bg-primary px-6 text-sm font-semibold text-on-primary transition-opacity disabled:opacity-40"
+              >
+                Continue
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={continueFlow}
-              disabled={!selectedSlot}
-              className="inline-flex h-11 items-center justify-center rounded-pill bg-primary px-6 text-sm font-semibold text-on-primary transition-opacity disabled:opacity-40"
-            >
-              Continue
-            </button>
           </div>
         </>
       )}

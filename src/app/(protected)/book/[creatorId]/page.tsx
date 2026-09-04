@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { reserveSlot, markBookingPaid } from "@/app/(protected)/actions/booking";
+import { groupSlotsByTimeOfDay, type TimeOfDayGroup } from "@/lib/slot-groups";
 import { loadStripe } from "@stripe/stripe-js";
 import { STRIPE_APPEARANCE } from "@/lib/stripe-theme";
 import {
@@ -15,6 +16,12 @@ import {
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
 );
+
+const GROUP_LABELS: Record<TimeOfDayGroup, string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+};
 
 interface TimeSlot {
   start_at: string;
@@ -312,6 +319,11 @@ export default function BookPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots, selectedOffering]);
 
+  const groupedSlots = useMemo(
+    () => groupSlotsByTimeOfDay(slotsForSelectedDate),
+    [slotsForSelectedDate],
+  );
+
   const fmtSlot = (s: TimeSlot) =>
     new Date(s.start_at).toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -437,16 +449,28 @@ export default function BookPage() {
               )}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            {slotsForSelectedDate.map((s) => (
-              <button
-                key={s.start_at}
-                onClick={() => handleReserveSlot(s)}
-                disabled={loading}
-                className="rounded-xl bg-bg-card px-3 py-2 text-sm text-white transition hover:bg-bg-card-hover disabled:opacity-50"
-              >
-                {fmtSlot(s)}
-              </button>
+          <div className="space-y-5">
+            {groupedSlots.map(({ group, slots: groupSlots }) => (
+              <section key={group}>
+                <div className="mb-2.5 flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    {GROUP_LABELS[group]}
+                  </span>
+                  <div className="h-px flex-1 bg-border-subtle" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {groupSlots.map((s) => (
+                    <button
+                      key={s.start_at}
+                      onClick={() => handleReserveSlot(s)}
+                      disabled={loading}
+                      className="rounded-xl bg-bg-card px-3 py-2 text-sm text-white transition hover:bg-bg-card-hover disabled:opacity-50"
+                    >
+                      {fmtSlot(s)}
+                    </button>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </div>

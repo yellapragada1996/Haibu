@@ -11,8 +11,8 @@ import { Resend } from "resend";
 const FROM_ADDRESS = "Haibu <noreply@mail.haibu.live>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://haibu.live";
 
-const LOGO_URL =
-  "https://etikjlfhyywksokxbxor.supabase.co/storage/v1/object/public/assets/haibu-logo-email.png";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://mzyqwpphdcnqeukluifk.supabase.co";
+const LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/assets/haibu-logo-email.png`;
 const LOGO_IMG = `<img src="${LOGO_URL}" alt="haibu" width="160" height="62" style="display:block;border:0;margin:0 auto;" />`;
 
 export type ReminderWindow = "1h" | "15m" | "imminent";

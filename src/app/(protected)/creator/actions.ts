@@ -176,6 +176,12 @@ export async function updateOffering(id: string, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const [profile] = await db
+    .select({ id: creatorProfiles.id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile) return { error: "No creator profile" };
+
   const title = formData.get("title") as string;
   const priceDollars = parseFloat(formData.get("price_dollars") as string);
 
@@ -187,7 +193,9 @@ export async function updateOffering(id: string, formData: FormData) {
 
   if (Object.keys(updates).length === 0) return { error: "No changes" };
 
-  await db.update(offerings).set(updates).where(eq(offerings.id, id));
+  await db.update(offerings).set(updates).where(
+    and(eq(offerings.id, id), eq(offerings.creator_id, profile.id)),
+  );
   revalidatePath("/creator/offerings");
   revalidatePath("/creator");
   return { success: true };
@@ -198,10 +206,16 @@ export async function deactivateOffering(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const [profile] = await db
+    .select({ id: creatorProfiles.id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile) return { error: "No creator profile" };
+
   await db
     .update(offerings)
     .set({ is_active: false })
-    .where(eq(offerings.id, id));
+    .where(and(eq(offerings.id, id), eq(offerings.creator_id, profile.id)));
 
   revalidatePath("/creator/offerings");
   revalidatePath("/creator");
@@ -213,10 +227,16 @@ export async function reactivateOffering(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const [profile] = await db
+    .select({ id: creatorProfiles.id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile) return { error: "No creator profile" };
+
   await db
     .update(offerings)
     .set({ is_active: true })
-    .where(eq(offerings.id, id));
+    .where(and(eq(offerings.id, id), eq(offerings.creator_id, profile.id)));
 
   revalidatePath("/creator/offerings");
   revalidatePath("/creator");
@@ -228,6 +248,12 @@ export async function deleteOffering(id: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const [profile] = await db
+    .select({ id: creatorProfiles.id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile) return { error: "No creator profile" };
+
   // Unified delete: zero bookings → hard delete; with bookings → soft delete
   // (is_active = false AND deleted_at = NOW()). Soft-deleted offerings are
   // permanently invisible to the creator; the row persists only so past
@@ -237,13 +263,15 @@ export async function deleteOffering(id: string) {
     .from(bookings)
     .where(eq(bookings.offering_id, id));
 
+  const ownershipFilter = and(eq(offerings.id, id), eq(offerings.creator_id, profile.id));
+
   if (Number(result?.c ?? 0) > 0) {
     await db
       .update(offerings)
       .set({ is_active: false, deleted_at: sql`NOW()` })
-      .where(eq(offerings.id, id));
+      .where(ownershipFilter);
   } else {
-    await db.delete(offerings).where(eq(offerings.id, id));
+    await db.delete(offerings).where(ownershipFilter);
   }
 
   revalidatePath("/creator/offerings");

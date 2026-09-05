@@ -22,7 +22,7 @@ export function ShareButton({ path, name }: { path: string; name: string }) {
         type="button"
         onClick={share}
         aria-label="Share profile"
-        className="inline-flex items-center gap-1.5 rounded-full border border-border-dim px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-card-hover hover:text-white"
+        className="inline-flex items-center gap-1.5 rounded-full border border-border-dim px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-card-hover hover:text-text-primary"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <circle cx="18" cy="5" r="3" />

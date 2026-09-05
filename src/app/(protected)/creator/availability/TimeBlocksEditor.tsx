@@ -72,7 +72,7 @@ export function TimeBlocksEditor({
           <select
             value={block.start_minute}
             onChange={(e) => updateBlock(index, "start_minute", Number(e.target.value))}
-            className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-white outline-none focus:border-primary"
+            className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-text-primary outline-none focus:border-primary"
           >
             {START_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -84,7 +84,7 @@ export function TimeBlocksEditor({
           <select
             value={block.end_minute}
             onChange={(e) => updateBlock(index, "end_minute", Number(e.target.value))}
-            className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-white outline-none focus:border-primary"
+            className="min-w-0 flex-1 bg-bg-base border border-border-subtle rounded-input pl-2 pr-6 py-1.5 text-sm text-text-primary outline-none focus:border-primary"
           >
             {END_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -105,7 +105,7 @@ export function TimeBlocksEditor({
       <button
         type="button"
         onClick={addBlock}
-        className="text-xs text-text-secondary hover:text-white transition-colors"
+        className="text-xs text-text-secondary hover:text-text-primary transition-colors"
       >
         + Add another block
       </button>

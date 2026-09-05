@@ -121,7 +121,7 @@ function DetailRow({
     <div className="flex items-center justify-between py-1.5">
       <span className="text-xs text-text-secondary">{label}</span>
       <span
-        className={`text-sm ${highlight ? "font-semibold text-white" : "text-text-secondary"}`}
+        className={`text-sm ${highlight ? "font-semibold text-text-primary" : "text-text-secondary"}`}
       >
         {value}
       </span>
@@ -175,7 +175,7 @@ export function RefundList({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">
+                      <p className="truncate text-sm font-semibold text-text-primary">
                         {item.offeringTitle}
                       </p>
                       <p className="mt-0.5 text-xs text-text-secondary">
@@ -184,7 +184,7 @@ export function RefundList({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-text-primary">
                           {money(item.refundCents)}
                         </p>
                         {isPartial && (

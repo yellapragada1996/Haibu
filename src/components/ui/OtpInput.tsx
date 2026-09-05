@@ -9,7 +9,7 @@ function OtpSlot({ index }: { index: number }) {
   const active = slot.isActive;
   return (
     <div
-      className={`flex h-12 w-10 items-center justify-center rounded-pill border text-lg font-semibold text-white transition-colors ${
+      className={`flex h-12 w-10 items-center justify-center rounded-pill border text-lg font-semibold text-text-primary transition-colors ${
         active
           ? "border-primary bg-bg-card-hover"
           : "border-border-subtle bg-bg-base"

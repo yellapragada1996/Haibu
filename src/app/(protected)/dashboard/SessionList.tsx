@@ -29,7 +29,7 @@ export type SessionItem = {
 function sessionBadgeClassName(status: string): string {
   switch (status) {
     case "completed":
-      return "border border-white text-white";
+      return "border border-white text-text-primary";
     case "confirmed":
       return "border border-live text-live";
     case "reserved":
@@ -130,7 +130,7 @@ export function SessionList({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-text-secondary">With</span>
-                        <span className="truncate font-medium text-white">{s.creator_name}</span>
+                        <span className="truncate font-medium text-text-primary">{s.creator_name}</span>
                         <span className={`rounded-pill px-2 py-0.5 text-xs ${badgeClass}`}>
                           {badgeLabel}
                         </span>
@@ -154,7 +154,7 @@ export function SessionList({
                   <Avatar src={s.creator_avatar} name={s.creator_name} size={44} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-medium text-white">{s.creator_name}</span>
+                      <span className="truncate font-medium text-text-primary">{s.creator_name}</span>
                       <span className={`rounded-pill px-2 py-0.5 text-xs ${badgeClass}`}>
                         {badgeLabel}
                       </span>

@@ -73,7 +73,7 @@ export default async function AdminAuditPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Audit log</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Audit log</h1>
       <AdminListControls
         base="/admin/audit"
         param="action"
@@ -114,8 +114,8 @@ export default async function AdminAuditPage({
                   <td className="px-3 py-2 align-top text-text-tertiary">
                     {r.created_at ? formatDateTime(r.created_at.toISOString()) : ""}
                   </td>
-                  <td className="px-3 py-2 align-top text-white">{r.admin_name ?? "—"}</td>
-                  <td className="px-3 py-2 align-top text-white">{r.action}</td>
+                  <td className="px-3 py-2 align-top text-text-primary">{r.admin_name ?? "—"}</td>
+                  <td className="px-3 py-2 align-top text-text-primary">{r.action}</td>
                   <td className="px-3 py-2 align-top text-text-secondary">{r.details ?? "—"}</td>
                   <td className="px-3 py-2 align-top font-mono text-xs text-text-tertiary">
                     {shortId(r.booking_id)}

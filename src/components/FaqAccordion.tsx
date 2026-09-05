@@ -51,7 +51,7 @@ export function FaqAccordion() {
 
   return (
     <section className="mb-4 mt-6" aria-label="Frequently asked questions">
-      <h2 className="mb-2.5 text-lg font-semibold text-white">FAQ</h2>
+      <h2 className="mb-2.5 text-lg font-semibold text-text-primary">FAQ</h2>
       <div>
         {FAQ_ITEMS.map((item) => {
           const open = openId === item.id;
@@ -69,7 +69,7 @@ export function FaqAccordion() {
                   aria-expanded={open}
                   aria-controls={answerId}
                   onClick={() => setOpenId(open ? null : item.id)}
-                  className="flex min-h-11 w-full items-center justify-between gap-3 py-3.5 text-left text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="flex min-h-11 w-full items-center justify-between gap-3 py-3.5 text-left text-sm font-semibold text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   <span>{item.question}</span>
                   <svg
@@ -83,7 +83,7 @@ export function FaqAccordion() {
                     strokeLinejoin="round"
                     aria-hidden="true"
                     className={`shrink-0 text-text-tertiary transition-transform duration-200 motion-reduce:transition-none ${
-                      open ? "rotate-180 text-white" : ""
+                      open ? "rotate-180 text-text-primary" : ""
                     }`}
                   >
                     <polyline points="6 9 12 15 18 9" />

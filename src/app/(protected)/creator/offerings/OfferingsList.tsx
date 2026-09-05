@@ -93,7 +93,7 @@ export function OfferingsList({
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">{o.title}</span>
+                  <span className="font-medium text-text-primary">{o.title}</span>
                   {!o.is_active && <Badge variant="cancelled" label="Inactive" />}
                 </div>
                 <div className="mt-1 flex gap-3 text-sm text-text-secondary">
@@ -180,7 +180,7 @@ function CreateOfferingForm({
 
   return (
     <form action={action} id={formId} className="space-y-4">
-      <h3 className="font-medium text-white">New Offering</h3>
+      <h3 className="font-medium text-text-primary">New Offering</h3>
 
       <Input
         name="title"
@@ -397,7 +397,7 @@ function OfferingActionsMenu({
         aria-label={`${offering.title} actions`}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex h-11 w-11 items-center justify-center rounded-pill text-text-secondary transition-colors hover:bg-bg-card-hover hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        className="flex h-11 w-11 items-center justify-center rounded-pill text-text-secondary transition-colors hover:bg-bg-card-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <svg
           width="20"
@@ -425,7 +425,7 @@ function OfferingActionsMenu({
               setOpen(false);
               onEdit();
             }}
-            className={`${menuItem} text-white hover:bg-bg-card-hover`}
+            className={`${menuItem} text-text-primary hover:bg-bg-card-hover`}
           >
             Edit
           </button>
@@ -439,7 +439,7 @@ function OfferingActionsMenu({
                 type="submit"
                 role="menuitem"
                 onClick={() => setOpen(false)}
-                className={`${menuItem} text-white hover:bg-bg-card-hover`}
+                className={`${menuItem} text-text-primary hover:bg-bg-card-hover`}
               >
                 Deactivate
               </button>
@@ -454,7 +454,7 @@ function OfferingActionsMenu({
                 type="submit"
                 role="menuitem"
                 onClick={() => setOpen(false)}
-                className={`${menuItem} text-white hover:bg-bg-card-hover`}
+                className={`${menuItem} text-text-primary hover:bg-bg-card-hover`}
               >
                 Reactivate
               </button>
@@ -493,7 +493,7 @@ function DeleteConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onCancel} />
       <div className="relative w-full max-w-md rounded-modal bg-bg-surface p-6">
-        <h3 className="mb-2 text-lg font-semibold text-white">Delete offering</h3>
+        <h3 className="mb-2 text-lg font-semibold text-text-primary">Delete offering</h3>
         <p className="mb-6 text-sm text-text-secondary">
           Delete &quot;{offering.title}&quot;? This will remove it from your
           active offerings.

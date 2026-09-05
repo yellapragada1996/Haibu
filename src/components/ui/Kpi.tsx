@@ -15,7 +15,7 @@ export function Kpi({
   return (
     <Card className="group relative space-y-1">
       <p className="text-xs uppercase tracking-wide text-text-tertiary">{label}</p>
-      <p className="text-xl font-bold text-white">{value}</p>
+      <p className="text-xl font-bold text-text-primary">{value}</p>
       {sub && <p className="text-xs text-text-secondary">{sub}</p>}
       {hint && (
         <div

@@ -81,7 +81,7 @@ export function BottomNav({
         <Link
           href="/"
           aria-current={pathname === "/" ? "page" : undefined}
-          className={`${tab} ${pathname === "/" ? "text-white" : "text-text-secondary"}`}
+          className={`${tab} ${pathname === "/" ? "text-text-primary" : "text-text-secondary"}`}
         >
           <HomeIcon />
           Home
@@ -89,7 +89,7 @@ export function BottomNav({
         <Link
           href={secondHref}
           aria-current={secondActive ? "page" : undefined}
-          className={`${tab} ${secondActive ? "text-white" : "text-text-secondary"}`}
+          className={`${tab} ${secondActive ? "text-text-primary" : "text-text-secondary"}`}
         >
           {secondIcon}
           {secondLabel}

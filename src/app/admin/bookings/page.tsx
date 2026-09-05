@@ -87,7 +87,7 @@ export default async function AdminBookingsPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Bookings</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Bookings</h1>
       <AdminListControls
         base="/admin/bookings"
         param="status"

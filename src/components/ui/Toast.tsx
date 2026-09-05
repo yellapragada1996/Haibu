@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             className={`max-w-sm animate-slide-up border-l-4 ${typeColors[t.type ?? "info"]}`}
           >
-            <p className="text-sm text-white">{t.message}</p>
+            <p className="text-sm text-text-primary">{t.message}</p>
           </Card>
         ))}
       </div>

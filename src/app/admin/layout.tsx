@@ -34,7 +34,7 @@ export default async function AdminLayout({
   if (!row?.role_admin) notFound();
 
   return (
-    <div className="min-h-screen bg-bg-base text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       <NavBar
         isLoggedIn
         isCreator={!!row?.profile_id}

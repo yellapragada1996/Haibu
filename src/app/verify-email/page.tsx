@@ -97,11 +97,11 @@ export default function VerifyEmailPage() {
           </svg>
         </div>
 
-        <h1 className="text-center text-lg font-semibold text-white mb-2">
+        <h1 className="text-center text-lg font-semibold text-text-primary mb-2">
           Verify your email
         </h1>
         <p className="text-center text-sm text-text-secondary mb-6">
-          We sent a 6-digit code to <span className="text-white">{email || "your email"}</span>.
+          We sent a 6-digit code to <span className="text-text-primary">{email || "your email"}</span>.
         </p>
 
         <OtpInput value={otp} onChange={setOtp} />
@@ -115,7 +115,7 @@ export default function VerifyEmailPage() {
         <button
           onClick={resend}
           disabled={resendSeconds > 0}
-          className="mt-4 w-full text-center text-sm text-text-secondary hover:text-white disabled:opacity-50"
+          className="mt-4 w-full text-center text-sm text-text-secondary hover:text-text-primary disabled:opacity-50"
         >
           {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
         </button>

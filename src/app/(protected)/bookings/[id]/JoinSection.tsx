@@ -48,7 +48,7 @@ export function JoinSection({
         <>
           <p className="text-sm text-text-secondary">
             Join available in{" "}
-            <span className="font-mono text-white">
+            <span className="font-mono text-text-primary">
               {now === null ? "--:--" : fmtCountdown(joinStart - now)}
             </span>
           </p>

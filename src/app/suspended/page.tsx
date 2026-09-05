@@ -26,7 +26,7 @@ export default function SuspendedPage() {
           </svg>
         </div>
 
-        <h1 className="mt-6 text-center text-lg font-semibold text-white">
+        <h1 className="mt-6 text-center text-lg font-semibold text-text-primary">
           Account suspended
         </h1>
 
@@ -39,7 +39,7 @@ export default function SuspendedPage() {
         <p className="mt-4 text-center text-sm text-text-secondary">
           <a
             href="mailto:support@haibu.live"
-            className="font-semibold text-white underline underline-offset-2"
+            className="font-semibold text-text-primary underline underline-offset-2"
           >
             support@haibu.live
           </a>
@@ -48,7 +48,7 @@ export default function SuspendedPage() {
         <div className="mt-8 border-t border-border-subtle pt-6 text-center">
           <Link
             href="/"
-            className="text-sm text-text-secondary hover:text-white"
+            className="text-sm text-text-secondary hover:text-text-primary"
           >
             Back to home
           </Link>

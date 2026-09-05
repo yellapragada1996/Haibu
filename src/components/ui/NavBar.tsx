@@ -7,6 +7,7 @@ import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 import { createClient } from "@/lib/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "@/components/ThemeProvider";
 
 type NavBarProps = {
   isLoggedIn?: boolean;
@@ -31,6 +32,7 @@ export function NavBar({
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   function goSearch(queryOverride?: string) {
     const raw = (queryOverride ?? searchQuery).trim();
@@ -89,7 +91,7 @@ export function NavBar({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") goSearch();
                 }}
-                className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-white placeholder-text-secondary outline-none focus:border-primary"
+                className="w-full h-9 rounded-pill bg-bg-base border border-border-subtle px-4 pr-10 text-sm text-text-primary placeholder-text-secondary outline-none focus:border-primary"
               />
               <button
                 type="button"
@@ -111,7 +113,7 @@ export function NavBar({
               {isLoggedIn && (
                 <Link
                   href={isCreator ? "/creator" : "/dashboard"}
-                  className="inline-flex h-9 items-center rounded-pill bg-bg-card-hover px-4 text-sm font-semibold text-white hover:bg-border-subtle transition-colors"
+                  className="inline-flex h-9 items-center rounded-pill bg-bg-card-hover px-4 text-sm font-semibold text-text-primary hover:bg-border-subtle transition-colors"
                 >
                   {isCreator ? "Studio" : "My sessions"}
                 </Link>
@@ -138,7 +140,7 @@ export function NavBar({
               type="button"
               aria-label="Search"
               onClick={() => setSearchOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:text-white md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:text-text-primary md:hidden"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="11" cy="11" r="7" />
@@ -157,7 +159,7 @@ export function NavBar({
                       <Link
                         href="/admin"
                         onClick={() => setAvatarOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5Z"/></svg>
                         Admin
@@ -165,39 +167,52 @@ export function NavBar({
                     )}
                     {isCreator ? (
                       <>
-                        <Link href="/creator" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/creator" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                           Studio
                         </Link>
-                        <Link href="/creator/bookings" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/creator/bookings" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 15 2 2 4-4"/></svg>
                           Bookings
                         </Link>
-                        <Link href="/creator/earnings" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/creator/earnings" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                           Earnings
                         </Link>
-                        <Link href="/creator/profile" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/creator/profile" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                           Profile
                         </Link>
                       </>
                     ) : (
                       <>
-                        <Link href="/dashboard" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/dashboard" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                           My sessions
                         </Link>
-                        <Link href="/dashboard/refunds" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/dashboard/refunds" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10h18"/><path d="M6 14h2"/><path d="M11 14h2"/><rect x="2" y="5" width="20" height="14" rx="2"/></svg>
                           Refunds
                         </Link>
-                        <Link href="/dashboard/profile" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-white hover:bg-bg-card-hover">
+                        <Link href="/dashboard/profile" onClick={() => setAvatarOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                           Profile
                         </Link>
                       </>
                     )}
+                    <div className="my-1 h-px bg-border-subtle" />
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-text-primary hover:bg-bg-card-hover"
+                    >
+                      {theme === "dark" ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      )}
+                      {theme === "dark" ? "Light mode" : "Dark mode"}
+                    </button>
                     <div className="my-1 h-px bg-border-subtle" />
                     <button
                       onClick={async () => {
@@ -223,7 +238,7 @@ export function NavBar({
                         router.push(publicPath ? currentPath : "/");
                         router.refresh();
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:text-white hover:bg-bg-card-hover"
+                      className="w-full text-left px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-card-hover"
                     >
                       Sign out
                     </button>
@@ -233,7 +248,7 @@ export function NavBar({
             ) : (
               <Link
                 href={loginHref}
-                className="px-2 text-sm font-semibold text-white md:hidden"
+                className="px-2 text-sm font-semibold text-text-primary md:hidden"
               >
                 Log in
               </Link>
@@ -250,7 +265,7 @@ export function NavBar({
               type="button"
               aria-label="Back"
               onClick={() => setSearchOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white hover:bg-bg-card-hover"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-text-primary hover:bg-bg-card-hover"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
@@ -270,7 +285,7 @@ export function NavBar({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") goSearch();
                 }}
-                className="w-full bg-transparent text-sm text-white placeholder-text-secondary outline-none"
+                className="w-full bg-transparent text-sm text-text-primary placeholder-text-secondary outline-none"
               />
             </div>
           </div>

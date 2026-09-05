@@ -15,7 +15,7 @@ export function Pill({
       className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-pill px-3.5 py-[8px] text-xs font-medium transition-colors ${
         variant === "active"
           ? "bg-primary text-on-primary"
-          : "bg-bg-card-hover text-text-secondary hover:text-white"
+          : "bg-bg-card-hover text-text-secondary hover:text-text-primary"
       } ${className}`}
       {...props}
     >

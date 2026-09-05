@@ -22,7 +22,7 @@ export function Logo({
         fontSize="34"
         fontWeight="600"
         letterSpacing="-0.5"
-        fill="white"
+        fill="currentColor"
       >
         haibu
       </text>

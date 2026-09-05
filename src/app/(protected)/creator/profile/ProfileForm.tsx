@@ -132,7 +132,7 @@ export function ProfileForm({
           defaultValue={existingBio}
           rows={4}
           placeholder="Tell guests about yourself and your sessions..."
-          className="w-full bg-bg-base border border-border-subtle outline-none rounded-input px-4 py-3 text-sm text-white placeholder-text-secondary transition-colors focus:border-primary resize-none"
+          className="w-full bg-bg-base border border-border-subtle outline-none rounded-input px-4 py-3 text-sm text-text-primary placeholder-text-secondary transition-colors focus:border-primary resize-none"
         />
       </div>
 

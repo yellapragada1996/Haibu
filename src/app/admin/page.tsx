@@ -41,7 +41,7 @@ function Kpi({ label, value, title }: { label: string; value: string; title: str
   return (
     <Card title={title}>
       <p className="text-xs uppercase tracking-wide text-text-tertiary">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+      <p className="mt-2 text-2xl font-bold text-text-primary">{value}</p>
     </Card>
   );
 }
@@ -122,7 +122,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Overview</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Overview</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi
@@ -159,7 +159,7 @@ export default async function AdminOverviewPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-white">
+          <h2 className="mb-3 text-lg font-semibold text-text-primary">
             Open reports
           </h2>
           {openRows.length === 0 ? (
@@ -168,7 +168,7 @@ export default async function AdminOverviewPage() {
             <Card padding={false} className="divide-y divide-border-subtle">
               {openRows.map((r) => (
                 <div key={r.id} className="px-4 py-3">
-                  <p className="truncate text-sm text-white">{r.reason}</p>
+                  <p className="truncate text-sm text-text-primary">{r.reason}</p>
                   <p className="mt-1 text-xs text-text-tertiary">
                     {r.reporter} → {r.reported} · {ageLabel(r.created_at)}
                   </p>
@@ -179,7 +179,7 @@ export default async function AdminOverviewPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-white">
+          <h2 className="mb-3 text-lg font-semibold text-text-primary">
             Recent admin actions
           </h2>
           {recentActions.length === 0 ? (
@@ -188,7 +188,7 @@ export default async function AdminOverviewPage() {
             <Card padding={false} className="divide-y divide-border-subtle">
               {recentActions.map((a) => (
                 <div key={a.id} className="px-4 py-3">
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-text-primary">
                     <span className="font-medium">{a.action}</span>
                     {a.details ? (
                       <span className="text-text-secondary"> · {a.details}</span>
@@ -205,7 +205,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-text-primary">
           Creator reliability flags
         </h2>
         {reliabilityFlags.length === 0 ? (
@@ -216,7 +216,7 @@ export default async function AdminOverviewPage() {
           <Card padding={false} className="divide-y divide-border-subtle">
             {reliabilityFlags.map((f) => (
               <div key={f.creator_id} className="px-4 py-3">
-                <p className="text-sm text-white">
+                <p className="text-sm text-text-primary">
                   {f.display_name}{" "}
                   <span className="text-text-secondary">· {f.email}</span>
                 </p>
@@ -230,7 +230,7 @@ export default async function AdminOverviewPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold text-text-primary">
           Sessions needing review
         </h2>
         {reviewRows.length === 0 ? (
@@ -241,7 +241,7 @@ export default async function AdminOverviewPage() {
           <Card padding={false} className="divide-y divide-border-subtle">
             {reviewRows.map((r) => (
               <div key={r.id} className="px-4 py-3">
-                <p className="text-sm text-white">
+                <p className="text-sm text-text-primary">
                   {r.creator_name}{" "}
                   <span className="text-text-secondary">· {r.id.slice(0, 8)}</span>
                 </p>

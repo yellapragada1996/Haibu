@@ -102,7 +102,7 @@ export const WizardOfferingStep = forwardRef<
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate font-medium text-white">{o.title}</p>
+              <p className="truncate font-medium text-text-primary">{o.title}</p>
               <p className="mt-0.5 text-xs text-text-secondary">
                 {categoryLabel(o.category)} · {o.duration_minutes} min · $
                 {(o.price_cents / 100).toFixed(2)}
@@ -197,7 +197,7 @@ export const WizardOfferingStep = forwardRef<
       <button
         type="button"
         onClick={addDraft}
-        className="text-sm font-medium text-text-secondary transition-colors hover:text-white"
+        className="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
       >
         + Add another session
       </button>

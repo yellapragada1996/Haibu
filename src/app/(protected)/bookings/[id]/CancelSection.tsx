@@ -84,7 +84,7 @@ export function CancelSection({
       onClose={() => !loading && setShowConfirm(false)}
       title="Cancel session"
     >
-      <p className="text-sm text-white">
+      <p className="text-sm text-text-primary">
         {isCreator ? (
           "The guest will receive a refund (minus payment processing fees) and this session will be cancelled. You will not be paid for this session."
         ) : refundText ? (

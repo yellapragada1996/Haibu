@@ -89,7 +89,7 @@ export function TermsOfServiceModal({
         className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-modal bg-bg-surface sm:rounded-modal"
       >
         <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
-          <h2 id="tos-title" className="text-lg font-semibold text-white">
+          <h2 id="tos-title" className="text-lg font-semibold text-text-primary">
             Terms of Service
           </h2>
           <button
@@ -97,7 +97,7 @@ export function TermsOfServiceModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-11 w-11 items-center justify-center rounded-pill text-text-secondary transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex h-11 w-11 items-center justify-center rounded-pill text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <svg
               width="18"
@@ -124,7 +124,7 @@ export function TermsOfServiceModal({
             <p className="text-sm text-text-secondary">Loading…</p>
           ) : (
             <div
-              className="tos-doc text-sm text-text-secondary [&_a]:text-white [&_a]:underline [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-white [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-white [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-white [&_li]:leading-relaxed [&_p]:my-3 [&_p]:leading-relaxed [&_strong]:text-white [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5"
+              className="tos-doc text-sm text-text-secondary [&_a]:text-text-primary [&_a]:underline [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-text-primary [&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-text-primary [&_h3]:mb-1 [&_h3]:mt-4 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-text-primary [&_li]:leading-relaxed [&_p]:my-3 [&_p]:leading-relaxed [&_strong]:text-text-primary [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           )}

@@ -30,7 +30,7 @@ function statusClass(s: string) {
     case "reserved":
       return "border border-text-secondary text-text-secondary";
     case "completed":
-      return "border border-white text-white";
+      return "border border-white text-text-primary";
     default:
       return "border border-text-tertiary text-text-tertiary";
   }
@@ -97,7 +97,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Bookings</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Bookings</h1>
 
       {rows.length === 0 ? (
         <p className="text-sm text-text-secondary">No bookings yet.</p>
@@ -121,14 +121,14 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
                   <td className="px-3 py-2 font-mono text-xs text-text-tertiary">
                     {shortId(r.id)}
                   </td>
-                  <td className="px-3 py-2 text-white">{r.offering}</td>
+                  <td className="px-3 py-2 text-text-primary">{r.offering}</td>
                   <td className="px-3 py-2 text-text-secondary">
                     {r.fan} → {r.creator}
                   </td>
                   <td className="px-3 py-2 text-text-tertiary">
                     {r.start_at ? formatDateTime(r.start_at) : ""}
                   </td>
-                  <td className="px-3 py-2 text-white">
+                  <td className="px-3 py-2 text-text-primary">
                     ${((r.price_cents ?? 0) / 100).toFixed(2)}
                   </td>
                   <td className="px-3 py-2">
@@ -215,7 +215,7 @@ export function BookingsTable({ rows }: { rows: BookingRow[] }) {
           {overrideTarget?.creator}. This booking is marked no_show_fan (guest
           did not join).
         </p>
-        <div className="mt-3 flex flex-col gap-2 text-sm text-white">
+        <div className="mt-3 flex flex-col gap-2 text-sm text-text-primary">
           <label className="flex items-center gap-2">
             <input
               type="radio"

@@ -84,14 +84,14 @@ export function AdminListControls({
             }
           }}
           placeholder={placeholder}
-          className="h-9 w-full rounded-pill border border-border-subtle bg-bg-base px-4 pr-9 text-sm text-white placeholder-text-secondary outline-none focus:border-primary"
+          className="h-9 w-full rounded-pill border border-border-subtle bg-bg-base px-4 pr-9 text-sm text-text-primary placeholder-text-secondary outline-none focus:border-primary"
         />
         {search && (
           <button
             type="button"
             onClick={clearSearch}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-base leading-none text-text-tertiary hover:text-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-base leading-none text-text-tertiary hover:text-text-primary"
           >
             ✕
           </button>
@@ -107,7 +107,7 @@ export function AdminListControls({
               className={`rounded-pill px-3 py-1.5 text-sm font-medium transition-colors ${
                 active
                   ? "bg-primary text-on-primary"
-                  : "bg-bg-card-hover text-text-secondary hover:text-white"
+                  : "bg-bg-card-hover text-text-secondary hover:text-text-primary"
               }`}
             >
               {o.label}

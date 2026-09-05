@@ -11,7 +11,7 @@ const styles: Record<BadgeVariant, string> = {
   confirmed: "border border-live text-live",
   pending: "border border-text-secondary text-text-secondary",
   cancelled: "border border-text-tertiary text-text-tertiary",
-  completed: "border border-white text-white",
+  completed: "border border-white text-text-primary",
   error: "border border-error text-error",
 };
 

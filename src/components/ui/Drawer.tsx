@@ -28,12 +28,12 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
       <div className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-border-subtle bg-bg-surface p-6">
         <div className="mb-4 flex items-center justify-between gap-4">
           {title && (
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
+            <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
           )}
           <button
             onClick={onClose}
             aria-label="Close"
-            className="ml-auto text-xl leading-none text-text-tertiary hover:text-white"
+            className="ml-auto text-xl leading-none text-text-tertiary hover:text-text-primary"
           >
             ✕
           </button>

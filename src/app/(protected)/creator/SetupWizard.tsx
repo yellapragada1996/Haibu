@@ -154,7 +154,7 @@ export function SetupWizard({
       <div className="rounded-card bg-bg-card p-5 sm:p-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Become a creator</h2>
+          <h2 className="text-lg font-semibold text-text-primary">Become a creator</h2>
           {step === 1 && (
             <Button
               variant="secondary"
@@ -265,7 +265,7 @@ export function SetupWizard({
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-bg-card-hover text-xl text-text-secondary">
                 $
               </div>
-              <h3 className="text-base font-semibold text-white">
+              <h3 className="text-base font-semibold text-text-primary">
                 Connect your payout account
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-sm text-text-secondary">
@@ -284,7 +284,7 @@ export function SetupWizard({
                     id="setup-country"
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
-                    className="h-10 w-full rounded-input border border-border-subtle bg-bg-base px-3 text-sm text-white outline-none focus:border-primary"
+                    className="h-10 w-full rounded-input border border-border-subtle bg-bg-base px-3 text-sm text-text-primary outline-none focus:border-primary"
                   >
                     {STRIPE_EXPRESS_COUNTRIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -305,7 +305,7 @@ export function SetupWizard({
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-bg-card-hover text-sm font-bold text-text-secondary">
                 ID
               </div>
-              <h3 className="text-base font-semibold text-white">
+              <h3 className="text-base font-semibold text-text-primary">
                 Verify your identity
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-sm text-text-secondary">

@@ -14,7 +14,7 @@ export function Input({
   return (
     <div className="w-full">
       <input
-        className={`w-full bg-bg-base border outline-none transition-colors px-4 py-3 text-sm text-white placeholder-text-secondary ${
+        className={`w-full bg-bg-base border outline-none transition-colors px-4 py-3 text-sm text-text-primary placeholder-text-secondary ${
           error
             ? "border-error focus:border-error"
             : "border-border-subtle focus:border-primary"
@@ -38,7 +38,7 @@ export function Select({ error, className = "", children, ...props }: SelectProp
   return (
     <div className="w-full">
       <select
-        className={`w-full bg-bg-base border outline-none rounded-input px-4 py-3 text-sm text-white appearance-none ${
+        className={`w-full bg-bg-base border outline-none rounded-input px-4 py-3 text-sm text-text-primary appearance-none ${
           error
             ? "border-error focus:border-error"
             : "border-border-subtle focus:border-primary"

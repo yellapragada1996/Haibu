@@ -137,7 +137,7 @@ export default async function CreatorHandlePage({
               size={48}
             />
           )}
-          <h1 className="text-2xl font-bold text-white">{creator.display_name}</h1>
+          <h1 className="text-2xl font-bold text-text-primary">{creator.display_name}</h1>
           <ShareButton path={`/@${slug}`} name={creator.display_name} />
         </div>
 
@@ -210,7 +210,7 @@ export default async function CreatorHandlePage({
 
         {/* Offerings — all of them, each with its own Book button */}
         <section className="mt-6">
-          <h2 className="mb-3 text-lg font-semibold text-white">Offerings</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text-primary">Offerings</h2>
           {offeringRows.length === 0 ? (
             <p className="text-sm text-text-secondary">No active offerings.</p>
           ) : (
@@ -221,13 +221,13 @@ export default async function CreatorHandlePage({
                   className="flex min-h-[72px] items-center justify-between"
                 >
                   <div>
-                    <p className="font-medium text-white">{o.title}</p>
+                    <p className="font-medium text-text-primary">{o.title}</p>
                     <p className="text-sm text-text-secondary">
                       {o.duration_minutes} min
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-text-primary">
                       ${(o.price_cents / 100).toFixed(2)}
                     </span>
                     <ButtonLink
@@ -250,14 +250,14 @@ export default async function CreatorHandlePage({
         {/* Recent reviews — inline previews (3) + "View more →" trigger */}
         <section className="mt-6">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold text-white">Recent reviews</h2>
+            <h2 className="text-lg font-semibold text-text-primary">Recent reviews</h2>
             {reviewCount > 3 && (
               <AllReviewsModal
                 creatorId={creator.id}
                 reviewCount={reviewCount}
                 avgRating={avgRating}
                 trigger={
-                  <span className="text-sm text-text-secondary hover:text-white">
+                  <span className="text-sm text-text-secondary hover:text-text-primary">
                     View more →
                   </span>
                 }
@@ -276,7 +276,7 @@ export default async function CreatorHandlePage({
                   <Card key={r.id}>
                     <div className="flex items-center gap-2">
                       <Avatar name={firstName} size={26} />
-                      <span className="text-sm font-medium text-white">
+                      <span className="text-sm font-medium text-text-primary">
                         {firstName}
                       </span>
                       <span

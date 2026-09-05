@@ -135,13 +135,13 @@ export default async function BookingPage({
   const detail = (label: string, value: React.ReactNode) => (
     <div className="flex items-center justify-between gap-4">
       <span className="shrink-0 text-sm text-text-secondary">{label}</span>
-      <span className="text-right text-sm text-white">{value}</span>
+      <span className="text-right text-sm text-text-primary">{value}</span>
     </div>
   );
 
   return (
     <div className="mx-auto max-w-lg px-6 py-12">
-      <h1 className="text-2xl font-semibold text-white">
+      <h1 className="text-2xl font-semibold text-text-primary">
         {booking.status === "completed"
           ? "Completed session"
           : booking.status === "confirmed"
@@ -160,7 +160,7 @@ export default async function BookingPage({
           <Avatar src={otherAvatar} name={otherName} size={44} />
           <div>
             <p className="text-xs text-text-secondary">{otherLabel}</p>
-            <p className="text-base font-semibold text-white">{otherName}</p>
+            <p className="text-base font-semibold text-text-primary">{otherName}</p>
           </div>
         </div>
         <div className="border-t border-border-subtle pt-3 space-y-3">

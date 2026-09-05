@@ -103,7 +103,7 @@ export default async function SearchPage({
           ))}
         </div>
 
-        <h1 className="text-lg font-semibold text-white mb-2">
+        <h1 className="text-lg font-semibold text-text-primary mb-2">
           {q ? `Search: "${q}"` : "Search creators"}
         </h1>
 

@@ -173,7 +173,7 @@ export default async function CreatorHomePage({
               size={48}
             />
           )}
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-text-primary">
             {userRow?.display_name ?? user.email ?? ""}
           </h1>
           {profile.slug && (
@@ -235,8 +235,8 @@ export default async function CreatorHomePage({
         {/* Upcoming */}
         <section className="mt-8">
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold text-white">Upcoming</h2>
-            <Link href="/creator/bookings" className="text-sm text-text-secondary hover:text-white">
+            <h2 className="text-lg font-semibold text-text-primary">Upcoming</h2>
+            <Link href="/creator/bookings" className="text-sm text-text-secondary hover:text-text-primary">
               View all →
             </Link>
           </div>
@@ -252,7 +252,7 @@ export default async function CreatorHomePage({
                 <Link key={b.id} href={`/bookings/${b.id}`}>
                   <Card className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-text-primary">
                         {fmtTime(new Date(b.start_at!), tz)} –{" "}
                         {fmtTime(new Date(b.end_at!), tz)}
                         <span className="ml-2 font-normal text-text-secondary">
@@ -275,7 +275,7 @@ export default async function CreatorHomePage({
 
         {/* This week */}
         <section className="mt-8">
-          <h2 className="mb-3 text-lg font-semibold text-white">This week</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text-primary">This week</h2>
           <div className="flex gap-2">
             {weekOpen.map((open, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
@@ -403,7 +403,7 @@ export default async function CreatorHomePage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Onboarding</h1>
+      <h1 className="text-2xl font-bold text-text-primary">Onboarding</h1>
       <div className="mt-6">
         <SetupWizard
           step={step}

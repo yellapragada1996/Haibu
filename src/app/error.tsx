@@ -15,7 +15,7 @@ export default function Error({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-      <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
+      <h2 className="text-2xl font-bold text-text-primary">Something went wrong</h2>
       <p className="mt-2 text-sm text-text-secondary">
         An unexpected error occurred. Please try again.
       </p>

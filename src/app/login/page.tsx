@@ -206,7 +206,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setTosOpen(true)}
-            className="font-medium text-white underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="font-medium text-text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Terms of Service
           </button>
@@ -352,7 +352,7 @@ export default function LoginPage() {
             what they're completing before the auth options. */}
         {booking && (mode === "login" || mode === "signup") && (
           <>
-            <h1 className="mb-1 text-center text-lg font-semibold text-white">
+            <h1 className="mb-1 text-center text-lg font-semibold text-text-primary">
               Almost there — confirm your booking
             </h1>
             <p className="mb-4 mt-1 text-center text-sm text-text-secondary">
@@ -373,7 +373,7 @@ export default function LoginPage() {
                   <div className="h-11 w-11 rounded-full bg-bg-card-hover" />
                 )}
                 <div>
-                  <div className="text-[15px] font-bold text-white">
+                  <div className="text-[15px] font-bold text-text-primary">
                     {booking.creatorName}
                   </div>
                   <div className="text-xs text-text-secondary">
@@ -384,13 +384,13 @@ export default function LoginPage() {
               <div className="mt-3 border-t border-border-subtle pt-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-text-secondary">When</span>
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-text-primary">
                     {booking.displayDate} · {booking.displayTime}
                   </span>
                 </div>
                 <div className="mt-1.5 flex justify-between text-sm">
                   <span className="text-text-secondary">Total</span>
-                  <span className="font-bold text-white">
+                  <span className="font-bold text-text-primary">
                     ${(booking.priceCents / 100).toFixed(2)}
                   </span>
                 </div>
@@ -438,7 +438,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setBooking(null)}
-                className="w-full text-center text-sm text-text-secondary hover:text-white"
+                className="w-full text-center text-sm text-text-secondary hover:text-text-primary"
               >
                 Already have an account? Log in
               </button>
@@ -450,13 +450,13 @@ export default function LoginPage() {
           <div className="flex rounded-pill bg-bg-base p-1 mb-6">
             <button
               onClick={() => { setMode("login"); setMessage(""); }}
-              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-primary text-on-primary" : "text-text-secondary hover:text-white"}`}
+              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-primary text-on-primary" : "text-text-secondary hover:text-text-primary"}`}
             >
               Log in
             </button>
             <button
               onClick={() => { setMode("signup"); setMessage(""); }}
-              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-primary text-on-primary" : "text-text-secondary hover:text-white"}`}
+              className={`flex-1 rounded-pill py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-primary text-on-primary" : "text-text-secondary hover:text-text-primary"}`}
             >
               Sign up
             </button>
@@ -474,7 +474,7 @@ export default function LoginPage() {
 
             <button
               onClick={() => { setMode("forgot"); setMessage(""); }}
-              className="mt-3 w-full text-center text-sm text-text-secondary hover:text-white"
+              className="mt-3 w-full text-center text-sm text-text-secondary hover:text-text-primary"
             >
               Forgot password?
             </button>
@@ -509,9 +509,9 @@ export default function LoginPage() {
 
         {mode === "verify" && (
           <>
-            <h1 className="text-center text-lg font-semibold text-white mb-2">Check your email</h1>
+            <h1 className="text-center text-lg font-semibold text-text-primary mb-2">Check your email</h1>
             <p className="text-center text-sm text-text-secondary mb-6">
-              We sent a 6-digit code to <span className="text-white">{email}</span>.
+              We sent a 6-digit code to <span className="text-text-primary">{email}</span>.
             </p>
 
             <OtpInput value={otp} onChange={setOtp} />
@@ -522,11 +522,11 @@ export default function LoginPage() {
               {loading ? "Verifying…" : "Verify"}
             </Button>
 
-            <button onClick={resend} disabled={resendSeconds > 0} className="mt-4 w-full text-center text-sm text-text-secondary hover:text-white disabled:opacity-50">
+            <button onClick={resend} disabled={resendSeconds > 0} className="mt-4 w-full text-center text-sm text-text-secondary hover:text-text-primary disabled:opacity-50">
               {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
             </button>
 
-            <button onClick={() => { setMode("signup"); setEmail(""); setOtp(""); setMessage(""); }} className="mt-3 w-full text-center text-sm text-text-secondary hover:text-white">
+            <button onClick={() => { setMode("signup"); setEmail(""); setOtp(""); setMessage(""); }} className="mt-3 w-full text-center text-sm text-text-secondary hover:text-text-primary">
               Use a different email
             </button>
           </>
@@ -534,7 +534,7 @@ export default function LoginPage() {
 
         {mode === "forgot" && (
           <>
-            <h1 className="text-center text-lg font-semibold text-white mb-2">Reset your password</h1>
+            <h1 className="text-center text-lg font-semibold text-text-primary mb-2">Reset your password</h1>
             <p className="text-center text-sm text-text-secondary mb-6">Enter your email and we&apos;ll send a code.</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -543,7 +543,7 @@ export default function LoginPage() {
               <Button type="submit" disabled={loading} className="w-full">Send code</Button>
             </form>
 
-            <button onClick={() => { setMode("login"); setMessage(""); }} className="mt-3 w-full text-center text-sm text-text-secondary hover:text-white">
+            <button onClick={() => { setMode("login"); setMessage(""); }} className="mt-3 w-full text-center text-sm text-text-secondary hover:text-text-primary">
               Back to log in
             </button>
           </>
@@ -551,9 +551,9 @@ export default function LoginPage() {
 
         {mode === "reset-verify" && (
           <>
-            <h1 className="text-center text-lg font-semibold text-white mb-2">Enter reset code</h1>
+            <h1 className="text-center text-lg font-semibold text-text-primary mb-2">Enter reset code</h1>
             <p className="text-center text-sm text-text-secondary mb-6">
-              We sent a 6-digit code to <span className="text-white">{email}</span>.
+              We sent a 6-digit code to <span className="text-text-primary">{email}</span>.
             </p>
 
             <OtpInput value={otp} onChange={setOtp} />
@@ -564,7 +564,7 @@ export default function LoginPage() {
               {loading ? "Verifying…" : "Verify"}
             </Button>
 
-            <button onClick={resend} disabled={resendSeconds > 0} className="mt-4 w-full text-center text-sm text-text-secondary hover:text-white disabled:opacity-50">
+            <button onClick={resend} disabled={resendSeconds > 0} className="mt-4 w-full text-center text-sm text-text-secondary hover:text-text-primary disabled:opacity-50">
               {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
             </button>
           </>
@@ -572,7 +572,7 @@ export default function LoginPage() {
 
         {mode === "reset-password" && (
           <>
-            <h1 className="text-center text-lg font-semibold text-white mb-2">Set a new password</h1>
+            <h1 className="text-center text-lg font-semibold text-text-primary mb-2">Set a new password</h1>
 
             <form onSubmit={handleSetPassword} className="space-y-4">
               <Input type="password" placeholder="New password" value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -661,7 +661,7 @@ function GoogleButton({ loading, onClick }: { loading: boolean; onClick: () => v
     <button
       onClick={onClick}
       disabled={loading}
-      className="flex w-full items-center justify-center gap-2 rounded-pill bg-bg-card-hover px-4 py-3 text-sm font-semibold text-white transition hover:bg-border-subtle disabled:opacity-50"
+      className="flex w-full items-center justify-center gap-2 rounded-pill bg-bg-card-hover px-4 py-3 text-sm font-semibold text-text-primary transition hover:bg-border-subtle disabled:opacity-50"
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

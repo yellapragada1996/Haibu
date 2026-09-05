@@ -44,7 +44,7 @@ export function AddToCalendarButton({
     <button
       type="button"
       onClick={add}
-      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-bg-card-hover px-4 text-[13px] font-semibold text-white transition-colors hover:bg-bg-card-hover/80"
+      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-bg-card-hover px-4 text-[13px] font-semibold text-text-primary transition-colors hover:bg-bg-card-hover/80"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
         <rect x="3" y="4" width="18" height="18" rx="2" />

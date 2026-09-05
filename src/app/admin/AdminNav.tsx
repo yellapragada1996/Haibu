@@ -28,7 +28,7 @@ export function AdminNav() {
             className={`rounded-pill px-4 py-2 text-sm font-medium transition-colors ${
               active
                 ? "bg-primary text-on-primary"
-                : "text-text-secondary hover:text-white"
+                : "text-text-secondary hover:text-text-primary"
             }`}
           >
             {item.label}

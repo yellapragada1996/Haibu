@@ -136,7 +136,7 @@ export function SlotPicker({
         ) : (
           <div className="h-7 w-7 rounded-full bg-bg-card-hover" />
         )}
-        <span className="text-sm font-semibold text-white">
+        <span className="text-sm font-semibold text-text-primary">
           {creator.display_name}
         </span>
         <span className="text-xs text-text-secondary">
@@ -144,7 +144,7 @@ export function SlotPicker({
         </span>
       </div>
 
-      <h1 className="mb-3 text-lg font-semibold text-white">Pick a time</h1>
+      <h1 className="mb-3 text-lg font-semibold text-text-primary">Pick a time</h1>
 
       {slots.length === 0 ? (
         <p className="text-sm text-text-secondary">
@@ -166,7 +166,7 @@ export function SlotPicker({
                 className={`inline-flex h-9 shrink-0 items-center rounded-pill px-4 text-xs font-medium transition-colors ${
                   selectedDate === key
                     ? "bg-primary font-semibold text-on-primary"
-                    : "bg-bg-card-hover text-text-secondary hover:text-white"
+                    : "bg-bg-card-hover text-text-secondary hover:text-text-primary"
                 }`}
               >
                 {fmtDate(key)}
@@ -195,7 +195,7 @@ export function SlotPicker({
                       className={`flex min-h-[44px] items-center justify-center rounded-[10px] text-[13px] font-semibold transition-colors ${
                         selectedSlot === s.start_at
                           ? "bg-primary text-on-primary"
-                          : "bg-bg-card text-white hover:bg-bg-card-hover"
+                          : "bg-bg-card text-text-primary hover:bg-bg-card-hover"
                       }`}
                     >
                       {fmtTime(s.start_at)}
@@ -225,7 +225,7 @@ export function SlotPicker({
                     ? `${fmtDate(selectedDate)} · ${fmtTime(selectedSlot)}`
                     : "Pick a time"}
                 </div>
-                <div className="text-sm font-bold text-white">
+                <div className="text-sm font-bold text-text-primary">
                   ${(offering.price_cents / 100).toFixed(2)}
                 </div>
               </div>

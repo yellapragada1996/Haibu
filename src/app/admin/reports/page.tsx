@@ -77,7 +77,7 @@ export default async function AdminReportsPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Reports</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Reports</h1>
       <AdminListControls
         base="/admin/reports"
         param="status"

@@ -46,13 +46,13 @@ export function FeeForm({ currentRate }: { currentRate: number }) {
         <div className="flex h-8 w-8 items-center justify-center rounded-input bg-bg-card-hover text-sm text-text-secondary">
           %
         </div>
-        <h2 className="text-lg font-semibold text-white">Platform fee</h2>
+        <h2 className="text-lg font-semibold text-text-primary">Platform fee</h2>
       </div>
 
       {/* Current rate display */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-text-secondary">Current rate</span>
-        <span className="text-2xl font-bold text-white">{pct}%</span>
+        <span className="text-2xl font-bold text-text-primary">{pct}%</span>
       </div>
 
       {/* Slider */}
@@ -71,7 +71,7 @@ export function FeeForm({ currentRate }: { currentRate: number }) {
             onChange={(e) => setRate(parseInt(e.target.value) / 100)}
             className="h-1.5 flex-1 cursor-pointer appearance-none rounded-pill bg-bg-card-hover accent-primary [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
           />
-          <span className="min-w-[3ch] text-right text-sm font-semibold text-white">
+          <span className="min-w-[3ch] text-right text-sm font-semibold text-text-primary">
             {pct}%
           </span>
         </div>
@@ -85,18 +85,18 @@ export function FeeForm({ currentRate }: { currentRate: number }) {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-secondary">Session price</span>
-            <span className="text-white">$50.00</span>
+            <span className="text-text-primary">$50.00</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-secondary">Platform fee</span>
-            <span className="font-medium text-white">
+            <span className="font-medium text-text-primary">
               ${(previewFee / 100).toFixed(2)}
             </span>
           </div>
           <div className="border-t border-border-subtle pt-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-text-secondary">Creator payout</span>
-              <span className="font-medium text-white">
+              <span className="font-medium text-text-primary">
                 ${(previewPayout / 100).toFixed(2)}
               </span>
             </div>
@@ -119,7 +119,7 @@ export function FeeForm({ currentRate }: { currentRate: number }) {
           <button
             type="button"
             onClick={() => setRate(currentRate)}
-            className="text-sm text-text-secondary hover:text-white"
+            className="text-sm text-text-secondary hover:text-text-primary"
           >
             Reset
           </button>

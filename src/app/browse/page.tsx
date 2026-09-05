@@ -107,7 +107,7 @@ export default async function BrowsePage({
     <PublicLayout>
       <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
         {isAnon && (
-          <p className="mb-6 text-center text-[22px] font-bold text-white">
+          <p className="mb-6 text-center text-[22px] font-bold text-text-primary">
             Book a live 1:1 video session with a creator
           </p>
         )}
@@ -130,7 +130,7 @@ export default async function BrowsePage({
           ))}
         </div>
 
-        <h1 className="mb-6 text-lg font-semibold text-white">
+        <h1 className="mb-6 text-lg font-semibold text-text-primary">
           {onlyAvailableToday ? "Available today" : "All creators"}
         </h1>
 

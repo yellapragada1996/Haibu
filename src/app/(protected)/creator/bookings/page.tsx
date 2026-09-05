@@ -39,7 +39,7 @@ function CancelledRow({ b, timezone }: { b: CancelledRowItem; timezone?: string 
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm text-text-secondary">Guest</span>
-            <span className="font-medium text-white">{b.fan_name}</span>
+            <span className="font-medium text-text-primary">{b.fan_name}</span>
             <Badge
               variant={bookingBadgeVariant(b.status)}
               label={bookingLabel(
@@ -76,7 +76,7 @@ function CancelledSection({
   if (rows.length === 0) return null;
   return (
     <section className="mt-10">
-      <h2 className="mb-3 text-lg font-semibold text-white">{title}</h2>
+      <h2 className="mb-3 text-lg font-semibold text-text-primary">{title}</h2>
       <div className="flex flex-col gap-3">
         {rows.map((b) => (
           <CancelledRow key={b.id} b={b} timezone={timezone} />
@@ -204,10 +204,10 @@ export default async function CreatorBookingsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-white">Booked by guests</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-text-primary">Booked by guests</h1>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">Upcoming</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-primary">Upcoming</h2>
         {incoming.length === 0 ? (
           <p className="text-sm text-text-secondary">No upcoming bookings with guests yet.</p>
         ) : (
@@ -218,7 +218,7 @@ export default async function CreatorBookingsPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-text-secondary">Guest</span>
-                      <span className="font-medium text-white">{b.fan_name}</span>
+                      <span className="font-medium text-text-primary">{b.fan_name}</span>
                       <Badge variant={bookingBadgeVariant(b.status)} label={bookingLabel(b.status, { isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false }, "creator")} />
                     </div>
                     <p className="mt-1 text-xs text-text-secondary">
@@ -239,7 +239,7 @@ export default async function CreatorBookingsPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold text-white">Completed</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-primary">Completed</h2>
         {past.length === 0 ? (
           <p className="text-sm text-text-secondary">No completed sessions yet.</p>
         ) : (
@@ -250,7 +250,7 @@ export default async function CreatorBookingsPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-text-secondary">Guest</span>
-                      <span className="font-medium text-white">{b.fan_name}</span>
+                      <span className="font-medium text-text-primary">{b.fan_name}</span>
                       <Badge
                         variant={bookingBadgeVariant(b.status)}
                         label={bookingLabel(b.status, { needs_review: b.needs_review, isPastEnd: b.end_at ? new Date(b.end_at) < new Date() : false }, "creator")}

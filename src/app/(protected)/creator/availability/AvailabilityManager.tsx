@@ -304,7 +304,7 @@ export const AvailabilityManager = forwardRef<
   return (
     <div className="space-y-6">
       <p className="text-sm text-text-secondary">
-        All times below are in <span className="text-white">{timezone}</span>,
+        All times below are in <span className="text-text-primary">{timezone}</span>,
         based on your account settings.
       </p>
 
@@ -336,7 +336,7 @@ export const AvailabilityManager = forwardRef<
                 onCheckedChange={() => toggleDay(dayIndex)}
                 label={DAY_NAMES[dayIndex]}
               />
-              <span className={`w-28 text-sm font-medium ${day.enabled ? "text-white" : "text-text-tertiary"}`}>
+              <span className={`w-28 text-sm font-medium ${day.enabled ? "text-text-primary" : "text-text-tertiary"}`}>
                 {DAY_NAMES[dayIndex]}
               </span>
               {day.enabled && (
@@ -430,7 +430,7 @@ export const AvailabilityManager = forwardRef<
 
       {/* Specific dates */}
       <Card className="space-y-3">
-        <h2 className="text-lg font-semibold text-white">Specific dates</h2>
+        <h2 className="text-lg font-semibold text-text-primary">Specific dates</h2>
         <p className="text-sm text-text-secondary">
           Need to change just one day? Use this instead of your weekly schedule
           above.
@@ -535,7 +535,7 @@ export const AvailabilityManager = forwardRef<
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
                     <span
-                      className={`text-sm ${entry.shadowedBy ? "text-text-tertiary" : "text-white"}`}
+                      className={`text-sm ${entry.shadowedBy ? "text-text-tertiary" : "text-text-primary"}`}
                     >
                       {entry.label}
                     </span>

@@ -8,9 +8,9 @@ const variantStyles: Record<Variant, string> = {
   primary:
     "bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-hover",
   secondary:
-    "border border-border-subtle bg-neutral-default text-white hover:bg-neutral-hover",
+    "border border-border-subtle bg-neutral-default text-text-primary hover:bg-neutral-hover",
   ghost:
-    "bg-transparent text-text-secondary hover:text-white hover:bg-bg-card-hover",
+    "bg-transparent text-text-secondary hover:text-text-primary hover:bg-bg-card-hover",
   destructive:
     "bg-error text-white hover:opacity-90 active:opacity-80",
 };

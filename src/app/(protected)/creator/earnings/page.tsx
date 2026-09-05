@@ -43,7 +43,7 @@ export default async function CreatorEarningsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Earnings</h1>
+      <h1 className="text-2xl font-bold text-text-primary">Earnings</h1>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi
@@ -64,7 +64,7 @@ export default async function CreatorEarningsPage() {
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">Sessions</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-primary">Sessions</h2>
         {earnings.sessions.length === 0 ? (
           <Card>
             <p className="text-sm text-text-secondary">

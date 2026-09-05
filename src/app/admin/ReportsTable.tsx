@@ -70,7 +70,7 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Reports</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Reports</h1>
       {error && <p className="mb-3 text-sm text-error">{error}</p>}
 
       {rows.length === 0 ? (
@@ -102,7 +102,7 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
                   }}
                   className="cursor-pointer transition-colors hover:bg-bg-card-hover"
                 >
-                  <td className="max-w-xs px-3 py-2 align-middle text-white">
+                  <td className="max-w-xs px-3 py-2 align-middle text-text-primary">
                     <span className="block truncate">{r.reason}</span>
                   </td>
                   <td className="px-3 py-2 align-middle text-text-secondary">
@@ -136,16 +136,16 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
       >
         {selected && (
           <div>
-            <p className="text-sm text-white">{selected.reason}</p>
+            <p className="text-sm text-text-primary">{selected.reason}</p>
 
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-text-tertiary">Reporter</dt>
-                <dd className="text-right text-white">{selected.reporter}</dd>
+                <dd className="text-right text-text-primary">{selected.reporter}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-text-tertiary">Reported</dt>
-                <dd className="text-right text-white">{selected.reported}</dd>
+                <dd className="text-right text-text-primary">{selected.reported}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-text-tertiary">Booking</dt>
@@ -155,7 +155,7 @@ export function ReportsTable({ rows }: { rows: ReportRow[] }) {
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-text-tertiary">Created</dt>
-                <dd className="text-right text-white">
+                <dd className="text-right text-text-primary">
                   {selected.created_at
                     ? `${formatDateTime(selected.created_at)} · ${ageLabel(selected.created_at)}`
                     : "—"}

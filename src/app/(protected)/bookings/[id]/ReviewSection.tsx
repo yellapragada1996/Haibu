@@ -60,7 +60,7 @@ export function ReviewSection({
 
   return (
     <Card className="mt-6">
-      <p className="text-sm font-semibold text-white">Leave a review</p>
+      <p className="text-sm font-semibold text-text-primary">Leave a review</p>
       <p className="mt-1 text-xs text-text-secondary">
         Share how your session went.
       </p>

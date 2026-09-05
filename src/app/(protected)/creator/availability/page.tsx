@@ -55,7 +55,7 @@ export default async function CreatorAvailabilityPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Availability</h1>
+      <h1 className="text-2xl font-bold text-text-primary">Availability</h1>
       <div className="mt-6">
         <AvailabilityManager
           windows={windows.map((w) => ({

@@ -23,7 +23,7 @@ export default async function CreatorProfilePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Profile</h1>
+      <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
       <div className="mt-6">
         <ProfileForm
           existingBio={profile?.bio ?? ""}

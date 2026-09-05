@@ -46,7 +46,7 @@ export function CreatorCard({
 
       {/* Body — bottom ~30% */}
       <div className="flex min-h-0 flex-[3] flex-col gap-1.5 p-3">
-        <p className="truncate text-[13px] font-semibold text-white">{name}</p>
+        <p className="truncate text-[13px] font-semibold text-text-primary">{name}</p>
         <div className="flex flex-wrap items-center gap-1">
           {shown.map((cat) => (
             <span

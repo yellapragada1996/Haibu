@@ -114,7 +114,7 @@ function CheckoutForm({
         </p>
         <button
           onClick={onBack}
-          className="text-xs text-text-secondary hover:text-white"
+          className="text-xs text-text-secondary hover:text-text-primary"
         >
           Cancel
         </button>
@@ -122,7 +122,7 @@ function CheckoutForm({
 
       {/* Payment summary */}
       <div className="rounded-xl bg-bg-card p-4 mb-4 space-y-1">
-        <p className="text-sm font-medium text-white">{offeringTitle}</p>
+        <p className="text-sm font-medium text-text-primary">{offeringTitle}</p>
         <p className="text-xs text-text-secondary">
           {new Date(slotTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} ·{" "}
           {new Date(slotTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} ·{" "}
@@ -332,7 +332,7 @@ export default function BookPage() {
 
   return (
     <div className="mx-auto max-w-lg px-6 py-8" key={creatorId}>
-      <h1 className="text-xl font-semibold text-white">Book a Session</h1>
+      <h1 className="text-xl font-semibold text-text-primary">Book a Session</h1>
 
       {!selectedOffering && offerings.length > 0 && !directBooking && (
         <div className="mt-6 space-y-2">
@@ -344,7 +344,7 @@ export default function BookPage() {
                 "bg-bg-card hover:bg-bg-card-hover"
               }`}
             >
-              <p className="font-medium text-white">{o.title}</p>
+              <p className="font-medium text-text-primary">{o.title}</p>
               <p className="text-sm text-text-secondary">
                 {o.duration_minutes} min · ${(o.price_cents / 100).toFixed(2)}
               </p>
@@ -369,14 +369,14 @@ export default function BookPage() {
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-sm font-medium text-white">{selectedOffering.title}</p>
+              <p className="text-sm font-medium text-text-primary">{selectedOffering.title}</p>
               <p className="text-xs text-text-secondary">
                 {selectedOffering.duration_minutes} min · ${(selectedOffering.price_cents / 100).toFixed(2)}
               </p>
             </div>
             <button
               onClick={() => setSelectedOffering(null)}
-              className="text-xs text-text-secondary hover:text-white"
+              className="text-xs text-text-secondary hover:text-text-primary"
             >
               Change
             </button>
@@ -409,7 +409,7 @@ export default function BookPage() {
                       className={`inline-flex items-center h-9 px-4 rounded-pill text-xs font-medium whitespace-nowrap transition-colors ${
                         active
                           ? "bg-primary text-on-primary"
-                          : "bg-bg-card-hover text-text-secondary hover:text-white"
+                          : "bg-bg-card-hover text-text-secondary hover:text-text-primary"
                       }`}
                     >
                       {label}
@@ -424,7 +424,7 @@ export default function BookPage() {
                     type="button"
                     onClick={() => scrollPillRow(-1)}
                     aria-label="Scroll dates left"
-                    className="absolute left-0 top-[18px] -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-pill bg-bg-card border border-border-subtle text-text-secondary hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-lg z-10"
+                    className="absolute left-0 top-[18px] -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-pill bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary transition-all opacity-0 group-hover:opacity-100 shadow-lg z-10"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                       <path d="M6.5 1L2.5 5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -439,7 +439,7 @@ export default function BookPage() {
                     type="button"
                     onClick={() => scrollPillRow(1)}
                     aria-label="Scroll dates right"
-                    className="absolute right-0 top-[18px] -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-pill bg-bg-card border border-border-subtle text-text-secondary hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-lg z-10"
+                    className="absolute right-0 top-[18px] -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded-pill bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary transition-all opacity-0 group-hover:opacity-100 shadow-lg z-10"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                       <path d="M3.5 1L7.5 5l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -464,7 +464,7 @@ export default function BookPage() {
                       key={s.start_at}
                       onClick={() => handleReserveSlot(s)}
                       disabled={loading}
-                      className="rounded-xl bg-bg-card px-3 py-2 text-sm text-white transition hover:bg-bg-card-hover disabled:opacity-50"
+                      className="rounded-xl bg-bg-card px-3 py-2 text-sm text-text-primary transition hover:bg-bg-card-hover disabled:opacity-50"
                     >
                       {fmtSlot(s)}
                     </button>

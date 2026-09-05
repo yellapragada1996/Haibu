@@ -445,7 +445,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
         <div className="text-center">
-          <p className="text-lg text-white">{error}</p>
+          <p className="text-lg text-text-primary">{error}</p>
           <div className="mt-4">{backButton}</div>
         </div>
       </div>
@@ -464,7 +464,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
               </svg>
             </div>
           )}
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-xl font-bold text-text-primary">
             {endedByTimer ? "Session complete" : "You left the call"}
           </h1>
           <p className="mt-2 text-sm text-text-secondary">
@@ -493,8 +493,8 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-bg-base p-4">
         <div className="text-center">
-          <p className="text-lg text-white">Session hasn&apos;t started yet</p>
-          <p className="mt-2 font-mono text-3xl text-white">{countdown}</p>
+          <p className="text-lg text-text-primary">Session hasn&apos;t started yet</p>
+          <p className="mt-2 font-mono text-3xl text-text-primary">{countdown}</p>
           <p className="mt-2 text-sm text-text-secondary">
             Call will start automatically when the join window opens
           </p>
@@ -547,7 +547,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed ${m.from === "me" ? "self-end bg-brand text-white" : "self-start bg-bg-card-hover text-white"}`}
+            className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm leading-relaxed ${m.from === "me" ? "self-end bg-brand text-white" : "self-start bg-bg-card-hover text-text-primary"}`}
           >
             {m.text}
           </div>
@@ -561,7 +561,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } }}
           placeholder="Message…"
           aria-label="Chat message"
-          className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-base text-white placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="min-w-0 flex-1 rounded-pill border border-border-subtle bg-bg-card px-4 py-2.5 text-base text-text-primary placeholder:text-text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         />
         <button
           type="button"
@@ -592,7 +592,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         <div className="flex items-center gap-3">
           <img src={localAvatar} alt="" className="h-10 w-10 rounded-full object-cover" />
           <div>
-            <p className="text-sm font-semibold text-white">You</p>
+            <p className="text-sm font-semibold text-text-primary">You</p>
             <p className="text-xs text-text-secondary">In call</p>
           </div>
         </div>
@@ -603,7 +603,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             className="h-10 w-10 rounded-full object-cover"
           />
           <div>
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-text-primary">
               {remoteName || remoteLeftName || "The other person"}
             </p>
             <p className="text-xs text-text-secondary">
@@ -657,7 +657,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             )
           )}
           {localIsPip && (
-            <div className="absolute bottom-1 left-2 text-[10px] font-medium text-white drop-shadow">You</div>
+            <div className="absolute bottom-1 left-2 text-[10px] font-medium text-text-primary drop-shadow">You</div>
           )}
         </div>
 
@@ -687,14 +687,14 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
         className={`absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent px-4 pt-[calc(12px+env(safe-area-inset-top,0px))] pb-6 transition-opacity duration-300 ${cleanView ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{sessionTitle}</p>
+          <p className="truncate text-sm font-semibold text-text-primary">{sessionTitle}</p>
           <p className="text-xs text-text-secondary">{sessionEndAt ? `Live · ${timeLeft}` : "Live"}</p>
         </div>
       </div>
 
       {/* Other participant left */}
       {remoteLeftName && !hasRemote && (
-        <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2 whitespace-nowrap rounded-pill border border-border-subtle bg-bg-surface/90 px-4 py-2 text-sm font-semibold text-white">
+        <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2 whitespace-nowrap rounded-pill border border-border-subtle bg-bg-surface/90 px-4 py-2 text-sm font-semibold text-text-primary">
           {remoteLeftName} left the session
         </div>
       )}
@@ -711,7 +711,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             type="button"
             onClick={toggleChat}
             aria-label={hasUnread ? "Open chat (new message)" : "Open chat"}
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-white transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-text-primary transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <ChatIcon />
             {hasUnread && !chatOpen && (
@@ -722,7 +722,7 @@ export function CustomCall({ bookingId }: { bookingId: string }) {
             type="button"
             onClick={togglePeople}
             aria-label={peopleOpen ? "Close people" : "Open people"}
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-white transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-bg-card-hover text-text-primary transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <PeopleIcon />
           </button>
@@ -776,7 +776,7 @@ function ControlButton({ on, onClick, label, icon: Icon }: { on: boolean; onClic
       onClick={onClick}
       aria-label={label}
       aria-pressed={on}
-      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${on ? "bg-bg-card-hover text-white" : "bg-white text-on-primary"}`}
+      className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${on ? "bg-bg-card-hover text-text-primary" : "bg-white text-on-primary"}`}
     >
       <Icon off={!on} />
     </button>

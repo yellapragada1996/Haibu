@@ -26,7 +26,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       />
       <div className="relative w-full max-w-md rounded-modal bg-bg-surface p-6">
         {title && (
-          <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+          <h3 className="text-lg font-semibold text-text-primary mb-4">{title}</h3>
         )}
         {children}
       </div>

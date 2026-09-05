@@ -16,7 +16,7 @@ export default async function DashboardProfilePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Profile</h1>
+      <h1 className="text-2xl font-bold text-text-primary">Profile</h1>
       <p className="mb-6 mt-1 text-sm text-text-secondary">
         Your display name and avatar are shared across the whole platform.
       </p>

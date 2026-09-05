@@ -67,7 +67,7 @@ export function HomeContent({
   return (
     <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
       {isAnon && (
-        <h1 className="mb-6 px-2 text-center text-[22px] font-bold text-white">
+        <h1 className="mb-6 px-2 text-center text-[22px] font-bold text-text-primary">
           Book a live 1:1 video session with a creator
         </h1>
       )}
@@ -95,12 +95,12 @@ export function HomeContent({
       {showAvailable && (
         <section className="mt-8">
           <div className="mb-6 flex items-baseline justify-between px-1">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-text-primary">
               Available today
             </h2>
             <Link
               href="/browse?available=today"
-              className="text-sm text-text-secondary hover:text-white"
+              className="text-sm text-text-secondary hover:text-text-primary"
             >
               View more →
             </Link>
@@ -114,10 +114,10 @@ export function HomeContent({
       {/* Discover */}
       <section className="mt-10">
         <div className="mb-6 flex items-baseline justify-between px-1">
-          <h2 className="text-lg font-semibold text-white">Discover</h2>
+          <h2 className="text-lg font-semibold text-text-primary">Discover</h2>
           <Link
             href="/browse"
-            className="text-sm text-text-secondary hover:text-white"
+            className="text-sm text-text-secondary hover:text-text-primary"
           >
             View more →
           </Link>
@@ -135,7 +135,7 @@ export function HomeContent({
 
       {/* Become a Creator band */}
       <section className="mt-12 rounded-card border border-border-subtle bg-bg-surface px-6 py-10 text-center">
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-lg font-semibold text-text-primary">
           Become a creator
         </h2>
         <p className="mt-2 text-sm text-text-secondary">
@@ -148,10 +148,10 @@ export function HomeContent({
 
       <footer className="mt-16 border-t border-border-subtle pt-8 pb-12">
         <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-text-secondary">
-          <Link href="/terms" className="hover:text-white">
+          <Link href="/terms" className="hover:text-text-primary">
             Terms of Service
           </Link>
-          <Link href="/support" className="hover:text-white">
+          <Link href="/support" className="hover:text-text-primary">
             Support
           </Link>
         </div>

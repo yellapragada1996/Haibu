@@ -84,7 +84,7 @@ export default async function AdminUsersPage({
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Users</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Users</h1>
       <AdminListControls
         base="/admin/users"
         param="role"

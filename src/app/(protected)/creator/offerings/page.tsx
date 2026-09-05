@@ -52,7 +52,7 @@ export default async function CreatorOfferingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Offerings</h1>
+      <h1 className="text-2xl font-bold text-text-primary">Offerings</h1>
       <div className="mt-6">
         <OfferingsList
           offerings={list.map((o) => ({

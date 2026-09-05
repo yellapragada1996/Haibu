@@ -24,7 +24,7 @@ export function Pager({
         {page > 1 && (
           <Link
             href={href(page - 1)}
-            className="rounded-pill border border-border-subtle px-4 py-1.5 text-text-secondary hover:text-white"
+            className="rounded-pill border border-border-subtle px-4 py-1.5 text-text-secondary hover:text-text-primary"
           >
             ← Prev
           </Link>
@@ -32,7 +32,7 @@ export function Pager({
         {hasNext && (
           <Link
             href={href(page + 1)}
-            className="rounded-pill border border-border-subtle px-4 py-1.5 text-text-secondary hover:text-white"
+            className="rounded-pill border border-border-subtle px-4 py-1.5 text-text-secondary hover:text-text-primary"
           >
             Next →
           </Link>

@@ -130,7 +130,7 @@ export function AllReviewsModal({ creatorId, reviewCount, avgRating, trigger }: 
             {/* Header */}
             <div className="shrink-0 border-b border-border-subtle px-5 pb-4 pt-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-text-primary">
                   {reviewCount} {reviewCount === 1 ? "review" : "reviews"}
                 </h2>
                 <button
@@ -149,7 +149,7 @@ export function AllReviewsModal({ creatorId, reviewCount, avgRating, trigger }: 
               {/* Rating summary + distribution */}
               <div className="mt-3 flex gap-5">
                 <div className="flex flex-col items-center">
-                  <span className="text-4xl font-bold text-white">{avgRating.toFixed(1)}</span>
+                  <span className="text-4xl font-bold text-text-primary">{avgRating.toFixed(1)}</span>
                   <span className="text-sm text-rating">
                     {"★".repeat(Math.round(avgRating))}
                   </span>
@@ -180,7 +180,7 @@ export function AllReviewsModal({ creatorId, reviewCount, avgRating, trigger }: 
                   <div key={r.id} className="border-b border-border-subtle py-3 last:border-b-0">
                     <div className="flex items-center gap-2">
                       <Avatar name={firstName} size={28} />
-                      <span className="text-sm font-medium text-white">{firstName}</span>
+                      <span className="text-sm font-medium text-text-primary">{firstName}</span>
                       <span className="text-xs text-text-tertiary">{relativeDate(r.createdAt)}</span>
                     </div>
                     <div className="mt-1 text-sm text-rating" aria-label={`${r.rating ?? 0} stars`}>

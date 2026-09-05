@@ -88,7 +88,7 @@ export function EarningsList({ sessions, platformFeeRate, timezone }: Props) {
             >
               <Card hover className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-text-primary">
                     {s.offering}
                   </p>
                   <p className="mt-0.5 text-xs text-text-secondary">
@@ -103,7 +103,7 @@ export function EarningsList({ sessions, platformFeeRate, timezone }: Props) {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-sm font-bold text-white">
+                  <span className="text-sm font-bold text-text-primary">
                     {formatCents(s.amount)}
                   </span>
                   {badge}
@@ -280,7 +280,7 @@ export function EarningsList({ sessions, platformFeeRate, timezone }: Props) {
             <button
               type="button"
               onClick={() => setSelected(null)}
-              className="mt-2 w-full rounded-input bg-bg-card-hover py-2.5 text-sm font-medium text-white hover:bg-border-subtle"
+              className="mt-2 w-full rounded-input bg-bg-card-hover py-2.5 text-sm font-medium text-text-primary hover:bg-border-subtle"
             >
               Close
             </button>
@@ -306,7 +306,7 @@ function Row({
     <div className="flex items-center justify-between gap-4">
       <span className="text-sm text-text-secondary">{label}</span>
       <span
-        className={`text-right text-sm ${bold ? "font-bold" : "font-medium"} ${valueClass ?? "text-white"}`}
+        className={`text-right text-sm ${bold ? "font-bold" : "font-medium"} ${valueClass ?? "text-text-primary"}`}
       >
         {value}
       </span>

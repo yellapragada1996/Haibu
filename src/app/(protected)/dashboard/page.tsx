@@ -122,7 +122,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">
+      <h1 className="text-2xl font-bold text-text-primary">
         {isCreator ? "Booked by me" : "My sessions"}
       </h1>
 
@@ -130,7 +130,7 @@ export default async function DashboardPage() {
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-semibold text-white">Become a Creator</p>
+              <p className="font-semibold text-text-primary">Become a Creator</p>
               <p className="mt-1 text-sm text-text-secondary">
                 Share your talent, set your schedule, and earn money
               </p>

@@ -63,7 +63,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-white">Users</h1>
+      <h1 className="mb-4 text-2xl font-bold text-text-primary">Users</h1>
       {error && <p className="mb-3 text-sm text-error">{error}</p>}
       {rows[0]?.sync_error && (
         <p className="mb-3 text-sm text-error">
@@ -93,7 +93,7 @@ export function UsersTable({ rows }: { rows: UserRow[] }) {
                   : "guest";
               return (
                 <tr key={r.id}>
-                  <td className="px-3 py-2 text-white">{r.display_name || "—"}</td>
+                  <td className="px-3 py-2 text-text-primary">{r.display_name || "—"}</td>
                   <td className="px-3 py-2 text-text-secondary">{r.email}</td>
                   <td className="px-3 py-2 text-text-secondary">{roleLabel}</td>
                   <td className="px-3 py-2">

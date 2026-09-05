@@ -12,7 +12,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold text-white">Settings</h1>
+      <h1 className="mb-1 text-2xl font-bold text-text-primary">Settings</h1>
       <p className="mb-6 text-sm text-text-secondary">
         Platform configuration
       </p>

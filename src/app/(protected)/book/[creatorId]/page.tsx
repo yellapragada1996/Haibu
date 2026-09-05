@@ -5,13 +5,14 @@ import { useRouter, useParams } from "next/navigation";
 import { reserveSlot, markBookingPaid } from "@/app/(protected)/actions/booking";
 import { groupSlotsByTimeOfDay, type TimeOfDayGroup } from "@/lib/slot-groups";
 import { loadStripe } from "@stripe/stripe-js";
-import { STRIPE_APPEARANCE } from "@/lib/stripe-theme";
+import { getStripeAppearance } from "@/lib/stripe-theme";
 import {
   Elements,
   PaymentElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { useTheme } from "@/components/ThemeProvider";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
@@ -152,6 +153,7 @@ function CheckoutForm({
 export default function BookPage() {
   const params = useParams();
   const creatorId = params.creatorId as string;
+  const { theme } = useTheme();
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [selectedOffering, setSelectedOffering] = useState<Offering | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -485,7 +487,7 @@ export default function BookPage() {
           stripe={stripePromise}
           options={{
             clientSecret,
-            appearance: STRIPE_APPEARANCE,
+            appearance: getStripeAppearance(theme),
           }}
         >
           <CheckoutForm

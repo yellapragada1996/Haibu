@@ -1,8 +1,7 @@
-// Stripe Elements theming — third-party config. Raw hex is a documented
-// exception: Stripe's appearance API needs color strings, and cannot reference
-// the app's @theme CSS variables. See haibu-design-token-system.md.
-export const STRIPE_APPEARANCE = {
-  theme: "night" as const,
+import type { Appearance } from "@stripe/stripe-js";
+
+const dark: Appearance = {
+  theme: "night",
   variables: {
     colorPrimary: "#FFFFFF",
     colorBackground: "#1A1A1A",
@@ -11,3 +10,20 @@ export const STRIPE_APPEARANCE = {
     borderRadius: "12px",
   },
 };
+
+const light: Appearance = {
+  theme: "stripe",
+  variables: {
+    colorPrimary: "#121212",
+    colorBackground: "#FFFFFF",
+    colorText: "#121212",
+    colorDanger: "#EF4444",
+    borderRadius: "12px",
+  },
+};
+
+export function getStripeAppearance(theme: "dark" | "light"): Appearance {
+  return theme === "light" ? light : dark;
+}
+
+export const STRIPE_APPEARANCE = dark;

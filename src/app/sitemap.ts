@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { creatorProfiles, categories } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://haibu.live";
 

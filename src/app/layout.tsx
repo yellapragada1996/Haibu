@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     description:
       "Book live 1-on-1 video sessions with your favorite creators.",
   },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({
@@ -44,6 +47,31 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","ydpl20dgdw")` }} />
       </head>
       <body className="bg-bg-base text-text-primary antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  name: "Haibu",
+                  url: "https://haibu.live",
+                  description:
+                    "Book live 1-on-1 video sessions with your favorite creators. ASMR, coaching, music lessons, tarot readings and more.",
+                },
+                {
+                  "@type": "Organization",
+                  name: "Haibu",
+                  url: "https://haibu.live",
+                  sameAs: [
+                    "https://www.instagram.com/haibu.live/",
+                  ],
+                },
+              ],
+            }),
+          }}
+        />
         <PostHogProvider>
           <Suspense fallback={null}>
             <PostHogPageview />

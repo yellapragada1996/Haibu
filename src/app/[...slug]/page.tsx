@@ -347,5 +347,8 @@ export async function generateMetadata({
       type: "website",
       url: `${base}/@${slug}`,
     },
+    alternates: {
+      canonical: `/@${slug}`,
+    },
   };
 }

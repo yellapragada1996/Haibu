@@ -4,7 +4,7 @@ import { useState } from "react";
 import { startStripeOnboarding, startIdentityVerification } from "./actions";
 import { Button } from "@/components/ui/Button";
 import { STRIPE_EXPRESS_COUNTRIES } from "@/lib/stripe-countries";
-import { formatCents } from "@/lib/creator-studio";
+import { formatCents } from "@/lib/format";
 
 type BannerState =
   | { kind: "connect"; pendingCents: number }

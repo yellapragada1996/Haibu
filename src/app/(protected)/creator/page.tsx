@@ -23,11 +23,11 @@ import { StripeConnectBanner } from "./StripeConnectBanner";
 import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import {
-  formatCents,
   getCreatorEarnings,
   getCreatorUpcoming,
   getCreatorWeekOpen,
 } from "@/lib/creator-studio";
+import { formatCents } from "@/lib/format";
 import { getStripeBannerState } from "@/lib/deferred-onboarding";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

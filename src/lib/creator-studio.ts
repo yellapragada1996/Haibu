@@ -12,14 +12,6 @@ import { alias } from "drizzle-orm/pg-core";
 
 const fan = alias(users, "fan");
 
-export function formatCents(cents: number): string {
-  return (cents / 100).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
-  });
-}
-
 export type EarningsSession = {
   id: string;
   startAt: Date | null;

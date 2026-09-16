@@ -291,7 +291,13 @@ export const sweepEligiblePayouts = inngest.createFunction(
       .from(bookings)
       .where(
         and(
-          sql`${bookings.status} IN ('completed', 'no_show_fan', 'cancelled_fan')`,
+          or(
+            sql`${bookings.status} IN ('completed', 'no_show_fan', 'cancelled_fan')`,
+            and(
+              eq(bookings.status, "no_show_creator"),
+              sql`${bookings.effective_payout_cents} > 0`,
+            ),
+          ),
           eq(bookings.needs_review, false),
           lte(bookings.payout_eligible_at, sql`NOW()`),
         ),

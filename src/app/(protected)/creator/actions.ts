@@ -433,8 +433,8 @@ export async function startStripeOnboarding(country: string) {
     const origin = `${proto}://${host}`;
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
-      refresh_url: `${origin}/creator?step=4`,
-      return_url: `${origin}/creator?step=5`,
+      refresh_url: `${origin}/creator`,
+      return_url: `${origin}/creator`,
       type: "account_onboarding",
     });
 
@@ -522,8 +522,8 @@ export async function startIdentityVerification() {
   const origin = `${proto}://${host}`;
   const accountLink = await stripe.accountLinks.create({
     account: profile.stripe_account_id,
-    refresh_url: `${origin}/creator?step=5`,
-    return_url: `${origin}/creator?step=6`,
+    refresh_url: `${origin}/creator`,
+    return_url: `${origin}/creator`,
     type: "account_onboarding",
   });
 
@@ -546,13 +546,6 @@ export async function setPublishedStatus(shouldPublish: boolean) {
   if (!profile) return { error: "Create a profile first" };
 
   if (shouldPublish) {
-    if (!profile.stripe_onboarding_complete) {
-      return { error: "Complete Stripe onboarding before going live" };
-    }
-    if (!profile.identity_verified) {
-      return { error: "Complete identity verification before going live" };
-    }
-
     const [activeOfferingCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(offerings)

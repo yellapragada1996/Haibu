@@ -4,7 +4,11 @@ import { creatorProfiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
 import { Kpi } from "@/components/ui/Kpi";
-import { formatCents, getCreatorEarnings } from "@/lib/creator-studio";
+import { getCreatorEarnings } from "@/lib/creator-studio";
+import { formatCents } from "@/lib/format";
+import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
+import { getStripeBannerState } from "@/lib/deferred-onboarding";
+import { StripeConnectBanner } from "../StripeConnectBanner";
 import { EarningsList } from "./EarningsList";
 
 export default async function CreatorEarningsPage() {
@@ -15,7 +19,10 @@ export default async function CreatorEarningsPage() {
   if (!user) return null;
 
   const [profile] = await db
-    .select({ id: creatorProfiles.id })
+    .select({
+      id: creatorProfiles.id,
+      stripe_account_id: creatorProfiles.stripe_account_id,
+    })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.user_id, user.id));
 
@@ -29,6 +36,7 @@ export default async function CreatorEarningsPage() {
     .where(eq(users.id, user.id));
   const tz = userRow?.timezone ?? "UTC";
 
+  const reconciled = await reconcileCreatorOnboarding(profile.id);
   const earnings = await getCreatorEarnings(profile.id);
 
   const serializedSessions = earnings.sessions.map((s) => ({
@@ -44,6 +52,16 @@ export default async function CreatorEarningsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-text-primary">Earnings</h1>
+
+      {(() => {
+        const banner = getStripeBannerState({
+          stripeAccountId: profile.stripe_account_id,
+          stripeOnboardingComplete: reconciled.stripeOnboardingComplete,
+          identityVerified: reconciled.identityVerified,
+          pendingCents: earnings.pending,
+        });
+        return banner ? <StripeConnectBanner state={banner} /> : null;
+      })()}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi

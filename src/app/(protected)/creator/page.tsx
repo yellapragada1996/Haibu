@@ -19,14 +19,16 @@ import { Badge } from "@/components/ui/Badge";
 import { Kpi } from "@/components/ui/Kpi";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { SetupWizard } from "./SetupWizard";
+import { StripeConnectBanner } from "./StripeConnectBanner";
 import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import {
-  formatCents,
   getCreatorEarnings,
   getCreatorUpcoming,
   getCreatorWeekOpen,
 } from "@/lib/creator-studio";
+import { formatCents } from "@/lib/format";
+import { getStripeBannerState } from "@/lib/deferred-onboarding";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -200,6 +202,17 @@ export default async function CreatorHomePage({
             </span>
           )}
         </div>
+
+        {/* Stripe connect banner — nudge when there are earnings waiting */}
+        {(() => {
+          const banner = getStripeBannerState({
+            stripeAccountId: profile.stripe_account_id,
+            stripeOnboardingComplete,
+            identityVerified,
+            pendingCents: earnings.pending,
+          });
+          return banner ? <StripeConnectBanner state={banner} /> : null;
+        })()}
 
         {/* Money strip */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -383,14 +396,12 @@ export default async function CreatorHomePage({
   const hasActiveOffering = offeringsList.some((o) => o.is_active);
   const hasAvailability = windowsList.length > 0;
 
-  // Derive the first incomplete step.
+  // Derive the first incomplete step (4-step wizard: Profile, Offering, Availability, Publish).
   let derivedStep = 1;
   if (profile) {
     if (!hasActiveOffering) derivedStep = 2;
     else if (!hasAvailability) derivedStep = 3;
-    else if (!stripeOnboardingComplete) derivedStep = 4;
-    else if (!identityVerified) derivedStep = 5;
-    else derivedStep = 6; // everything done, just not published
+    else derivedStep = 4;
   }
 
   const { step: rawStep } = await searchParams;
@@ -424,7 +435,6 @@ export default async function CreatorHomePage({
             overrides: overridesList,
             timezone: tz,
           }}
-          hasStripeAccount={!!profile?.stripe_account_id}
         />
       </div>
     </div>

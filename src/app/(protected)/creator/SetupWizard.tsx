@@ -11,13 +11,8 @@ import {
   AvailabilityManager,
   type AvailabilityManagerHandle,
 } from "./availability/AvailabilityManager";
-import {
-  startStripeOnboarding,
-  startIdentityVerification,
-  setPublishedStatus,
-} from "./actions";
+import { setPublishedStatus } from "./actions";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { STRIPE_EXPRESS_COUNTRIES } from "@/lib/stripe-countries";
 
 type CategoryOption = { value: string; label: string };
 
@@ -31,14 +26,7 @@ type Offering = {
   booking_count: number;
 };
 
-const STEPS = [
-  "Profile",
-  "Offering",
-  "Availability",
-  "Payments",
-  "Identity",
-  "Publish",
-];
+const STEPS = ["Profile", "Offering", "Availability", "Publish"];
 
 export function SetupWizard({
   step,
@@ -49,7 +37,6 @@ export function SetupWizard({
   profileCategory,
   categories,
   availability,
-  hasStripeAccount,
 }: {
   step: number;
   hasProfile: boolean;
@@ -69,12 +56,10 @@ export function SetupWizard({
     overrides: { id: string; date: string; start_minute: number; end_minute: number }[];
     timezone: string;
   };
-  hasStripeAccount: boolean;
 }) {
   const router = useRouter();
   const availRef = useRef<AvailabilityManagerHandle>(null);
   const offeringRef = useRef<WizardOfferingStepHandle>(null);
-  const [country, setCountry] = useState("US");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,40 +80,6 @@ export function SetupWizard({
       next();
     }
   }, [exitRef, next, router]);
-
-  const handleConnect = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await startStripeOnboarding(country);
-      if (result && "error" in result) {
-        setError(result.error ?? "");
-        setBusy(false);
-      } else if (result && "url" in result) {
-        window.location.href = result.url;
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-      setBusy(false);
-    }
-  }, [country]);
-
-  const handleVerify = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await startIdentityVerification();
-      if (result && "error" in result) {
-        setError(result.error ?? "");
-        setBusy(false);
-      } else if (result && "url" in result && result.url) {
-        window.location.href = result.url;
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-      setBusy(false);
-    }
-  }, []);
 
   const handlePublish = useCallback(async () => {
     setBusy(true);
@@ -261,72 +212,12 @@ export function SetupWizard({
           )}
 
           {step === 4 && (
-            <div className="py-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-bg-card-hover text-xl text-text-secondary">
-                $
-              </div>
-              <h3 className="text-base font-semibold text-text-primary">
-                Connect your payout account
-              </h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-text-secondary">
-                Add your business and bank details on Stripe so you can receive
-                payouts. Takes about 2 minutes.
-              </p>
-              {!hasStripeAccount && (
-                <div className="mx-auto mt-4 flex max-w-xs flex-col gap-2">
-                  <label
-                    htmlFor="setup-country"
-                    className="text-left text-xs text-text-secondary"
-                  >
-                    Country
-                  </label>
-                  <select
-                    id="setup-country"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="h-10 w-full rounded-input border border-border-subtle bg-bg-base px-3 text-sm text-text-primary outline-none focus:border-primary"
-                  >
-                    {STRIPE_EXPRESS_COUNTRIES.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <p className="mt-4 text-xs text-text-tertiary">
-                You'll be redirected back when done
-              </p>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="py-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-bg-card-hover text-sm font-bold text-text-secondary">
-                ID
-              </div>
-              <h3 className="text-base font-semibold text-text-primary">
-                Verify your identity
-              </h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-text-secondary">
-                Confirm who you are with a quick ID + selfie check. This is
-                required before you can go live.
-              </p>
-              <p className="mt-4 text-xs text-text-tertiary">
-                You'll be redirected back when done
-              </p>
-            </div>
-          )}
-
-          {step === 6 && (
             <div>
               <div className="overflow-hidden rounded-input border border-border-subtle">
                 {[
                   "Profile",
                   `Offering — ${offerings[0]?.title ?? "None yet"}`,
                   "Availability",
-                  "Payments — connected",
-                  "Identity — verified",
                 ].map((label) => (
                   <div
                     key={label}
@@ -343,6 +234,10 @@ export function SetupWizard({
                 Going live makes you visible in search. You can pause or edit
                 anytime.
               </p>
+              <div className="mt-3 rounded-input bg-live/10 px-3.5 py-3 text-xs text-live">
+                No bank details needed to get started. Connect a payout account
+                later when you earn from sessions.
+              </div>
             </div>
           )}
         </div>
@@ -371,20 +266,6 @@ export function SetupWizard({
             <Button onClick={() => availRef.current?.save()}>Continue</Button>
           )}
           {step === 4 && (
-            <Button onClick={handleConnect} disabled={busy}>
-              {busy
-                ? "Redirecting…"
-                : hasStripeAccount
-                  ? "Continue onboarding"
-                  : "Connect Stripe"}
-            </Button>
-          )}
-          {step === 5 && (
-            <Button onClick={handleVerify} disabled={busy}>
-              {busy ? "Redirecting…" : "Verify identity"}
-            </Button>
-          )}
-          {step === 6 && (
             <Button onClick={handlePublish} disabled={busy}>
               {busy ? "Publishing…" : "Go live"}
             </Button>

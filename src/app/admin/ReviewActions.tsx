@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
 
-type Outcome = "pay_full" | "pay_reduced" | "refund";
+type Outcome = "pay_full" | "refund";
 
 const LABELS: Record<Outcome, string> = {
   pay_full: "Pay full",
-  pay_reduced: "Pay reduced",
   refund: "Refund",
 };
 

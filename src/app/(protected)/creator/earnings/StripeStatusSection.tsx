@@ -70,16 +70,24 @@ export function StripeStatusSection({ status }: { status: StripeStatus }) {
   const handleManage = async () => {
     setBusy(true);
     setError(null);
+    // Open the blank tab immediately so the browser trusts the user gesture.
+    const tab = window.open("about:blank", "_blank");
     try {
       const result = await createStripeDashboardLink();
       if (result && "error" in result) {
+        tab?.close();
         setError(result.error ?? "");
         setBusy(false);
       } else if (result && "url" in result) {
-        window.open(result.url, "_blank");
+        if (tab) {
+          tab.location.href = result.url;
+        } else {
+          window.location.href = result.url;
+        }
         setBusy(false);
       }
     } catch (e) {
+      tab?.close();
       setError(e instanceof Error ? e.message : "Something went wrong");
       setBusy(false);
     }

@@ -7,8 +7,8 @@ import { Kpi } from "@/components/ui/Kpi";
 import { getCreatorEarnings } from "@/lib/creator-studio";
 import { formatCents } from "@/lib/format";
 import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
-import { getStripeBannerState } from "@/lib/deferred-onboarding";
-import { StripeConnectBanner } from "../StripeConnectBanner";
+import { getStripeStatus } from "@/lib/deferred-onboarding";
+import { StripeStatusSection } from "./StripeStatusSection";
 import { EarningsList } from "./EarningsList";
 
 export default async function CreatorEarningsPage() {
@@ -39,6 +39,12 @@ export default async function CreatorEarningsPage() {
   const reconciled = await reconcileCreatorOnboarding(profile.id);
   const earnings = await getCreatorEarnings(profile.id);
 
+  const stripeStatus = getStripeStatus({
+    stripeAccountId: profile.stripe_account_id,
+    stripeOnboardingComplete: reconciled.stripeOnboardingComplete,
+    identityVerified: reconciled.identityVerified,
+  });
+
   const serializedSessions = earnings.sessions.map((s) => ({
     ...s,
     startAtIso: s.startAt ? s.startAt.toISOString() : null,
@@ -53,17 +59,11 @@ export default async function CreatorEarningsPage() {
     <div>
       <h1 className="text-2xl font-bold text-text-primary">Earnings</h1>
 
-      {(() => {
-        const banner = getStripeBannerState({
-          stripeAccountId: profile.stripe_account_id,
-          stripeOnboardingComplete: reconciled.stripeOnboardingComplete,
-          identityVerified: reconciled.identityVerified,
-          pendingCents: earnings.pending,
-        });
-        return banner ? <StripeConnectBanner state={banner} /> : null;
-      })()}
+      <div className="mt-6">
+        <StripeStatusSection status={stripeStatus} />
+      </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi
           label="Total earned"
           value={formatCents(earnings.totalEarned)}

@@ -1,3 +1,26 @@
+export type StripeStatus =
+  | { kind: "not_connected" }
+  | { kind: "incomplete" }
+  | { kind: "verify" }
+  | { kind: "connected" };
+
+export function getStripeStatus(opts: {
+  stripeAccountId: string | null;
+  stripeOnboardingComplete: boolean;
+  identityVerified: boolean;
+}): StripeStatus {
+  if (!opts.stripeAccountId) {
+    return { kind: "not_connected" };
+  }
+  if (!opts.stripeOnboardingComplete) {
+    return { kind: "incomplete" };
+  }
+  if (!opts.identityVerified) {
+    return { kind: "verify" };
+  }
+  return { kind: "connected" };
+}
+
 export type StripeBannerState =
   | { kind: "connect"; pendingCents: number }
   | { kind: "verify" }
@@ -9,21 +32,15 @@ export function getStripeBannerState(opts: {
   identityVerified: boolean;
   pendingCents: number;
 }): StripeBannerState {
-  // Partial onboarding: has Stripe account, business/bank done, but identity not verified
-  if (
-    opts.stripeAccountId &&
-    opts.stripeOnboardingComplete &&
-    !opts.identityVerified
-  ) {
-    return { kind: "verify" };
-  }
-
-  // No Stripe account + has earnings waiting
-  if (!opts.stripeAccountId && opts.pendingCents > 0) {
+  const status = getStripeStatus(opts);
+  if (status.kind === "connected") return null;
+  if (status.kind === "verify") return { kind: "verify" };
+  // not_connected or incomplete — nudge from the dashboard
+  if (opts.pendingCents > 0) {
     return { kind: "connect", pendingCents: opts.pendingCents };
   }
-
-  return null;
+  // No earnings yet — still show a nudge so they know where to go
+  return { kind: "connect", pendingCents: 0 };
 }
 
 export function canPublishWithoutStripe(opts: {

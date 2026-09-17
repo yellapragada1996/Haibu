@@ -1,11 +1,54 @@
 import { describe, it, expect } from "vitest";
 import {
+  getStripeStatus,
   getStripeBannerState,
   canPublishWithoutStripe,
 } from "./deferred-onboarding";
 
+describe("getStripeStatus", () => {
+  it("returns not_connected when no Stripe account", () => {
+    expect(
+      getStripeStatus({
+        stripeAccountId: null,
+        stripeOnboardingComplete: false,
+        identityVerified: false,
+      }),
+    ).toEqual({ kind: "not_connected" });
+  });
+
+  it("returns incomplete when account exists but onboarding not done", () => {
+    expect(
+      getStripeStatus({
+        stripeAccountId: "acct_123",
+        stripeOnboardingComplete: false,
+        identityVerified: false,
+      }),
+    ).toEqual({ kind: "incomplete" });
+  });
+
+  it("returns verify when onboarding done but identity not verified", () => {
+    expect(
+      getStripeStatus({
+        stripeAccountId: "acct_123",
+        stripeOnboardingComplete: true,
+        identityVerified: false,
+      }),
+    ).toEqual({ kind: "verify" });
+  });
+
+  it("returns connected when fully set up", () => {
+    expect(
+      getStripeStatus({
+        stripeAccountId: "acct_123",
+        stripeOnboardingComplete: true,
+        identityVerified: true,
+      }),
+    ).toEqual({ kind: "connected" });
+  });
+});
+
 describe("getStripeBannerState", () => {
-  it("returns null when creator has no Stripe and no earnings", () => {
+  it("returns connect with 0 when creator has no Stripe and no earnings", () => {
     expect(
       getStripeBannerState({
         stripeAccountId: null,
@@ -13,27 +56,29 @@ describe("getStripeBannerState", () => {
         identityVerified: false,
         pendingCents: 0,
       }),
-    ).toBeNull();
+    ).toEqual({ kind: "connect", pendingCents: 0 });
   });
 
-  it("returns 'connect' when creator has no Stripe but has earnings", () => {
-    const result = getStripeBannerState({
-      stripeAccountId: null,
-      stripeOnboardingComplete: false,
-      identityVerified: false,
-      pendingCents: 2500,
-    });
-    expect(result).toEqual({ kind: "connect", pendingCents: 2500 });
+  it("returns connect with amount when creator has no Stripe but has earnings", () => {
+    expect(
+      getStripeBannerState({
+        stripeAccountId: null,
+        stripeOnboardingComplete: false,
+        identityVerified: false,
+        pendingCents: 2500,
+      }),
+    ).toEqual({ kind: "connect", pendingCents: 2500 });
   });
 
-  it("returns 'verify' when business/bank done but identity not verified", () => {
-    const result = getStripeBannerState({
-      stripeAccountId: "acct_123",
-      stripeOnboardingComplete: true,
-      identityVerified: false,
-      pendingCents: 5000,
-    });
-    expect(result).toEqual({ kind: "verify" });
+  it("returns verify when business/bank done but identity not verified", () => {
+    expect(
+      getStripeBannerState({
+        stripeAccountId: "acct_123",
+        stripeOnboardingComplete: true,
+        identityVerified: false,
+        pendingCents: 5000,
+      }),
+    ).toEqual({ kind: "verify" });
   });
 
   it("returns null when fully onboarded", () => {
@@ -47,7 +92,7 @@ describe("getStripeBannerState", () => {
     ).toBeNull();
   });
 
-  it("returns null when Stripe account exists but onboarding not complete and no earnings", () => {
+  it("returns connect with 0 when account exists but onboarding incomplete and no earnings", () => {
     expect(
       getStripeBannerState({
         stripeAccountId: "acct_123",
@@ -55,13 +100,10 @@ describe("getStripeBannerState", () => {
         identityVerified: false,
         pendingCents: 0,
       }),
-    ).toBeNull();
+    ).toEqual({ kind: "connect", pendingCents: 0 });
   });
 
-  it("returns null when Stripe account exists, onboarding not complete, has earnings", () => {
-    // Creator started Stripe but didn't finish business/bank — they have an account
-    // but onboarding isn't marked complete. Don't show "connect" since they already
-    // have an account; don't show "verify" since business/bank isn't done yet.
+  it("returns connect with amount when account exists but onboarding incomplete and has earnings", () => {
     expect(
       getStripeBannerState({
         stripeAccountId: "acct_123",
@@ -69,7 +111,7 @@ describe("getStripeBannerState", () => {
         identityVerified: false,
         pendingCents: 3000,
       }),
-    ).toBeNull();
+    ).toEqual({ kind: "connect", pendingCents: 3000 });
   });
 });
 

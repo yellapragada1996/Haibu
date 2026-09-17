@@ -491,6 +491,31 @@ export async function checkOnboardingStatus(): Promise<{
 }
 
 // ---------------------------------------------------------------------------
+// Stripe Express dashboard link (for managing connected account)
+// ---------------------------------------------------------------------------
+
+export async function createStripeDashboardLink() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const [profile] = await db
+    .select({ stripe_account_id: creatorProfiles.stripe_account_id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile?.stripe_account_id) {
+    return { error: "No connected Stripe account" };
+  }
+
+  try {
+    const link = await stripe.accounts.createLoginLink(profile.stripe_account_id);
+    return { url: link.url };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to create dashboard link" };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Identity verification (second phase of Connect onboarding)
 // ---------------------------------------------------------------------------
 

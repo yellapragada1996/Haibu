@@ -4,7 +4,11 @@ import { creatorProfiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Card } from "@/components/ui/Card";
 import { Kpi } from "@/components/ui/Kpi";
-import { formatCents, getCreatorEarnings } from "@/lib/creator-studio";
+import { getCreatorEarnings } from "@/lib/creator-studio";
+import { formatCents } from "@/lib/format";
+import { reconcileCreatorOnboarding } from "@/lib/creator-onboarding";
+import { getStripeStatus } from "@/lib/deferred-onboarding";
+import { StripeStatusSection } from "./StripeStatusSection";
 import { EarningsList } from "./EarningsList";
 
 export default async function CreatorEarningsPage() {
@@ -15,7 +19,10 @@ export default async function CreatorEarningsPage() {
   if (!user) return null;
 
   const [profile] = await db
-    .select({ id: creatorProfiles.id })
+    .select({
+      id: creatorProfiles.id,
+      stripe_account_id: creatorProfiles.stripe_account_id,
+    })
     .from(creatorProfiles)
     .where(eq(creatorProfiles.user_id, user.id));
 
@@ -29,7 +36,14 @@ export default async function CreatorEarningsPage() {
     .where(eq(users.id, user.id));
   const tz = userRow?.timezone ?? "UTC";
 
+  const reconciled = await reconcileCreatorOnboarding(profile.id);
   const earnings = await getCreatorEarnings(profile.id);
+
+  const stripeStatus = getStripeStatus({
+    stripeAccountId: profile.stripe_account_id,
+    stripeOnboardingComplete: reconciled.stripeOnboardingComplete,
+    identityVerified: reconciled.identityVerified,
+  });
 
   const serializedSessions = earnings.sessions.map((s) => ({
     ...s,
@@ -45,7 +59,11 @@ export default async function CreatorEarningsPage() {
     <div>
       <h1 className="text-2xl font-bold text-text-primary">Earnings</h1>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mt-6">
+        <StripeStatusSection status={stripeStatus} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi
           label="Total earned"
           value={formatCents(earnings.totalEarned)}

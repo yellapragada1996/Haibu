@@ -4,11 +4,10 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { adminActions, bookings, creatorProfiles, ledgerEntries, offerings, participantEvents, platformSettings, reports, users } from "@/db/schema";
+import { adminActions, bookings, creatorProfiles, ledgerEntries, offerings, platformSettings, reports, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
-import { computePresence, proportionalRefund } from "@/lib/session-policy";
 import { sendCancellationEmails } from "@/lib/email";
 
 // ---------------------------------------------------------------------------
@@ -360,16 +359,15 @@ export async function noShowOverride(
 }
 
 // ---------------------------------------------------------------------------
-// Needs-review resolution (Phase 5) — a flagged booking (needs_review = true,
-// typically no_show_fan + partial creator presence) is resolved by an admin:
-//   - pay_full:    dismiss flag, sweep pays the full creator_payout_cents.
-//   - pay_reduced: set effective_payout_cents to the proportional amount.
-//   - refund:      full refund to the guest (cancelled_admin).
+// Needs-review resolution — a flagged booking (needs_review = true, typically
+// when the Daily API was unreachable during evaluation) is resolved by admin:
+//   - pay_full: dismiss flag, sweep pays the full creator_payout_cents.
+//   - refund:   full refund to the guest (cancelled_admin).
 // ---------------------------------------------------------------------------
 
 export async function resolveNeedsReview(
   bookingId: string,
-  outcome: "pay_full" | "pay_reduced" | "refund",
+  outcome: "pay_full" | "refund",
   reason: string,
 ): Promise<{ success: true } | { error: string }> {
   const adminId = await requireAdmin();
@@ -377,7 +375,7 @@ export async function resolveNeedsReview(
 
   const trimmed = (reason ?? "").trim();
   if (!trimmed) return { error: "A reason is required" };
-  if (outcome !== "pay_full" && outcome !== "pay_reduced" && outcome !== "refund") {
+  if (outcome !== "pay_full" && outcome !== "refund") {
     return { error: "Invalid outcome" };
   }
 
@@ -389,9 +387,6 @@ export async function resolveNeedsReview(
       stripe_fee_cents: bookings.stripe_fee_cents,
       platform_fee_cents: bookings.platform_fee_cents,
       creator_id: bookings.creator_id,
-      daily_room_name: bookings.daily_room_name,
-      start_at: bookings.start_at,
-      end_at: bookings.end_at,
       stripe_payment_intent_id: bookings.stripe_payment_intent_id,
     })
     .from(bookings)
@@ -448,48 +443,9 @@ export async function resolveNeedsReview(
       }
     }
   } else {
-    // pay_full (null → sweep pays full) or pay_reduced (proportional amount).
-    let effectivePayoutCents: number | null = null;
-    if (outcome === "pay_reduced") {
-      const [cp] = await db
-        .select({ user_id: creatorProfiles.user_id })
-        .from(creatorProfiles)
-        .where(eq(creatorProfiles.id, booking.creator_id));
-      let sessions: { joinedAtMs: number; durationMs: number }[] = [];
-      if (cp?.user_id && booking.daily_room_name) {
-        const leftEvents = await db
-          .select({
-            joined_at: participantEvents.joined_at,
-            duration_seconds: participantEvents.duration_seconds,
-          })
-          .from(participantEvents)
-          .where(
-            and(
-              eq(participantEvents.room_name, booking.daily_room_name),
-              eq(participantEvents.user_id, `creator:${cp.user_id}`),
-              eq(participantEvents.event_type, "left"),
-            ),
-          );
-        sessions = leftEvents
-          .filter((e) => e.duration_seconds != null)
-          .map((e) => ({
-            joinedAtMs: e.joined_at.getTime(),
-            durationMs: Math.round(e.duration_seconds! * 1000),
-          }));
-      }
-      const startMs = new Date(booking.start_at!).getTime();
-      const endMs = new Date(booking.end_at!).getTime();
-      const presence = computePresence(sessions, startMs, endMs);
-      effectivePayoutCents = proportionalRefund(
-        booking.price_cents,
-        booking.platform_fee_cents,
-        booking.stripe_fee_cents ?? 0,
-        presence.undeliveredPercent,
-      ).effectivePayoutCents;
-    }
     await db
       .update(bookings)
-      .set({ needs_review: false, effective_payout_cents: effectivePayoutCents })
+      .set({ needs_review: false })
       .where(eq(bookings.id, bookingId));
   }
 

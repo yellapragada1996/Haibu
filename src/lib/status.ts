@@ -46,11 +46,6 @@ export function bookingLabel(
   if (status === "confirmed" && facts.isPastEnd) {
     return "Processing";
   }
-  // no_show_creator with an effective payout = partial delivery (creator joined
-  // but missed >50%). Show a neutral label instead of "didn't join".
-  if (status === "no_show_creator" && facts.effective_payout_cents != null) {
-    return "Partially delivered";
-  }
   // cancelled_creator + system = mutual no-show (deliberately neutral).
   if (status === "cancelled_creator" && facts.cancelled_by === "system") {
     return "Session didn't happen";

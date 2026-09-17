@@ -433,8 +433,8 @@ export async function startStripeOnboarding(country: string) {
     const origin = `${proto}://${host}`;
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
-      refresh_url: `${origin}/creator?step=4`,
-      return_url: `${origin}/creator?step=5`,
+      refresh_url: `${origin}/creator`,
+      return_url: `${origin}/creator`,
       type: "account_onboarding",
     });
 
@@ -491,6 +491,31 @@ export async function checkOnboardingStatus(): Promise<{
 }
 
 // ---------------------------------------------------------------------------
+// Stripe Express dashboard link (for managing connected account)
+// ---------------------------------------------------------------------------
+
+export async function createStripeDashboardLink() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const [profile] = await db
+    .select({ stripe_account_id: creatorProfiles.stripe_account_id })
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.user_id, user.id));
+  if (!profile?.stripe_account_id) {
+    return { error: "No connected Stripe account" };
+  }
+
+  try {
+    const link = await stripe.accounts.createLoginLink(profile.stripe_account_id);
+    return { url: link.url };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to create dashboard link" };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Identity verification (second phase of Connect onboarding)
 // ---------------------------------------------------------------------------
 
@@ -522,8 +547,8 @@ export async function startIdentityVerification() {
   const origin = `${proto}://${host}`;
   const accountLink = await stripe.accountLinks.create({
     account: profile.stripe_account_id,
-    refresh_url: `${origin}/creator?step=5`,
-    return_url: `${origin}/creator?step=6`,
+    refresh_url: `${origin}/creator`,
+    return_url: `${origin}/creator`,
     type: "account_onboarding",
   });
 
@@ -546,13 +571,6 @@ export async function setPublishedStatus(shouldPublish: boolean) {
   if (!profile) return { error: "Create a profile first" };
 
   if (shouldPublish) {
-    if (!profile.stripe_onboarding_complete) {
-      return { error: "Complete Stripe onboarding before going live" };
-    }
-    if (!profile.identity_verified) {
-      return { error: "Complete identity verification before going live" };
-    }
-
     const [activeOfferingCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(offerings)

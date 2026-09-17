@@ -1,13 +1,13 @@
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { bookings, creatorProfiles, ledgerEntries, users, offerings, participantEvents } from "@/db/schema";
+import { bookings, creatorProfiles, ledgerEntries, users, offerings } from "@/db/schema";
 import { eq, and, or, lt, lte, sql, count, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { createOrGetRoom, getRoomMeetings } from "@/lib/daily";
 import { stripe } from "@/lib/stripe";
 import { isPgErrorCode } from "@/lib/pg-errors";
 import { sendBookingReminder, sendBookingConfirmationEmails, sendRefundEmails, type ReminderWindow } from "@/lib/email";
-import { evaluateSessionOutcome, holdPeriodMs, computePresence, needsCreatorReview, proportionalRefund } from "@/lib/session-policy";
+import { evaluateSessionOutcome, holdPeriodMs } from "@/lib/session-policy";
 
 const fanUser = alias(users, "fanUser");
 
@@ -293,8 +293,6 @@ export const sweepEligiblePayouts = inngest.createFunction(
         and(
           or(
             sql`${bookings.status} IN ('completed', 'no_show_fan', 'cancelled_fan')`,
-            // A partial no_show (creator joined but missed >50%) is labeled
-            // no_show_creator for tracking but still has a non-zero payout.
             and(
               eq(bookings.status, "no_show_creator"),
               sql`${bookings.effective_payout_cents} > 0`,
@@ -327,7 +325,6 @@ export const sweepEligiblePayouts = inngest.createFunction(
 
         if (!profile?.stripe_account_id) continue;
 
-        // Pay the effective amount (reduced after a proportional refund).
         const payoutCents = b.effective_payout_cents ?? b.creator_payout_cents;
         if (payoutCents <= 0) continue;
 
@@ -432,79 +429,12 @@ export async function runEvaluation(bookingId: string) {
   const holdMs = holdPeriodMs(priorCompleted);
   const payoutEligibleAt = new Date(Date.now() + holdMs);
 
-  // Phase 4 — compute the creator's presence and flag partial delivery for
-  // admin review (the binary model can't see "joined but left early").
   let needsReview = false;
-  let undeliveredPercent = 0;
-  if (booking.daily_room_name && booking.start_at && booking.end_at) {
-    const [creatorProfile] = await db
-      .select({ user_id: creatorProfiles.user_id })
-      .from(creatorProfiles)
-      .where(eq(creatorProfiles.id, booking.creator_id));
-    const creatorUserId = creatorProfile?.user_id;
-    if (creatorUserId) {
-      const leftEvents = await db
-        .select({
-          joined_at: participantEvents.joined_at,
-          duration_seconds: participantEvents.duration_seconds,
-        })
-        .from(participantEvents)
-        .where(
-          and(
-            eq(participantEvents.room_name, booking.daily_room_name),
-            eq(participantEvents.user_id, `creator:${creatorUserId}`),
-            eq(participantEvents.event_type, "left"),
-          ),
-        );
-      const sessions = leftEvents
-        .filter((e) => e.duration_seconds != null)
-        .map((e) => ({
-          joinedAtMs: e.joined_at.getTime(),
-          durationMs: Math.round(e.duration_seconds! * 1000),
-        }));
-      const startMs = new Date(booking.start_at).getTime();
-      const endMs = new Date(booking.end_at).getTime();
-      const presence = computePresence(sessions, startMs, endMs);
-      undeliveredPercent = presence.undeliveredPercent;
-      needsReview = needsCreatorReview(presence, endMs - startMs);
-    }
-  }
-
-  // Phase 5 — for a completed session where the creator partially delivered,
-  // auto-issue a proportional refund and reduce the payout. (A no_show_fan with
-  // a partially-present creator stays flagged for admin — ambiguous, since the
-  // guest never showed but the creator also left early.)
   let effectivePayoutCents: number | null = null;
-  let partialRefund: {
-    refundCents: number;
-    feeReversalCents: number;
-  } | null = null;
-  // §5 "Status vs. refund": the refund is continuous, but the status label uses
-  // a discrete >50%-missed line. A creator who joined but missed >50% of the
-  // session is labeled no_show_creator for tracking/review-eligibility, while
-  // the refund stays proportional (not 100%).
-  let finalStatus: "completed" | "no_show_fan" | "no_show_creator" | "cancelled_creator" = outcome;
-  if (outcome === "completed" && needsReview) {
-    const money = proportionalRefund(
-      booking.price_cents,
-      booking.platform_fee_cents,
-      booking.stripe_fee_cents ?? 0,
-      undeliveredPercent,
-    );
-    effectivePayoutCents = money.effectivePayoutCents;
-    partialRefund = {
-      refundCents: money.refundCents,
-      feeReversalCents: money.feeReversalCents,
-    };
-    if (undeliveredPercent > 0.5) {
-      finalStatus = "no_show_creator";
-    }
-    needsReview = false;
-  }
 
-  // Creator total no-show or mutual no-show → creator earns nothing.
+  // Creator no-show or mutual no-show → creator earns nothing.
   // Skip when deferred (admin will decide).
-  if (refund && !deferRefund && effectivePayoutCents == null) {
+  if (refund && !deferRefund) {
     effectivePayoutCents = 0;
   }
 
@@ -553,39 +483,6 @@ export async function runEvaluation(bookingId: string) {
     }
   }
 
-  // Partial refund — creator partially delivered a completed session (Phase 5).
-  if (partialRefund && booking.stripe_payment_intent_id) {
-    await stripe.refunds.create({
-      payment_intent: booking.stripe_payment_intent_id,
-      amount: partialRefund.refundCents,
-      reason: "requested_by_customer" as const,
-    }, { idempotencyKey: `eval-partial-${bookingId}` });
-
-    try {
-      await db.insert(ledgerEntries).values({
-        booking_id: bookingId,
-        type: "refund" as const,
-        amount_cents: -partialRefund.refundCents,
-        stripe_reference: `${booking.stripe_payment_intent_id}:partial`,
-        note: `proportional refund: creator delivered ${Math.round((1 - undeliveredPercent) * 100)}%`,
-      });
-    } catch (e: unknown) {
-      if (!isPgErrorCode(e, "23505")) throw e;
-    }
-
-    try {
-      await db.insert(ledgerEntries).values({
-        booking_id: bookingId,
-        type: "platform_fee" as const,
-        amount_cents: -partialRefund.feeReversalCents,
-        stripe_reference: `${booking.stripe_payment_intent_id}:partial_fee_reversal`,
-        note: `proportional fee reversal`,
-      });
-    } catch (e: unknown) {
-      if (!isPgErrorCode(e, "23505")) throw e;
-    }
-  }
-
   // Transition booking status AFTER money has moved. The optimistic lock on
   // "confirmed" prevents duplicate transitions; retries re-enter cleanly
   // because the refund steps above are idempotent.
@@ -597,7 +494,7 @@ export async function runEvaluation(bookingId: string) {
   await db
     .update(bookings)
     .set({
-      status: finalStatus,
+      status: outcome,
       payout_eligible_at: payoutEligibleAt,
       needs_review: needsReview,
       ...(effectivePayoutCents != null
@@ -628,23 +525,5 @@ export async function runEvaluation(bookingId: string) {
     }
   }
 
-  if (partialRefund && booking.stripe_payment_intent_id) {
-    const partyData = await getReminderData(bookingId);
-    if (partyData) {
-      await sendRefundEmails({
-        scenario: "partial",
-        bookingId,
-        offeringTitle: partyData.offering_title,
-        creator: { name: partyData.creator_name, email: partyData.creator_email, timezone: partyData.creator_timezone },
-        guest: { name: partyData.fan_name, email: partyData.fan_email, timezone: partyData.fan_timezone },
-        startAt: new Date(partyData.start_at!),
-        priceCents: booking.price_cents,
-        stripeFeeCents,
-        refundCents: partialRefund.refundCents,
-        effectivePayoutCents: effectivePayoutCents,
-        deliveredPercent: 1 - undeliveredPercent,
-      });
-    }
-  }
 }
 

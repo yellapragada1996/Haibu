@@ -1,0 +1,44 @@
+/* "On Air" theme, shared by the homepage, browse and search. It overrides the
+   semantic tokens for everything inside (nav and tab bar included) and stays
+   dark regardless of the site-wide theme toggle. */
+
+.root {
+  --color-bg-base: #0f0e0e;
+  --color-bg-surface: #171515;
+  --color-bg-card: #1d1a1a;
+  --color-bg-card-hover: #252121;
+  --color-border-subtle: #2b2727;
+  --color-text-primary: #f5f2f0;
+  --color-text-secondary: #a39c9a;
+  --color-text-tertiary: #857e7c;
+  --color-primary: #f5f2f0;
+  --color-primary-hover: #ffffff;
+  --color-on-primary: #121212;
+  --color-neutral-default: #252121;
+  --color-neutral-hover: #2b2727;
+
+  --line: rgba(245, 242, 240, 0.12);
+  --line-strong: rgba(245, 242, 240, 0.35);
+  --onair: #e5243b;
+  --brand: #a81120;
+  --live: #3bd671;
+  --serif: "Instrument Serif", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+/* Film grain over the whole page */
+.root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

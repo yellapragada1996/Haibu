@@ -6,7 +6,15 @@ import { creatorProfiles, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { ReactNode } from "react";
 
-export async function PublicLayout({ children }: { children: ReactNode }) {
+export async function PublicLayout({
+  children,
+  className,
+  translucentNav = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  translucentNav?: boolean;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,16 +44,17 @@ export async function PublicLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
+    <div className={className}>
       <NavBar
         isLoggedIn={isLoggedIn}
         isCreator={isCreator}
         isAdmin={isAdmin}
         userName={displayName}
         avatarUrl={avatarUrl}
+        translucent={translucentNav}
       />
       <div className="pb-16 md:pb-0">{children}</div>
-      <BottomNav isLoggedIn={isLoggedIn} isCreator={isCreator} />
-    </>
+      <BottomNav isLoggedIn={isLoggedIn} isCreator={isCreator} translucent={translucentNav} />
+    </div>
   );
 }

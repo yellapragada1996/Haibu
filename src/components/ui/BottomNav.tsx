@@ -46,9 +46,11 @@ function SignUpIcon() {
 export function BottomNav({
   isLoggedIn,
   isCreator,
+  translucent = false,
 }: {
   isLoggedIn: boolean;
   isCreator: boolean;
+  translucent?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -74,7 +76,7 @@ export function BottomNav({
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-bg-surface md:hidden"
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle md:hidden ${translucent ? "bg-bg-surface/90 backdrop-blur-lg" : "bg-bg-surface"}`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex">

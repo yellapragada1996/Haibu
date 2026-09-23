@@ -15,6 +15,7 @@ type NavBarProps = {
   isAdmin?: boolean;
   userName?: string;
   avatarUrl?: string | null;
+  translucent?: boolean;
 };
 
 export function NavBar({
@@ -23,6 +24,7 @@ export function NavBar({
   isAdmin = false,
   userName = "",
   avatarUrl = null,
+  translucent = false,
 }: NavBarProps) {
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -74,7 +76,7 @@ export function NavBar({
 
   return (
     <>
-      <nav className="sticky top-0 z-40 border-b border-border-subtle bg-bg-surface">
+      <nav className={`sticky top-0 z-40 border-b border-border-subtle ${translucent ? "bg-bg-base/75 backdrop-blur-lg" : "bg-bg-surface"}`}>
         <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4">
           <Link href="/" className="flex-shrink-0">
             <Logo />

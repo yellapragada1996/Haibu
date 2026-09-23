@@ -1,16 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { CreatorCard } from "@/components/ui/CreatorCard";
-import { Pill } from "@/components/ui/Pill";
-import { ButtonLink } from "@/components/ui/Button";
+import { CatalogView } from "@/components/catalog/CatalogView";
 import { db } from "@/db";
-import { creatorProfiles, users, offerings, reviews } from "@/db/schema";
+import { creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, asc, isNull, sql, inArray } from "drizzle-orm";
-
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
-import { createClient } from "@/lib/supabase/server";
 import { getAvailableTodayCreatorIds } from "@/lib/availability";
+import onAir from "@/app/on-air.module.css";
 
 
 export default async function CategoryPage({
@@ -35,6 +31,7 @@ export default async function CategoryPage({
     .select({
       id: creatorProfiles.id,
       slug: creatorProfiles.slug,
+      bio: creatorProfiles.bio,
       display_name: users.display_name,
       avatar_url: users.avatar_url,
       offering_category: offerings.category,
@@ -130,76 +127,48 @@ export default async function CategoryPage({
     pillCategories = categories.filter((c) => catSet.has(c.slug));
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const isAnon = !user;
-
   return (
-    <PublicLayout>
-      <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
-        {isAnon && (
-          <p className="mb-6 text-center text-[22px] font-bold text-text-primary">
-            Book a live 1:1 video session with a creator
-          </p>
-        )}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {[
-            { slug: "all", display_label: "All" },
-            ...pillCategories,
-          ].map((c) => (
-            <Link
-              key={c.slug}
-              href={
-                c.slug === "all"
-                  ? onlyAvailableToday
-                    ? "/browse?available=today"
-                    : "/"
-                  : onlyAvailableToday
-                    ? `/browse/${c.slug}?available=today`
-                    : `/browse/${c.slug}`
-              }
-            >
-              <Pill variant={c.slug === category ? "active" : "inactive"}>
-                {c.display_label}
-              </Pill>
-            </Link>
-          ))}
-        </div>
-
-        <h1 className="text-lg font-semibold text-text-primary mb-6">{label}</h1>
-
-        {creators.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
-            {creators.map((c) => (
-              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`} prefetch={false}>
-                <CreatorCard
-                  name={c.display_name}
-                  categories={c.categories}
-                  categoryLabels={categoryLabels}
-                  priceCents={c.offering_price}
-                  durationMinutes={c.offering_duration}
-                  thumbnailUrl={c.avatar_url}
-                  rating={c.rating}
-                  sessionCount={0}
-                />
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <p className="text-text-secondary text-lg">
-              No creators here yet — check back soon.
-            </p>
-            <div className="mt-4">
-              <ButtonLink href="/creator" variant="ghost">
-                Become a Creator
-              </ButtonLink>
-            </div>
-          </div>
-        )}
-      </main>
+    <PublicLayout className={onAir.root} translucentNav>
+      <CatalogView
+        kicker={onlyAvailableToday ? "Available today" : "Category"}
+        live={onlyAvailableToday}
+        title={<em>{label}</em>}
+        pills={[
+          {
+            key: "all",
+            label: "All",
+            href: onlyAvailableToday ? "/browse?available=today" : "/browse",
+            active: false,
+          },
+          ...pillCategories.map((c) => ({
+            key: c.slug,
+            label: c.display_label,
+            href: onlyAvailableToday ? `/browse/${c.slug}?available=today` : `/browse/${c.slug}`,
+            active: c.slug === category,
+          })),
+        ]}
+        creators={creators.map((c) => ({
+          id: c.id,
+          slug: c.slug,
+          display_name: c.display_name,
+          avatar_url: c.avatar_url,
+          bio: c.bio?.trim() || null,
+          categories: c.categories,
+          offering_price: c.offering_price,
+        }))}
+        labels={categoryLabels}
+        priorityCategory={category}
+        emptyText={
+          onlyAvailableToday
+            ? `No one in ${label} has open slots for the rest of today.`
+            : `No one in ${label} yet. Check back soon.`
+        }
+        emptyCta={
+          onlyAvailableToday
+            ? { label: `See all ${label} creators`, href: `/browse/${category}` }
+            : { label: "Become a creator", href: "/creator" }
+        }
+      />
     </PublicLayout>
   );
 }

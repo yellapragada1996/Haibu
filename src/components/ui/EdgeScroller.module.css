@@ -1,0 +1,87 @@
+.wrap {
+  position: relative;
+}
+
+.scroller {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--fade);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.fade[data-on="true"] {
+  opacity: 1;
+}
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(to left, transparent, var(--color-bg-base));
+}
+.fadeRight {
+  right: 0;
+  background: linear-gradient(to right, transparent, var(--color-bg-base));
+}
+
+/* Arrows only where there is a mouse; touch users swipe. */
+.arrow {
+  display: none;
+}
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid var(--line, rgba(245, 242, 240, 0.12));
+    background: rgba(23, 21, 21, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--color-text-primary);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, border-color 0.2s, background 0.2s;
+  }
+  /* Revealed while the row is hovered or has keyboard focus. */
+  .wrap:hover .arrow,
+  .wrap:focus-within .arrow {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .arrow:hover {
+    border-color: var(--line-strong, rgba(245, 242, 240, 0.35));
+    background: rgba(37, 33, 33, 0.95);
+  }
+  .left {
+    left: var(--edge);
+    transform: translate(-50%, -50%);
+  }
+  .right {
+    right: var(--edge);
+    transform: translate(50%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroller {
+    scroll-behavior: auto;
+  }
+}

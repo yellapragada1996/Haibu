@@ -87,7 +87,10 @@ export function HomeContent({
 
   const availableIds = new Set(availableToday.map((c) => c.id));
   const availableList = availableToday.slice(0, RAIL_MAX);
-  const exploreList = creators.filter((c) => !availableIds.has(c.id)).slice(0, GRID_MAX);
+  // Skip only the creators already shown in the rail. Most creators can be
+  // available today, so skipping all of them can leave Explore nearly empty.
+  const railIds = new Set(availableList.map((c) => c.id));
+  const exploreList = creators.filter((c) => !railIds.has(c.id)).slice(0, GRID_MAX);
 
   // With a category picked, one results grid replaces the two sections, so no
   // section can vanish and nobody appears twice. Available-today creators lead.

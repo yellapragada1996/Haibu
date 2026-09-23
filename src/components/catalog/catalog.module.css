@@ -1,0 +1,151 @@
+/* Browse / category / search pages in the On Air style. Wrap the page in
+   PublicLayout with the on-air theme class so the tokens below resolve. */
+
+.main {
+  padding: 40px 0 64px;
+}
+
+.wrap {
+  width: min(1200px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+.mono {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.title {
+  margin-top: 10px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.title em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.15em;
+  letter-spacing: 0;
+}
+.liveDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: -6px 14px 0 0;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: var(--live);
+  box-shadow: 0 0 10px rgba(59, 214, 113, 0.7);
+}
+.sub {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.pillsWrap {
+  margin-top: 24px;
+}
+.pills {
+  gap: 8px;
+  padding: 3px 16px;
+}
+.pill {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.pill:hover {
+  color: var(--color-text-primary);
+  border-color: var(--line-strong);
+}
+.pill[aria-current="page"] {
+  background: var(--color-text-primary);
+  color: #121212;
+  border-color: var(--color-text-primary);
+}
+
+.grid {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.empty {
+  margin-top: 32px;
+  padding: 48px 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--color-bg-surface);
+  text-align: center;
+}
+.emptyText {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+.emptyCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18px;
+  height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 0.2s;
+}
+.emptyCta:hover {
+  border-color: var(--line-strong);
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: 56px 0 104px;
+  }
+  .wrap {
+    width: min(1200px, calc(100% - 48px));
+  }
+  .title {
+    font-size: clamp(38px, 3.6vw, 48px);
+  }
+  .pillsWrap {
+    width: min(1200px, calc(100% - 48px));
+    margin-inline: auto;
+  }
+  .pills {
+    padding: 3px 0;
+  }
+  .grid {
+    gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { CreatorCard } from "@/components/ui/CreatorCard";
-import { Pill } from "@/components/ui/Pill";
+import { CatalogView } from "@/components/catalog/CatalogView";
 import { db } from "@/db";
-import { creatorProfiles, users, offerings, reviews } from "@/db/schema";
+import { creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, asc, isNull, sql } from "drizzle-orm";
+import onAir from "@/app/on-air.module.css";
 
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 
@@ -30,6 +29,7 @@ export default async function SearchPage({
         .select({
           id: creatorProfiles.id,
           slug: creatorProfiles.slug,
+          bio: creatorProfiles.bio,
           display_name: users.display_name,
           avatar_url: users.avatar_url,
           offering_category: offerings.category,
@@ -61,6 +61,7 @@ export default async function SearchPage({
       if (!existing.categories.includes(r.offering_category)) {
         existing.categories.push(r.offering_category);
       }
+      existing.offering_price = Math.min(existing.offering_price, r.offering_price);
     } else {
       map.set(r.id, { ...r, categories: [r.offering_category] });
     }
@@ -79,61 +80,50 @@ export default async function SearchPage({
     ? creators.filter((c) => c.categories.includes(activeCategory))
     : creators;
 
+  const qParam = encodeURIComponent(normalizedQuery);
+
   return (
-    <PublicLayout>
-      <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {pills.map((c) => (
-            <Link
-              key={c.slug}
-              href={
-                c.slug === "all"
-                  ? `/search?q=${encodeURIComponent(normalizedQuery)}`
-                  : `/search?q=${encodeURIComponent(normalizedQuery)}&category=${c.slug}`
-              }
-            >
-              <Pill
-                variant={
-                  (activeCategory ?? "all") === c.slug ? "active" : "inactive"
-                }
-              >
-                {c.display_label}
-              </Pill>
-            </Link>
-          ))}
-        </div>
-
-        <h1 className="text-lg font-semibold text-text-primary mb-2">
-          {q ? `Search: "${q}"` : "Search creators"}
-        </h1>
-
-        {q && creators.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-text-secondary text-lg">
-              No creators matched &quot;{q}&quot;
-            </p>
-          </div>
-        )}
-
-        {creators.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4 mt-6">
-            {visibleCreators.map((c) => (
-              <Link key={c.id} href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`} prefetch={false}>
-                <CreatorCard
-                  name={c.display_name}
-                  categories={c.categories}
-                  categoryLabels={categoryLabels}
-                  priceCents={c.offering_price}
-                  durationMinutes={c.offering_duration}
-                  thumbnailUrl={c.avatar_url}
-                  rating={c.rating}
-                  sessionCount={0}
-                />
-              </Link>
-            ))}
-          </div>
-        )}
-      </main>
+    <PublicLayout className={onAir.root} translucentNav>
+      <CatalogView
+        kicker="Search"
+        title={
+          normalizedQuery ? (
+            <>
+              Results for <em>“{normalizedQuery}”</em>
+            </>
+          ) : (
+            <>
+              Search <em>creators</em>
+            </>
+          )
+        }
+        pills={
+          creators.length > 0
+            ? pills.map((c) => ({
+                key: c.slug,
+                label: c.display_label,
+                href: c.slug === "all" ? `/search?q=${qParam}` : `/search?q=${qParam}&category=${c.slug}`,
+                active: (activeCategory ?? "all") === c.slug,
+              }))
+            : []
+        }
+        creators={visibleCreators.map((c) => ({
+          id: c.id,
+          slug: c.slug,
+          display_name: c.display_name,
+          avatar_url: c.avatar_url,
+          bio: c.bio?.trim() || null,
+          categories: c.categories,
+          offering_price: c.offering_price,
+        }))}
+        labels={categoryLabels}
+        emptyText={
+          normalizedQuery
+            ? `No creators matched “${normalizedQuery}”.`
+            : "Search for a creator by name or by what they do."
+        }
+        emptyCta={{ label: "Browse all creators", href: "/browse" }}
+      />
     </PublicLayout>
   );
 }

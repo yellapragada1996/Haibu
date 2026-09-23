@@ -1,24 +1,16 @@
-import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { CreatorCard } from "@/components/ui/CreatorCard";
-import { Pill } from "@/components/ui/Pill";
+import { CatalogView } from "@/components/catalog/CatalogView";
 import { db } from "@/db";
-import {
-  creatorProfiles,
-  users,
-  offerings,
-  bookings,
-  reviews,
-} from "@/db/schema";
+import { creatorProfiles, users, offerings } from "@/db/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
-import { createClient } from "@/lib/supabase/server";
+import onAir from "@/app/on-air.module.css";
 import { getCategories, categoriesToLabelMap } from "@/lib/categories";
 import { getAvailableTodayCreatorIds } from "@/lib/availability";
 
 // Reads a live DB — render on demand, never prerender at build time.
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Browse creators — Haibu" };
+export const metadata = { title: "Browse creators" };
 
 
 // Full catalog — the "View more" destination for Available today + Discover.
@@ -27,6 +19,7 @@ async function getAllCreators() {
     .select({
       id: creatorProfiles.id,
       slug: creatorProfiles.slug,
+      bio: creatorProfiles.bio,
       display_name: users.display_name,
       avatar_url: users.avatar_url,
       offering_category: offerings.category,
@@ -61,6 +54,7 @@ async function getAllCreators() {
       if (!existing.offeringIds.includes(r.offering_id)) {
         existing.offeringIds.push(r.offering_id);
       }
+      existing.offering_price = Math.min(existing.offering_price, r.offering_price);
     } else {
       map.set(r.id, {
         ...r,
@@ -97,63 +91,53 @@ export default async function BrowsePage({
     ? categories.filter((c) => creators.some((x) => x.categories.includes(c.slug)))
     : categories;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const isAnon = !user;
-
   return (
-    <PublicLayout>
-      <main className="mx-auto w-full max-w-[1200px] px-4 py-8">
-        {isAnon && (
-          <p className="mb-6 text-center text-[22px] font-bold text-text-primary">
-            Book a live 1:1 video session with a creator
-          </p>
-        )}
-
-        <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
-          <Link href="/">
-            <Pill variant="active">All</Pill>
-          </Link>
-          {pillCategories.map((c) => (
-            <Link
-              key={c.slug}
-              href={
-                onlyAvailableToday
-                  ? `/browse/${c.slug}?available=today`
-                  : `/browse/${c.slug}`
-              }
-            >
-              <Pill variant="inactive">{c.display_label}</Pill>
-            </Link>
-          ))}
-        </div>
-
-        <h1 className="mb-6 text-lg font-semibold text-text-primary">
-          {onlyAvailableToday ? "Available today" : "All creators"}
-        </h1>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-4">
-          {creators.map((c) => (
-            <Link
-              key={c.id}
-              href={c.slug ? `/@${c.slug}` : `/creators/${c.id}`}
-              prefetch={false}
-              aria-label={`Book a session with ${c.display_name}`}
-            >
-              <CreatorCard
-                name={c.display_name}
-                categories={c.categories}
-                priceCents={c.offering_price}
-                rating={c.rating}
-                thumbnailUrl={c.avatar_url}
-                categoryLabels={categoryLabels}
-              />
-            </Link>
-          ))}
-        </div>
-      </main>
+    <PublicLayout className={onAir.root} translucentNav>
+      <CatalogView
+        kicker={onlyAvailableToday ? "Open for booking" : "Browse"}
+        live={onlyAvailableToday}
+        title={
+          onlyAvailableToday ? (
+            <>
+              Available <em>today</em>
+            </>
+          ) : (
+            <>
+              All <em>creators</em>
+            </>
+          )
+        }
+        pills={[
+          {
+            key: "all",
+            label: "All",
+            href: onlyAvailableToday ? "/browse?available=today" : "/browse",
+            active: true,
+          },
+          ...pillCategories.map((c) => ({
+            key: c.slug,
+            label: c.display_label,
+            href: onlyAvailableToday ? `/browse/${c.slug}?available=today` : `/browse/${c.slug}`,
+            active: false,
+          })),
+        ]}
+        creators={creators.map((c) => ({
+          id: c.id,
+          slug: c.slug,
+          display_name: c.display_name,
+          avatar_url: c.avatar_url,
+          bio: c.bio?.trim() || null,
+          categories: c.categories,
+          offering_price: c.offering_price,
+        }))}
+        labels={categoryLabels}
+        emptyText={
+          onlyAvailableToday
+            ? "No one has open slots for the rest of today. Check back tomorrow."
+            : "No creators yet. Check back soon."
+        }
+        emptyCta={onlyAvailableToday ? { label: "Browse all creators", href: "/browse" } : undefined}
+      />
     </PublicLayout>
   );
 }
